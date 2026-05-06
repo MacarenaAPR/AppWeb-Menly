@@ -10,6 +10,7 @@ import "../assets/FormHardcoreTheme-9.jpg";
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
+const MENU_CACHE_TTL = 60 * 5 * 1000;
 
 const upsertMetaTag = (selector, attributes) => {
   let meta = document.querySelector(selector);
@@ -30,6 +31,34 @@ const getAbsoluteUrl = (url) => {
   return new URL(url, window.location.origin).href;
 };
 
+const getCachedMenu = (slug) => {
+  try {
+    const cached = localStorage.getItem(`menu_${slug}`);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached);
+    if (Date.now() - parsed.timestamp > MENU_CACHE_TTL) {
+      localStorage.removeItem(`menu_${slug}`);
+      return null;
+    }
+
+    return parsed.data;
+  } catch {
+    localStorage.removeItem(`menu_${slug}`);
+    return null;
+  }
+};
+
+const setCachedMenu = (slug, data) => {
+  localStorage.setItem(
+    `menu_${slug}`,
+    JSON.stringify({
+      timestamp: Date.now(),
+      data,
+    })
+  );
+};
+
 export default function Home() {
   
   const { slug } = useParams();
@@ -48,6 +77,11 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const cachedMenu = getCachedMenu(slug);
+        if (cachedMenu) {
+          setCategorias(cachedMenu);
+        }
+
         const [resRestaurante, resMenu] = await Promise.all([
           fetch(`${BASE_URL}/restaurantes/${slug}/`),
           fetch(`${BASE_URL}/menu/${slug}/`),
@@ -60,12 +94,14 @@ export default function Home() {
           (resRestaurante.status === 403 && dataRestaurante?.estado === "inactivo") ||
           (resMenu.status === 403 && dataMenu?.estado === "inactivo")
         ) {
+          localStorage.removeItem(`menu_${slug}`);
           setRestauranteInactivo(dataRestaurante?.estado === "inactivo" ? dataRestaurante : dataMenu);
           return;
         }
 
         setRestaurante(dataRestaurante);
         setCategorias(dataMenu);
+        setCachedMenu(slug, dataMenu);
       } catch (error) {
         console.error(error);
       } finally {
