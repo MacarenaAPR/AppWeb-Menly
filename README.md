@@ -1,4 +1,4 @@
-# 🍽️ Appweb Menuo
+# 🍽️ Appweb Menly
 
 Plataforma SaaS para gestión de restaurantes con **backend desacoplado** y múltiples frontends:
 
