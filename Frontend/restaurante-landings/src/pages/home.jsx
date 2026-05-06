@@ -1,19 +1,47 @@
 ﻿import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
 import Menu from "../components/Menu";
 import ReservaForm from "../components/ReservaForm";
+import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
+import { getOptimizedImageUrl } from "../utils/images";
 import "../themes/themes.css";
 import "../assets/FormHardcoreTheme-9.jpg";
 
-const BASE_URL = "http://127.0.0.1:8000/api";
-const slug = "la-mechada-real";
-const CLOUDINARY_BASE = "https://res.cloudinary.com/dyo9thk2g/";
+const BASE_URL = import.meta.env.VITE_API_URL;
 
+const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
+
+const upsertMetaTag = (selector, attributes) => {
+  let meta = document.querySelector(selector);
+
+  if (!meta) {
+    meta = document.createElement("meta");
+    document.head.appendChild(meta);
+  }
+
+  Object.entries(attributes).forEach(([key, value]) => {
+    meta.setAttribute(key, value);
+  });
+};
+
+const getAbsoluteUrl = (url) => {
+  if (!url) return "";
+
+  return new URL(url, window.location.origin).href;
+};
 
 export default function Home() {
+  
+  const { slug } = useParams();
+  
   const [restaurante, setRestaurante] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
+  const [mensaje, setMensaje] = useState("");
+  const [error, setError] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [restauranteInactivo, setRestauranteInactivo] = useState(null);
   const promocionesCarouselRef = useRef(null);
   const destacadosCarouselRef = useRef(null);
 
@@ -28,7 +56,13 @@ export default function Home() {
         const dataRestaurante = await resRestaurante.json();
         const dataMenu = await resMenu.json();
 
-        console.log("Imagenes restaurante:", dataRestaurante?.imagenes);
+        if (
+          (resRestaurante.status === 403 && dataRestaurante?.estado === "inactivo") ||
+          (resMenu.status === 403 && dataMenu?.estado === "inactivo")
+        ) {
+          setRestauranteInactivo(dataRestaurante?.estado === "inactivo" ? dataRestaurante : dataMenu);
+          return;
+        }
 
         setRestaurante(dataRestaurante);
         setCategorias(dataMenu);
@@ -40,7 +74,7 @@ export default function Home() {
     };
 
     fetchData();
-  }, []);
+  }, [slug]);
 
   const handleClickProducto = async (id) => {
     try {
@@ -61,25 +95,29 @@ export default function Home() {
     producto?.detalle_promocion ||
     "";
 
-  const getProductImage = (producto) => {
+  const getProductImage = (producto, size = {}) => {
     const image =
       producto?.imagen_url ||
       producto?.imagen ||
       producto?.foto_url ||
       producto?.foto;
 
-    if (!image) {
-      return (
-        restaurante?.logo_url ||
-        (restaurante?.imgen_principal
-          ? CLOUDINARY_BASE + restaurante.imgen_principal
-          : "/favicon.svg")
-      );
-    }
+    const fallbackImage =
+      restaurante?.logo_url ||
+      (restaurante?.imgen_principal
+        ? getOptimizedImageUrl(restaurante.imgen_principal, {
+            baseUrl: CLOUDINARY_BASE,
+            width: size.width || 800,
+            height: size.height || 600,
+          })
+        : "/favicon.svg");
 
-    if (String(image).startsWith("http") || String(image).startsWith("/")) return image;
-
-    return CLOUDINARY_BASE + image;
+    return getOptimizedImageUrl(image, {
+      baseUrl: CLOUDINARY_BASE,
+      fallbackImage,
+      width: size.width || 800,
+      height: size.height || 600,
+    });
   };
 
   const handlePromotionClick = (producto) => {
@@ -89,8 +127,14 @@ export default function Home() {
 
   const handleReserva = async (e) => {
     e.preventDefault();
+    if (enviando) return;
 
-    const formData = new FormData(e.target);
+    const form = e.currentTarget;
+    setMensaje("");
+    setError("");
+    setEnviando(true);
+
+    const formData = new FormData(form);
 
     const data = {
       nombre_cliente: formData.get("nombre_cliente"),
@@ -102,23 +146,29 @@ export default function Home() {
       mensaje: formData.get("mensaje") || "",
     };
 
-    const res = await fetch(`${BASE_URL}/reservas/${slug}/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
+    try {
+      const res = await fetch(`${BASE_URL}/reservas/${slug}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
-    const result = await res.json();
+      const result = await res.json();
 
-    if (!res.ok) {
-      alert(result.error || JSON.stringify(result));
-      return;
+      if (!res.ok) {
+        setError(result.error || "No se pudo enviar la reserva. Intenta nuevamente.");
+        return;
+      }
+
+      setMensaje("Reserva enviada correctamente. Te contactaremos para confirmar.");
+      form.reset();
+    } catch {
+      setError("No se pudo enviar la reserva. Intenta nuevamente.");
+    } finally {
+      setEnviando(false);
     }
-
-    alert(result.message);
-    e.target.reset();
   };
 
   const getCategoryName = (cat) => cat?.categoria || cat?.nombre || "";
@@ -154,6 +204,56 @@ export default function Home() {
   const imagenesRestaurante = (restaurante?.imagenes || [])
     .filter((imagen) => Boolean(imagen?.url))
     .sort((a, b) => (a?.orden || 0) - (b?.orden || 0));
+
+  const logoOptimizado = getOptimizedImageUrl(restaurante?.logo_url, {
+    baseUrl: CLOUDINARY_BASE,
+    fallbackImage: "",
+    width: 160,
+    height: 160,
+  });
+  const imagenPrincipalOptimizada = getOptimizedImageUrl(restaurante?.imgen_principal, {
+    baseUrl: CLOUDINARY_BASE,
+    fallbackImage: "",
+    width: 1200,
+    height: 900,
+  });
+  const imagenFormularioOptimizada = getOptimizedImageUrl(restaurante?.imgen_form, {
+    baseUrl: CLOUDINARY_BASE,
+    fallbackImage: "/img/default.jpg",
+    width: 1000,
+    height: 800,
+  });
+
+  useEffect(() => {
+    if (!restaurante?.nombre_empresa) return;
+
+    const nombre = restaurante.nombre_empresa;
+    const descripcion =
+      restaurante.descripcion ||
+      `Revisa el menú de ${nombre}, descubre nuestros platos y realiza tu reserva online.`;
+    const ogImage = getAbsoluteUrl(
+      logoOptimizado || imagenPrincipalOptimizada || "/favicon.svg"
+    );
+
+    document.title = `${nombre} | Menú Digital`;
+
+    upsertMetaTag('meta[name="description"]', {
+      name: "description",
+      content: descripcion,
+    });
+    upsertMetaTag('meta[property="og:title"]', {
+      property: "og:title",
+      content: `${nombre} | Menú Digital`,
+    });
+    upsertMetaTag('meta[property="og:description"]', {
+      property: "og:description",
+      content: descripcion,
+    });
+    upsertMetaTag('meta[property="og:image"]', {
+      property: "og:image",
+      content: ogImage,
+    });
+  }, [imagenPrincipalOptimizada, logoOptimizado, restaurante]);
 
   useEffect(() => {
     const startAutoScroll = (carousel, delay) => {
@@ -211,18 +311,21 @@ export default function Home() {
       </div>
     );
   }
-  console.log(
-    "Nombres reales:",
-    categorias.map((cat) => ({
-      id: cat.id,
-      nombre: cat.nombre,
-      keys: Object.keys(cat),
-      categoriaCompleta: cat,
-    }))
-  );
-  console.log(categorias);
-  console.log("Categoria promociones:", categoriaPromociones);
-  console.log("Promociones:", promociones);
+
+  if (restauranteInactivo) {
+    return (
+      <div className="page-shell inactive-restaurant-screen">
+        <section className="inactive-restaurant-card">
+          <span className="inactive-restaurant-kicker">Menú temporalmente no disponible</span>
+          <h1>Este restaurante se encuentra temporalmente inactivo.</h1>
+          <p>
+            El propietario debe regularizar su suscripción para volver a activar el menú digital.
+          </p>
+          <small>{restauranteInactivo.detalle}</small>
+        </section>
+      </div>
+    );
+  }
 
   const allowedThemes = ["theme_1", "theme_2", "theme_3", "theme_4", "theme_5", "theme_6", "theme_7", "theme_8", "theme_9"];
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
@@ -234,14 +337,21 @@ export default function Home() {
       className={`page-shell ${themeClass}`}
       style={{
         "--bg-principal": restaurante?.imgen_principal
-          ? `url(${CLOUDINARY_BASE + restaurante.imgen_principal})`
+          ? `url(${imagenPrincipalOptimizada})`
           : "none",
       }}
     >
       <header className="site-header">
         <div className="brand-block">
-          {restaurante?.logo_url && (
-            <img src={restaurante.logo_url} alt={restaurante.nombre_empresa} className="brand-logo" />
+          {logoOptimizado && (
+            <img
+              src={logoOptimizado}
+              alt={restaurante.nombre_empresa}
+              className="brand-logo"
+              loading="lazy"
+              width="64"
+              height="64"
+            />
           )}
           <div className="span-info-brand-block">
             <span className="brand-name">{restaurante?.nombre_empresa || "Restaurante"}</span>
@@ -339,17 +449,11 @@ export default function Home() {
                   <div key={producto.id} className="promo-slide">
                     <div className="promo-slide-image">
                       <img
-                        src={
-                          producto?.imagen_url ||
-                          producto?.imagen ||
-                          producto?.foto_url ||
-                          producto?.foto ||
-                          restaurante?.logo_url ||
-                          (restaurante?.imgen_principal
-                            ? CLOUDINARY_BASE + restaurante.imgen_principal
-                            : "/favicon.svg")
-                        }
+                        src={getProductImage(producto, { width: 720, height: 460 })}
                         alt={producto.nombre}
+                        loading="lazy"
+                        width="720"
+                        height="460"
                       />
                     </div>
 
@@ -397,17 +501,11 @@ export default function Home() {
                   <div key={producto.id} className="featured-slide">
                     <div className="featured-slide-image">
                       <img
-                        src={
-                          producto?.imagen_url ||
-                          producto?.imagen ||
-                          producto?.foto_url ||
-                          producto?.foto ||
-                          restaurante?.logo_url ||
-                          (restaurante?.imgen_principal
-                            ? CLOUDINARY_BASE + restaurante.imgen_principal
-                            : "/favicon.svg")
-                        }
+                        src={getProductImage(producto, { width: 420, height: 320 })}
                         alt={producto.nombre}
+                        loading="lazy"
+                        width="420"
+                        height="320"
                       />
                     </div>
 
@@ -450,7 +548,13 @@ export default function Home() {
               </button>
 
               <div className="product-modal-image">
-                <img src={getProductImage(selectedPromotion)} alt={selectedPromotion.nombre} />
+                <img
+                  src={getProductImage(selectedPromotion, { width: 900, height: 650 })}
+                  alt={selectedPromotion.nombre}
+                  loading="lazy"
+                  width="900"
+                  height="650"
+                />
               </div>
 
               <div className="product-modal-content">
@@ -471,9 +575,7 @@ export default function Home() {
           id="nosotros"
           style={{
             "--about-bg": `url(${
-              restaurante?.imgen_form
-                ? CLOUDINARY_BASE + restaurante.imgen_form
-                : "/img/default.jpg"
+              imagenFormularioOptimizada
             })`,
           }}
         >
@@ -539,7 +641,12 @@ export default function Home() {
         </section>
 
         <section className="reserve-wrapper" id="reserva">
-          <ReservaForm onSubmit={handleReserva} />
+          <ReservaForm
+            onSubmit={handleReserva}
+            enviando={enviando}
+            mensaje={mensaje}
+            error={error}
+          />
         </section>
 
         <section className="gallery-panel" aria-label="Un vistazo a nuestro espacio">
@@ -549,8 +656,15 @@ export default function Home() {
               imagenesRestaurante.map((imagen, index) => (
                 <figure key={imagen.id || imagen.url || index} className="gallery-card">
                   <img
-                    src={imagen.url}
+                    src={getOptimizedImageUrl(imagen.url, {
+                      baseUrl: CLOUDINARY_BASE,
+                      width: 520,
+                      height: 390,
+                    })}
                     alt={imagen.label || `Imagen ${index + 1} de ${restaurante?.nombre_empresa || "restaurante"}`}
+                    loading="lazy"
+                    width="520"
+                    height="390"
                   />
                   
                 </figure>
@@ -561,6 +675,7 @@ export default function Home() {
           </div>
         </section>
       </main>
+      <WhatsAppFloatingButton telefono={restaurante?.whatsapp || restaurante?.telefono} />
     </div>
   );
 }

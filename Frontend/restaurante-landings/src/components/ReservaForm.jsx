@@ -1,4 +1,4 @@
-﻿export default function ReservaForm({ onSubmit }) {
+export default function ReservaForm({ onSubmit, enviando, mensaje, error }) {
   return (
     <section className="reserva-section">
       <div className="reserva-card">
@@ -29,8 +29,20 @@
 
           <textarea name="mensaje" placeholder="Mensaje opcional"></textarea>
 
-          <button type="submit" className="button-primary">
-            Reservar ahora
+          {mensaje && (
+            <div className="alert alert-success">
+              {mensaje}
+            </div>
+          )}
+
+          {error && (
+            <div className="alert alert-danger">
+              {error}
+            </div>
+          )}
+
+          <button type="submit" className="button-primary" disabled={enviando}>
+            {enviando ? "Enviando reserva..." : "Reservar"}
           </button>
         </form>
       </div>

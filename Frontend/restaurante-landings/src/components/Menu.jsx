@@ -1,33 +1,30 @@
 import { useEffect, useState } from "react";
+import { getOptimizedImageUrl } from "../utils/images";
 
-const CLOUDINARY_BASE = "https://res.cloudinary.com/dyo9thk2g/";
+const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 
 const renderCategoryIcon = (categoria) => (
   <i className={categoria?.icono || "fa-solid fa-utensils"} aria-hidden="true"></i>
 );
 
-const getProductImage = (producto, fallbackImage) => {
+const getProductImage = (producto, fallbackImage, size = {}) => {
   const image =
     producto?.imagen_url ||
     producto?.imagen ||
     producto?.foto_url ||
     producto?.foto;
 
-  if (!image) return fallbackImage || "/favicon.svg";
-  if (String(image).startsWith("http") || String(image).startsWith("/")) return image;
-
-  return CLOUDINARY_BASE + image;
+  return getOptimizedImageUrl(image, {
+    baseUrl: CLOUDINARY_BASE,
+    fallbackImage,
+    width: size.width || 900,
+    height: size.height || 650,
+  });
 };
 
 export default function Menu({ categorias, onProductClick, fallbackImage }) {
   const [openCategory, setOpenCategory] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
-  useEffect(() => {
-    if (categorias?.length && openCategory >= categorias.length) {
-      setOpenCategory(0);
-    }
-  }, [categorias, openCategory]);
 
   useEffect(() => {
     if (!selectedProduct) return undefined;
@@ -56,7 +53,9 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
     return <p className="menu-loading">Cargando menú...</p>;
   }
 
-  const selectedCategory = openCategory === null ? null : categorias[openCategory];
+  const activeCategory =
+    openCategory === null || openCategory < categorias.length ? openCategory : 0;
+  const selectedCategory = activeCategory === null ? null : categorias[activeCategory];
 
   return (
     <section className="menu-section">
@@ -67,7 +66,7 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
 
       <div className="menu-tabs" role="tablist" aria-label="Categorías del menú">
         {categorias.map((cat, index) => {
-          const isOpen = openCategory === index;
+          const isOpen = activeCategory === index;
           const categoryName = cat.categoria || cat.nombre || `Categoría ${index + 1}`;
 
           return (
@@ -91,7 +90,7 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
       {selectedCategory && (
         <div
           className="menu-bubble"
-          id={`menu-panel-${openCategory}`}
+          id={`menu-panel-${activeCategory}`}
           role="tabpanel"
         >
           <div className="menu-bubble-header">
@@ -144,7 +143,13 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
             </button>
 
             <div className="product-modal-image">
-              <img src={getProductImage(selectedProduct, fallbackImage)} alt={selectedProduct.nombre} />
+              <img
+                src={getProductImage(selectedProduct, fallbackImage, { width: 900, height: 650 })}
+                alt={selectedProduct.nombre}
+                loading="lazy"
+                width="900"
+                height="650"
+              />
             </div>
 
             <div className="product-modal-content">
