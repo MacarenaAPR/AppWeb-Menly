@@ -7,7 +7,7 @@
     gap: 10px; 
     min-height: 0;
     flex: 1 1 auto;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .p-header{
@@ -22,7 +22,7 @@
     min-width: 0;
     gap: 20px;
     min-height: 0;
-    overflow-y: auto;
+    overflow-y: visible;
     overflow-x: hidden;
 }
 .contenido2{
@@ -32,7 +32,7 @@
     min-width: 0;
     gap: 20px;
     min-height: 0;
-    overflow-y: auto;
+    overflow-y: visible;
     overflow-x: hidden;
 }
 

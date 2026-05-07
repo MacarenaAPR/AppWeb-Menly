@@ -33,13 +33,14 @@
 .config-page {
   width: 100%;
   min-height: 0;
-  height: 100%;
+  height: auto;
   background: #071016;
   color: #f5f5f5;
   padding: 24px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .config-header {
@@ -130,7 +131,7 @@
   flex-direction: column;
   gap: 18px;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
 }
 

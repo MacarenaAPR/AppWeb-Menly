@@ -1,6 +1,6 @@
 .reservas-page {
   min-height: 0;
-  height: 100%;
+  height: auto;
   background: #071018;
   color: #f8fafc;
   padding: 24px;
