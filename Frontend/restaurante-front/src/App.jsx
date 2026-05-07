@@ -1,0 +1,53 @@
+
+
+import './App.css'
+import Dashboard from "./pages/Dashboard";
+import CartaProductos from "./pages/CartaProductos";
+import Login from "./pages/login";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AddProductos from "./componentes/body-carta-add";
+import EditProductos from './componentes/body-carta-upload';
+import Historial from './pages/Historial'
+import ReservasDashboard from './pages/Reserva'
+import ConfiguracionRestaurante from './pages/Configuracion'
+import RequireRole from './componentes/RequireRole'
+import Footer from './componentes/Footer'
+
+
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="app-shell">
+        <Routes>
+          <Route path="/dashboard/:slug/configuracion" element={
+            <RequireRole roles={["dueno", "admin"]}>
+              <ConfiguracionRestaurante />
+            </RequireRole>
+          }/>
+          <Route path="/dashboard/:slug/reservas" element={<ReservasDashboard />} />
+          <Route path="/carta-add/:slug" element={
+            <RequireRole roles={["dueno", "admin"]}>
+              <AddProductos />
+            </RequireRole>
+          } />
+          <Route path="/" element={<Login />} />
+          <Route path="/dashboard/:slug" element={<Dashboard />} />
+          <Route path="/carta-productos/:slug" element={<CartaProductos />} />
+          <Route path="/carta-productos/:slug/editar/:id" element={
+            <RequireRole roles={["dueno", "admin"]}>
+              <EditProductos />
+            </RequireRole>
+          } />
+          <Route path="/historial" element={
+            <RequireRole roles={["dueno"]}>
+              <Historial />
+            </RequireRole>
+          } />
+        </Routes>
+        <Footer />
+      </div>
+    </BrowserRouter>
+  );
+}
+
+export default App;

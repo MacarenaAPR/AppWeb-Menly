@@ -1,0 +1,322 @@
+/*              SECTION CONTENIDO         */
+.body-contenido1{
+    width: 100%;
+    display: flex;
+    flex-direction: row;  
+    flex-wrap: wrap;
+    gap: 10px; 
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.p-header{
+  font-size: 14px;
+  color: #ccc;
+}
+/*              SECTION COLUMNAS            */
+.contenido1{
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 320px;
+    min-width: 0;
+    gap: 20px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+.contenido2{
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 320px;
+    min-width: 0;
+    gap: 20px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/*              CONTENEDOR DE FORM           */
+.form{
+    margin-top: 0 !important;
+    display: flex;
+    width: 100%;
+    min-width: 320px;
+    padding: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    border-radius: 5px;
+    border: 1px solid #1F2937;
+    background: #0E161D;
+}
+
+.info-header{
+    color: #FFF;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+.info-header span{
+    color: #F8761D;
+    font-size: 18px;
+    margin-right: 8px;
+}
+/*              STYLES OF FORM DIVS.       */
+.form-label {
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 6px;
+  text-align: start;
+}
+
+.form small,
+.config-item small,
+.view-info p,
+.upload-content small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+  background: #091119;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 12PX;
+}
+
+.form-control::placeholder,
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.form-control:focus {
+  background: none;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+.col-12,
+.col-md-6{
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+}
+
+
+.input-group-text {
+  color: #fff;
+}
+/*         form add img        */
+.upload-box {
+  width: 100%;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  background: #091119;
+}
+
+.upload-content {
+  color: #fff;
+}
+
+.preview-box {
+  width: 100%;
+  height: 180px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8761d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.preview-empty {
+  color: white;
+  font-size: 14px;
+}
+
+.img-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+/*        section info y organizacion         */
+.view-info {
+  padding: 0 20px;
+  color: #fff;
+  font-size: 13px;
+  gap:10px;
+  text-align: start;
+}
+.view-info i{
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+
+/*              SECTION DE BTNS           */
+.btn-cancel-productos{
+    display: flex;
+    width: 100px;
+    height: 40px;
+    padding: 0 9px;
+    justify-content: center;
+    align-items: center;
+    gap:10px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    border: 1.5px solid #1F2937;
+    background: #0B0F13;
+    font-size: 12px;
+    font-weight: 700;
+}
+.btn-add-productos{
+    display: flex;
+    width: 150px;
+    height: 40px;
+    padding: 9px 10px;
+    align-items: center;
+    gap: 5px;
+    border:none;
+    border-radius: 10px;
+    background: #F8761D;
+    font-size: 12px;
+    font-weight: 700;
+}
+.btns-adds-cancel{
+    display: flex;
+    width: 100%;
+    justify-content: CENTER;
+    align-items: center;
+    gap: 20px;
+    margin-top:0;
+}
+
+/*    section configuracion del productos      */
+#div-configuracion{
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px;
+  align-items: center;
+}
+.config-item {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+#config-item-1 {
+  padding-left: 20px;
+  border-left: 0.5px solid #1F2937;
+}
+
+
+.form-switch .form-check-input {
+  background-color: #ccc;
+  border-color: #ccc;
+}
+
+.form-switch .form-check-input:checked {
+  background-color: #f8761d;
+  border-color: #f8761d;
+}
+
+.form-switch .form-check-input:focus {
+  box-shadow: none;
+}
+
+.posicion-div{
+  max-width:700px;
+  width: 100%;
+  gap: 20px;
+  display: flex;
+  flex-direction: row;
+
+}
+.posicion-div select{
+  max-width: 150px;
+  max-height: 35px;
+}
+.text-posicion{
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  text-align: start;
+}
+.text-posicion p{
+  font-size: 13px;
+  color: #ccc;
+}
+.div-text-footer{
+
+  padding: 5px 20px;
+  border-top: 1px solid #1F2937;
+  width: 100%;
+  max-width: 650px;
+}
+
+@media (max-width: 768px) {
+  .body-contenido1 {
+    flex-direction: column;
+  }
+
+  .contenido1,
+  .contenido2 {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .form {
+    min-width: 0;
+  }
+
+  .posicion-div {
+    flex-direction: column;
+  }
+
+  .posicion-div select {
+    max-width: 100%;
+  }
+
+  #config-item-1 {
+    padding-left: 0;
+    border-left: none;
+  }
+
+  .config-item {
+    gap: 12px;
+  }
+
+  .btns-adds-cancel {
+    flex-wrap: wrap;
+  }
+
+  .btn-cancel-productos,
+  .btn-add-productos {
+    flex: 1 1 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .upload-box {
+    padding: 18px;
+  }
+
+  .preview-box {
+    height: 150px;
+  }
+
+  .view-info {
+    padding: 0;
+  }
+}

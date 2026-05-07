@@ -1,0 +1,163 @@
+* {
+  box-sizing: border-box;
+  font-family:"Inter";
+}
+
+body {
+  margin: 0;
+}
+
+.login-page {
+  min-height: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: 
+    linear-gradient(
+      180deg, 
+      rgba(0, 0, 0, 0.5) 30%, 
+      rgba(0, 0, 0, 0.4) 60%, 
+      rgba(255, 255, 255, 0.3) 100%
+    ),
+    url(../assets/Recurso2.png);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.overlay {
+  min-height: 100%;
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  max-width: 360px;
+  text-align: center;
+  align-items: center;
+  justify-items: center;
+
+}
+.login-card h1 { 
+  color: #FFF;
+  text-align: center;
+  text-shadow: 0 6px 6px #000;
+  font-size: 60px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: normal;
+  }
+.login-card span{
+  color:#C05000;
+}
+.login-card h2 {
+  font-size: 1.4rem;
+  margin: 0;
+  color: #FFF;
+}
+
+.login-card p {
+  margin-top: 6px;
+  margin-bottom: 24px;
+  color: #d9d9d9;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #FFF;
+}
+
+.login-card label {
+  text-align: left;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.login-card input {
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  background-color: #FFF;
+  color: #000;
+}
+.div-btn{
+  width: 360px;
+  display: flex;
+  align-items: center;
+  justify-items: center;
+  justify-content: center;
+}
+.login-card button {
+  box-shadow: 0 6px 6px #000;
+  width: 200px;
+  margin-top: 12px;
+  padding: 12px;
+  border: none;
+  border-radius: 999px;
+  background: #c86700;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.login-card button:hover {
+  background: #a85500;
+}
+
+.login-card a {
+  display: inline-block;
+  margin-top: 18px;
+  color: #e5e5e5;
+  font-size: 0.9rem;
+  text-decoration: underline;
+}
+
+.error {
+  color: #ffb3b3;
+  margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .overlay {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .login-card h1 {
+    font-size: clamp(38px, 12vw, 56px);
+    margin: 0 0 10px;
+  }
+
+  .login-card form,
+  .login-card input,
+  .div-btn {
+    width: 100%;
+  }
+
+  .login-card button {
+    width: min(100%, 220px);
+  }
+}
+
+@media (max-width: 390px) {
+  .overlay {
+    padding: 14px;
+  }
+
+  .login-card h1 {
+    font-size: 36px;
+  }
+}
