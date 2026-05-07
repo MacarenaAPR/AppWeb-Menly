@@ -73,29 +73,56 @@
 
 /********SECCIO MENU DE NAVEGACION********/
 .menu-main{
+    position: sticky;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 18px;
     width: 250px;
     flex: 0 0 250px;
-    padding: 0 20px 20px;
+    padding: 18px 20px 20px;
     min-height: calc(100vh - 50px);
     height: auto;
     max-height: calc(100vh - 50px);
     border-radius: 20px;
     border: 3px solid #16191F;
-    background: url(../assets/Ilustración\ minimalista\ de\ vegetales.png) lightgray 50% / cover no-repeat;
+    background: #00050B;
     overflow-y: auto;
     overflow-x: hidden;
-    position: sticky;
     top: 5px;
+    isolation: isolate;
+}
+.menu-main::before{
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: url(../assets/Ilustración\ minimalista\ de\ vegetales.png) 50% 78% / cover no-repeat;
+    opacity: 0.22;
+    pointer-events: none;
+    z-index: 0;
+}
+.menu-main .nav{
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    gap: 8px;
+}
+.menu-main .nav-item{
+    width: 100%;
 }
 .div-cerrar-sesion{
+    position: relative;
+    z-index: 1;
+    width: 100%;
     margin-top: auto;
+    padding-top: 18px;
 }
 .div-logo{
+    position: relative;
+    z-index: 1;
     width: 100%;
+    margin-bottom: 6px;
 }
 .div-logo img{
     width: 130px;
@@ -134,6 +161,12 @@
         z-index: 20;
     }
 
+    .menu-main::before {
+        background-position: 100% 50%;
+        background-size: 320px auto;
+        opacity: 0.14;
+    }
+
     .menu-main .nav {
         flex: 1 1 auto;
         min-width: 0;
@@ -151,6 +184,7 @@
     .div-logo {
         width: auto;
         flex: 0 0 auto;
+        margin-bottom: 0;
     }
 
     .div-logo img {
@@ -160,6 +194,8 @@
 
     .div-cerrar-sesion {
         margin-top: 0;
+        padding-top: 0;
+        width: auto;
         flex: 0 0 auto;
     }
 
