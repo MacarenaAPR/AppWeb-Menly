@@ -81,7 +81,7 @@ export default function CardsProductos({
           </div>
 
           <div className="div-buttons">
-            <button type="button" onClick={() => onEdit(id)}>
+            <button className="btn-pencil" type="button" onClick={() => onEdit(id)}>
               <i className="bi bi-pencil-square"></i>
             </button>
 

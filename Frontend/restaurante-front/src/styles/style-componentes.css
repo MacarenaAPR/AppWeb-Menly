@@ -601,6 +601,9 @@
     #card-producto .div-buttons {
         gap: 6px;
     }
+    .btn-pencil i{
+        color: whitesmoke !important;
+    }
 
     #card-producto .div-buttons button {
         width: 30px;
