@@ -56,6 +56,8 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
   const activeCategory =
     openCategory === null || openCategory < categorias.length ? openCategory : 0;
   const selectedCategory = activeCategory === null ? null : categorias[activeCategory];
+  const selectedCategoryName =
+    selectedCategory?.categoria || selectedCategory?.nombre || "Categoría";
 
   return (
     <section className="menu-section">
@@ -96,7 +98,7 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
           <div className="menu-bubble-header">
             <div className="category-title">
               <span className="category-icon">{renderCategoryIcon(selectedCategory)}</span>
-              <span>{selectedCategory.categoria || selectedCategory.nombre}</span>
+              <span>{selectedCategoryName}</span>
             </div>
             <span>{selectedCategory.productos?.length || 0} productos</span>
           </div>
@@ -109,11 +111,27 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
                 className="producto-card"
                 onClick={() => handleProductClick(producto)}
               >
-                <div className="producto-head">
-                  <h3>{producto.nombre}</h3>
-                  <span>${Number(producto.precio).toLocaleString("es-CL")}</span>
+                <div className="producto-card-image">
+                  <img
+                    src={getProductImage(producto, fallbackImage, { width: 220, height: 220 })}
+                    alt={producto.nombre}
+                    loading="lazy"
+                    width="220"
+                    height="220"
+                  />
                 </div>
-                <p>{producto.descripcion}</p>
+
+                <div className="producto-card-content">
+                  <div className="producto-head">
+                    <div>
+                      <h3>{producto.nombre}</h3>
+                      <span className="producto-category">{selectedCategoryName}</span>
+                    </div>
+                    <span>${Number(producto.precio).toLocaleString("es-CL")}</span>
+                  </div>
+                  <p>{producto.descripcion}</p>
+                  <span className="producto-action">Ver detalle</span>
+                </div>
               </button>
             ))}
           </div>

@@ -66,6 +66,7 @@ export default function Home() {
   const [restaurante, setRestaurante] = useState(null);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
@@ -340,6 +341,14 @@ export default function Home() {
     };
   }, [selectedPromotion]);
 
+  useEffect(() => {
+    document.body.classList.toggle("mobile-nav-open", mobileNavOpen);
+
+    return () => {
+      document.body.classList.remove("mobile-nav-open");
+    };
+  }, [mobileNavOpen]);
+
   if (loading) {
     return (
       <div className="page-shell loading-screen">
@@ -378,6 +387,18 @@ export default function Home() {
       }}
     >
       <header className="site-header">
+        <button
+          type="button"
+          className="mobile-menu-toggle"
+          aria-label={mobileNavOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen((isOpen) => !isOpen)}
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
         <div className="brand-block">
           {logoOptimizado && (
             <img
@@ -396,15 +417,32 @@ export default function Home() {
           
         </div>
 
-        <nav className="site-nav">
-          <a href="#inicio">Inicio</a>
-          <a href="#menu">Menú</a>
-          <a href="#promociones">Promociones</a>
-          <a href="#nosotros">Nosotros</a>
-          <a href="#reserva">Reserva</a>
+        <nav className={`site-nav ${mobileNavOpen ? "is-open" : ""}`}>
+          <button
+            type="button"
+            className="mobile-nav-close"
+            aria-label="Cerrar menú"
+            onClick={() => setMobileNavOpen(false)}
+          >
+            <i className="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
+          <a href="#inicio" onClick={() => setMobileNavOpen(false)}>Inicio</a>
+          <a href="#menu" onClick={() => setMobileNavOpen(false)}>Menú</a>
+          <a href="#promociones" onClick={() => setMobileNavOpen(false)}>Promociones</a>
+          <a href="#nosotros" onClick={() => setMobileNavOpen(false)}>Nosotros</a>
+          <a href="#reserva" onClick={() => setMobileNavOpen(false)}>Reserva</a>
         </nav>
 
-        <a className="button-primary" href="#reserva">
+        {mobileNavOpen && (
+          <button
+            type="button"
+            className="mobile-nav-backdrop"
+            aria-label="Cerrar menú"
+            onClick={() => setMobileNavOpen(false)}
+          ></button>
+        )}
+
+        <a className="button-primary header-cta" href="#reserva">
           Escríbenos
         </a>
       </header>
