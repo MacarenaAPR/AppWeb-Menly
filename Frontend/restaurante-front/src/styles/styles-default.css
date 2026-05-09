@@ -83,14 +83,12 @@
     padding: 18px 20px 20px;
     min-height: calc(100vh - 50px);
     height: auto;
-    max-height: calc(100vh - 50px);
+    max-height: 100vh;
     border-radius: 20px;
     border: 3px solid #16191F;
     background: #00050B;
-    overflow-y: auto;
-    overflow-x: hidden;
+
     top: 5px;
-    isolation: isolate;
 }
 .menu-main::before{
     content: "";
@@ -111,6 +109,11 @@
 .menu-main .nav-item{
     width: 100%;
 }
+.mobile-menu-header,
+.mobile-menu-drawer,
+.mobile-drawer-backdrop{
+    display: none;
+}
 .div-cerrar-sesion{
     position: relative;
     z-index: 1;
@@ -119,6 +122,8 @@
     padding-top: 18px;
 }
 .div-logo{
+    display: flex;
+    justify-content: center;
     position: relative;
     z-index: 1;
     width: 100%;
@@ -149,16 +154,17 @@
         min-height: auto;
         height: auto;
         max-height: none;
-        padding: 8px 12px;
+        padding: 8px 10px;
         border-radius: 14px;
         flex-direction: row;
         align-items: center;
-        gap: 10px;
-        overflow-x: auto;
+        gap: 0;
+        overflow-x: hidden;
         overflow-y: hidden;
         position: sticky;
         top: 0;
         z-index: 20;
+        justify-content: stretch;
     }
 
     .menu-main::before {
@@ -167,36 +173,149 @@
         opacity: 0.14;
     }
 
-    .menu-main .nav {
-        flex: 1 1 auto;
+    .mobile-menu-header {
+        position: relative;
+        z-index: 2;
+        width: 100%;
         min-width: 0;
-        flex-direction: row !important;
-        flex-wrap: nowrap;
-        gap: 6px;
-        overflow-x: auto;
-        scrollbar-width: thin;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
     }
 
-    .menu-main .nav-item {
+    .mobile-menu-toggle,
+    .mobile-drawer-close {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        border: 1.5px solid #2F3337;
+        background: #0D1218;
+        color: #F06B0C;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         flex: 0 0 auto;
     }
 
-    .div-logo {
-        width: auto;
-        flex: 0 0 auto;
-        margin-bottom: 0;
+    .mobile-menu-toggle {
+        flex-direction: column;
+        gap: 5px;
     }
 
-    .div-logo img {
+    .mobile-menu-toggle span {
+        width: 20px;
+        height: 2px;
+        border-radius: 999px;
+        background: #F06B0C;
+    }
+
+    .mobile-menu-brand {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .mobile-menu-brand img {
         width: 82px;
         height: 48px;
+        object-fit: contain;
     }
 
-    .div-cerrar-sesion {
-        margin-top: 0;
-        padding-top: 0;
-        width: auto;
-        flex: 0 0 auto;
+    .mobile-menu-logout {
+        min-width: 0;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .desktop-menu-logo,
+    .desktop-menu-nav,
+    .desktop-menu-logout {
+        display: none !important;
+    }
+
+    .mobile-drawer-backdrop {
+        position: fixed;
+        inset: 0;
+        display: block;
+        z-index: 998;
+        border: 0;
+        background: rgba(0, 0, 0, 0.58);
+    }
+
+    .mobile-menu-drawer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 999;
+        width: min(320px, calc(100vw - 28px));
+        height: 100dvh;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        border-right: 1.5px solid #1E293B;
+        background: #00050B;
+        box-shadow: 18px 0 40px rgba(0, 0, 0, 0.42);
+        overflow-y: auto;
+        overflow-x: hidden;
+        transform: translateX(-105%);
+        transition: transform 0.22s ease;
+        isolation: isolate;
+        pointer-events: none;
+        visibility: hidden;
+    }
+
+    .mobile-menu-drawer::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: url(../assets/Ilustración\ minimalista\ de\ vegetales.png) 50% 90% / cover no-repeat;
+        opacity: 0.14;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .mobile-menu-drawer.is-open {
+        transform: translateX(0);
+        pointer-events: auto;
+        visibility: visible;
+    }
+
+    .mobile-drawer-header {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .mobile-drawer-header img {
+        width: 96px;
+        height: 54px;
+        object-fit: contain;
+    }
+
+    .mobile-drawer-nav {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column !important;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .mobile-drawer-nav .nav-item {
+        width: 100%;
+    }
+
+    .mobile-drawer-logout {
+        position: relative;
+        z-index: 1;
+        margin-top: auto;
+        padding-top: 12px;
     }
 
     .body-main,
@@ -222,11 +341,11 @@
 
 @media (max-width: 768px) {
     .menu-main {
-        align-items: stretch;
+        align-items: center;
     }
 
-    .menu-main .nav {
-        padding-bottom: 4px;
+    .mobile-menu-header {
+        gap: 8px;
     }
 
     .body-main,
@@ -244,8 +363,13 @@
         padding: 6px 8px;
     }
 
-    .div-logo img {
+    .mobile-menu-brand img {
         width: 64px;
         height: 40px;
+    }
+
+    .mobile-menu-toggle {
+        width: 38px;
+        height: 38px;
     }
 }

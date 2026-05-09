@@ -1,17 +1,20 @@
 ﻿import logo from "../assets/logoMenly.png";
+import logoMobile from "../assets/logoMenly2.png";
 import ButtonMain from "./link-menu";
 import ButtonLogout from "./btn-cerrar-sesion";
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { authFetch, buildMenuUrl } from "../api";
 import { permisosPorRol } from "../utils/permisos";
 
 export default function MainMenu(){
     const [data, setData] = useState(null);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { slug } = useParams();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const navigate = useNavigate();
+    const location = useLocation();
  useEffect(() => {
     const fetchRestaurante = async () => {
       try {
@@ -69,71 +72,144 @@ export default function MainMenu(){
       : `http://${paginaWeb}`
     : buildMenuUrl(restaurante.slug);
 
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+  const navigateAndClose = (path) => {
+    navigate(path);
+    closeMobileMenu();
+  };
+  const openPageAndClose = () => {
+    window.open(paginaWebUrl, "_blank");
+    closeMobileMenu();
+  };
+
+  const menuItems = [
+    {
+      key: "inicio",
+      icon: <i className="bi bi-columns-gap"></i>,
+      name: "Inicio",
+      isActive: location.pathname === `/dashboard/${restaurante.slug}`,
+      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}`),
+    },
+    {
+      key: "productos",
+      icon: <i className="bi bi-book-half"></i>,
+      name: "Carta/Productos",
+      isActive:
+        location.pathname.startsWith(`/carta-productos/${restaurante.slug}`) ||
+        location.pathname === `/carta-add/${restaurante.slug}`,
+      onClick: () => navigateAndClose(`/carta-productos/${restaurante.slug}`),
+    },
+    permisos.canViewBitacora && {
+      key: "bitacora",
+      icon: <i className="bi bi-clock-history"></i>,
+      name: "Bitácora",
+      isActive: location.pathname === "/historial",
+      onClick: () => navigateAndClose("/historial"),
+    },
+    {
+      key: "reservas",
+      icon: <i className="bi bi-calendar3"></i>,
+      name: "Reservas",
+      isActive: location.pathname === `/dashboard/${restaurante.slug}/reservas`,
+      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/reservas`),
+    },
+    {
+      key: "web",
+      icon: <i className="bi bi-globe"></i>,
+      name: "Mi página web",
+      isActive: false,
+      onClick: openPageAndClose,
+    },
+    permisos.canAccessConfiguracion && {
+      key: "configuracion",
+      icon: <i className="bi bi-gear"></i>,
+      name: "Configuraciones",
+      isActive: location.pathname === `/dashboard/${restaurante.slug}/configuracion`,
+      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/configuracion`),
+    },
+  ].filter(Boolean);
+
+  const renderMenuItems = () =>
+    menuItems.map((item) => (
+      <li className="nav-item" key={item.key}>
+        <ButtonMain
+          icon={item.icon}
+          name={item.name}
+          className={item.isActive ? "is-active" : ""}
+          onClick={item.onClick}
+        />
+      </li>
+    ));
+
     return(
         <section className="menu-main">
-            <div className="div-logo">
+            <div className="mobile-menu-header">
+                <button
+                  className="mobile-menu-toggle"
+                  type="button"
+                  aria-label="Abrir menú"
+                  aria-expanded={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen(true)}
+                >
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </button>
+                <div className="mobile-menu-brand">
+                    <img src={logoMobile} alt="Logo-menu" />
+                </div>
+                <div className="mobile-menu-logout">
+                    <ButtonLogout
+                        icon={<i className="bi bi-box-arrow-right"></i>}
+                        name="Cerrar sesión"
+                    />
+                </div>
+            </div>
+
+            <div className="div-logo desktop-menu-logo">
                 <img src={logo} alt="Logo-menu" />
             </div>
-            <ul className="nav flex-column">
-                <li className="nav-item">
-                    <ButtonMain
-                        icon={<i className="bi bi-columns-gap"></i>}
-                        name="Inicio"
-                        onClick={() => navigate(`/dashboard/${restaurante.slug}`)}>
-                    </ButtonMain>
-                </li>
-                <li className="nav-item">
-                    <ButtonMain
-                        icon ={<i className="bi bi-book-half"></i>}
-                        name="Carta/Productos"
-                        onClick={() => navigate(`/carta-productos/${restaurante.slug}`)}>
-                    </ButtonMain>
-                </li>
-                {permisos.canViewBitacora && (
-                <li className="nav-item">
-                  <ButtonMain
-                    icon={<i className="bi bi-clock-history"></i>}
-                    name="Bitácora"
-                    onClick={() => navigate(`/historial`)}
-                  />
-                </li>
-                )}
-                <li className="nav-item">
-                    <ButtonMain
-                        icon ={<i className="bi bi-calendar3"></i>}
-                        name="Reservas"
-                        onClick={() => navigate(`/dashboard/${restaurante.slug}/reservas`)}>
-                    </ButtonMain>
-                </li>
-                {/*<li class="nav-item">
-                    <ButtonMain
-                        icon ={<i class="bi bi-graph-up"></i>}
-                        name="Reportes">
-                    </ButtonMain>
-                </li>*/}
-                <li className="nav-item">
-                    <ButtonMain
-                        icon={<i className="bi bi-globe"></i>}
-                        name="Mi página web"
-                        onClick={() => window.open(paginaWebUrl, "_blank")}>
-                    </ButtonMain>
-                </li>
-                {permisos.canAccessConfiguracion && (
-                <li className="nav-item">
-                    <ButtonMain
-                        icon={<i className="bi bi-gear"></i>}
-                        name="Configuraciones"
-                        onClick={() => navigate(`/dashboard/${restaurante.slug}/configuracion`)}>
-                    </ButtonMain>
-                </li>
-                )}
+            <ul className="nav flex-column desktop-menu-nav">
+                {renderMenuItems()}
             </ul>
-            <div className="div-cerrar-sesion">
+            <div className="div-cerrar-sesion desktop-menu-logout">
                 <ButtonLogout
                     icon={<i className="bi bi-box-arrow-right"></i>}
                     name="Cerrar sesión">
                 </ButtonLogout>         
             </div>
+
+            {mobileMenuOpen && (
+              <button
+                className="mobile-drawer-backdrop"
+                type="button"
+                aria-label="Cerrar menú"
+                onClick={closeMobileMenu}
+              />
+            )}
+
+            <aside className={`mobile-menu-drawer ${mobileMenuOpen ? "is-open" : ""}`} aria-hidden={!mobileMenuOpen}>
+                <div className="mobile-drawer-header">
+                    <img src={logoMobile} alt="Logo-menu" />
+                    <button
+                      className="mobile-drawer-close"
+                      type="button"
+                      aria-label="Cerrar menú"
+                      onClick={closeMobileMenu}
+                    >
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <ul className="nav flex-column mobile-drawer-nav">
+                    {renderMenuItems()}
+                </ul>
+                <div className="mobile-drawer-logout">
+                    <ButtonLogout
+                        icon={<i className="bi bi-box-arrow-right"></i>}
+                        name="Cerrar sesión"
+                    />
+                </div>
+            </aside>
         </section>
     );
 }

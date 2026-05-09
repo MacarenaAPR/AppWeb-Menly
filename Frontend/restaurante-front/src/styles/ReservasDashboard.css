@@ -385,7 +385,51 @@
   }
 
   .reservas-stats {
-    grid-template-columns: 1fr;
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .reservas-stats::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .reservas-stats::-webkit-scrollbar-thumb {
+    background: rgba(248, 118, 29, 0.25);
+    border-radius: 999px;
+  }
+
+  .reserva-stat-card {
+    flex: 0 0 170px;
+    min-height: 138px;
+    scroll-snap-align: start;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  .reserva-stat-card .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .reserva-stat-card h3 {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .reserva-stat-card p {
+    font-size: 12px;
+    line-height: 1.25;
+    overflow-wrap: break-word;
   }
 
   .filters-row,
@@ -402,6 +446,153 @@
 
   .tab {
     flex: 1 1 140px;
+  }
+
+  .reservas-table-card {
+    overflow-x: hidden;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .reservas-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .reservas-table thead {
+    display: none;
+  }
+
+  .reservas-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .reservas-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    padding: 14px;
+    border: 1px solid #172535;
+    border-radius: 16px;
+    background: #0d1720;
+    width: 100%;
+  }
+
+  .reservas-table tbody tr:has(td[colspan]) {
+    display: block;
+  }
+
+  .reservas-table td {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    padding: 0;
+    border-top: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .reservas-table td::before {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .reservas-table td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .reservas-table td:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .reservas-table td:nth-child(2)::before {
+    content: "Cliente:";
+  }
+
+  .reservas-table td:nth-child(3) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .reservas-table td:nth-child(3)::before {
+    content: "Telefono:";
+  }
+
+  .reservas-table td:nth-child(4) {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  .reservas-table td:nth-child(4)::before {
+    content: "Personas:";
+  }
+
+  .reservas-table td:nth-child(5) {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+
+  .reservas-table td:nth-child(5)::before {
+    content: "Mesa:";
+  }
+
+  .reservas-table td:nth-child(6) {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: flex-end;
+    justify-self: end;
+  }
+
+  .reservas-table td:nth-child(7) {
+    grid-column: 1 / -1;
+    grid-row: 6;
+  }
+
+  .reservas-table td:nth-child(7)::before {
+    content: "Acciones:";
+  }
+
+  .reservas-table td small,
+  .contacto-cell {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .fecha-cell,
+  .hora-cell,
+  .contacto-cell,
+  .personas-cell {
+    align-items: center;
+    min-width: 0;
+  }
+
+  .fecha-cell {
+    margin-bottom: 2px;
+  }
+
+  .mesa-input {
+    width: 100%;
+    max-width: 160px;
+  }
+
+  .acciones-cell {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .acciones-cell button {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
   }
 
   .table-footer {

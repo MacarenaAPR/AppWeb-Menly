@@ -350,8 +350,11 @@
 }
 
 @media (max-width: 768px) {
+    
     .header-logo-bienvenido {
+        height: auto;
         padding: 16px;
+        background: (359deg, rgba(0, 0, 0, 0.20) 53.14%, rgba(102, 102, 102, 0.20) 88.56%), url(../assets/Plato\ rústico\ con\ carne\ desmenuzada.png);
     }
 
     .bienvenidos {
@@ -371,10 +374,7 @@
         text-align: left;
     }
 
-    .header-logo-bienvenido {
-        height: auto;
-        background-size: cover;
-    }
+    
 
     .body-metric-notific,
     .body-ultimos-cliks {
@@ -382,8 +382,22 @@
     }
 
     .metric {
-        grid-template-columns: 1fr;
+        display: flex;
+        grid-template-columns: none;
+        gap: 12px;
         width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0 4px 8px 0;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .metric::-webkit-scrollbar {
+        display: none;
     }
 
     .notific,
@@ -433,6 +447,12 @@
 @media (max-width: 480px) {
     .header-logo-bienvenido {
         min-height: 180px;
+        background-color: url(/Frontend/restaurante-front/src/assets/Plato\ rústico\ con\ carne\ desmenuzada.png);
+        background-size: cover;
+        background-position: center;
+    }
+    .bienvenidos span{
+        color: whitesmoke;
     }
 
     .notific {

@@ -4,16 +4,50 @@ import "../styles/Historial.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { authFetch } from "../api";
 
+const DESKTOP_PAGE_SIZE = 20;
+const MOBILE_PAGE_SIZE = 5;
+
 export default function Historial() {
   const [historial, setHistorial] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState("TODOS");
   const [paginaActual, setPaginaActual] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
   const [totalHistorial, setTotalHistorial] = useState(0);
-  const [paginaSiguiente, setPaginaSiguiente] = useState(null);
-  const [paginaAnterior, setPaginaAnterior] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const pageSize = isMobile ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE;
+  const backendPage =
+    Math.floor(((paginaActual - 1) * pageSize) / DESKTOP_PAGE_SIZE) + 1;
+  const indiceInicioBackend =
+    ((paginaActual - 1) * pageSize) % DESKTOP_PAGE_SIZE;
+  const totalPaginas = Math.max(1, Math.ceil(totalHistorial / pageSize));
+  const hayPaginaAnterior = paginaActual > 1;
+  const hayPaginaSiguiente = paginaActual < totalPaginas;
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const actualizarVista = () => {
+      const mobile = mediaQuery.matches;
+
+      setIsMobile((actual) => {
+        if (actual !== mobile) {
+          setPaginaActual(1);
+        }
+
+        return mobile;
+      });
+    };
+
+    actualizarVista();
+    mediaQuery.addEventListener("change", actualizarVista);
+
+    return () => {
+      mediaQuery.removeEventListener("change", actualizarVista);
+    };
+  }, []);
 
   useEffect(() => {
     const cargarHistorial = async () => {
@@ -28,7 +62,7 @@ export default function Historial() {
         setLoading(true);
         setError("");
 
-        const response = await authFetch(`/historial/?page=${paginaActual}`, {
+        const response = await authFetch(`/historial/?page=${backendPage}`, {
           method: "GET",
         });
 
@@ -40,13 +74,9 @@ export default function Historial() {
         const data = await response.json();
         setHistorial(data.results || data);
         setTotalHistorial(data.count ?? (Array.isArray(data) ? data.length : 0));
-        setPaginaSiguiente(data.next || null);
-        setPaginaAnterior(data.previous || null);
       } catch {
         setHistorial([]);
         setTotalHistorial(0);
-        setPaginaSiguiente(null);
-        setPaginaAnterior(null);
         setError("Ocurrió un error al cargar la bitácora");
       } finally {
         setLoading(false);
@@ -54,7 +84,13 @@ export default function Historial() {
     };
 
     cargarHistorial();
-  }, [paginaActual]);
+  }, [backendPage]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
 
   const historialFiltrado = useMemo(() => {
     return historial.filter((item) => {
@@ -69,6 +105,27 @@ export default function Historial() {
     });
   }, [historial, busqueda, filtro]);
 
+  const historialPagina = useMemo(() => {
+    if (!isMobile) {
+      return historialFiltrado;
+    }
+
+    return historialFiltrado.slice(
+      indiceInicioBackend,
+      indiceInicioBackend + pageSize
+    );
+  }, [historialFiltrado, indiceInicioBackend, isMobile, pageSize]);
+
+  const handleBusquedaChange = (event) => {
+    setBusqueda(event.target.value);
+    setPaginaActual(1);
+  };
+
+  const handleFiltroChange = (nuevoFiltro) => {
+    setFiltro(nuevoFiltro);
+    setPaginaActual(1);
+  };
+
   const colorAccion = (accion) => {
     if (accion === "CREADO") return "accion-creado";
     if (accion === "ELIMINADO") return "accion-eliminado";
@@ -77,8 +134,8 @@ export default function Historial() {
   };
 
   return (
-    <div className="body">
-      <main className="container-fluid" id="main">
+    <div className="body historial-shell">
+      <main className="container-fluid historial-main" id="main">
         <MainMenu/>
 
         <section className="historial-page">
@@ -101,7 +158,7 @@ export default function Historial() {
                 type="text"
                 placeholder="Buscar producto..."
                 value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
+                onChange={handleBusquedaChange}
               />
             </div>
           </div>
@@ -109,7 +166,7 @@ export default function Historial() {
           <div className="historial-tabs">
             <button
               className={filtro === "TODOS" ? "active" : ""}
-              onClick={() => setFiltro("TODOS")}
+              onClick={() => handleFiltroChange("TODOS")}
             >
               <i className="bi bi-grid"></i>
               Todos
@@ -117,21 +174,21 @@ export default function Historial() {
 
             <button
               className={filtro === "EDITADO" ? "active" : ""}
-              onClick={() => setFiltro("EDITADO")}
+              onClick={() => handleFiltroChange("EDITADO")}
             >
               Editado
             </button>
 
             <button
               className={filtro === "ELIMINADO" ? "active" : ""}
-              onClick={() => setFiltro("ELIMINADO")}
+              onClick={() => handleFiltroChange("ELIMINADO")}
             >
               Eliminado
             </button>
 
             <button
               className={filtro === "CREADO" ? "active" : ""}
-              onClick={() => setFiltro("CREADO")}
+              onClick={() => handleFiltroChange("CREADO")}
             >
               Creado
             </button>
@@ -142,9 +199,9 @@ export default function Historial() {
               <div className="historial-empty">Cargando...</div>
             ) : error ? (
               <div className="alert alert-danger">{error}</div>
-            ) : historialFiltrado.length > 0 ? (
+            ) : historialPagina.length > 0 ? (
               <div className="historial-list">
-                {historialFiltrado.map((item) => (
+                {historialPagina.map((item) => (
                   <div key={item.id} className="historial-row">
                     <span className={`estado-dot ${colorAccion(item.accion)}`}></span>
 
@@ -184,19 +241,19 @@ export default function Historial() {
 
           <footer className="table-footer">
             <span>
-              Página {paginaActual} · Mostrando {historial.length} de {totalHistorial} registros
+              Página {paginaActual} · Mostrando {historialPagina.length} de {totalHistorial} registros
             </span>
             <div className="paginations">
               <button
                 type="button"
-                disabled={!paginaAnterior}
+                disabled={!hayPaginaAnterior}
                 onClick={() => setPaginaActual((page) => Math.max(1, page - 1))}
               >
                 Anterior
               </button>
               <button
                 type="button"
-                disabled={!paginaSiguiente}
+                disabled={!hayPaginaSiguiente}
                 onClick={() => setPaginaActual((page) => page + 1)}
               >
                 Siguiente

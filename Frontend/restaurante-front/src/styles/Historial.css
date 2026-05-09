@@ -1,19 +1,44 @@
+.historial-shell {
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.historial-main {
+  align-items: stretch !important;
+  flex: 1 1 0;
+  flex-shrink: 1;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .historial-page {
   min-height: 0;
-  height: auto;
+  height: 100%;
+  max-height: 100%;
   background: #070d14;
   color: #fff;
   padding: 28px;
   border-radius: 12px;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
 }
 
 .historial-header {
   display: flex;
+  flex: 0 0 auto;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
@@ -38,6 +63,7 @@
 
 .historial-actions {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 14px;
   margin-bottom: 14px;
@@ -97,6 +123,7 @@
 
 .historial-tabs {
   display: flex;
+  flex: 0 0 auto;
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -121,12 +148,16 @@
   background: #101820;
   border: 1px solid #1e2b38;
   padding: 18px;
-  min-height: 240px;
-  flex: 1 1 auto;
+  min-height: 790px;
+  flex: 1 1 0;
   max-height: none;
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.historial-page > .table-footer {
+  flex: 0 0 auto;
 }
 
 .historial-list {
@@ -200,8 +231,19 @@
 }
 
 @media (max-width: 900px) {
+  .historial-main {
+    flex: 1 1 0;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+  }
+
   .historial-page {
     padding: 18px;
+    flex: 1 1 0;
+    height: auto;
+    max-height: 100%;
+    min-height: 0;
   }
 
   .historial-header,
@@ -219,17 +261,99 @@
   }
 
   .historial-row {
-    grid-template-columns: 14px 1fr;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 12px;
+    overflow: hidden;
   }
 
   .historial-col {
     min-width: 0;
   }
 
+  .historial-col strong,
+  .historial-col p {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .historial-row .estado-dot {
+    display: none;
+  }
+
+  .historial-row .historial-col:first-of-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .historial-row .historial-col:first-of-type::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #7b8794;
+  }
+
+  .historial-row:has(.accion-creado) .historial-col:first-of-type::before {
+    background: #1faa59;
+  }
+
+  .historial-row:has(.accion-editado) .historial-col:first-of-type::before {
+    background: #f8761d;
+  }
+
+  .historial-row:has(.accion-eliminado) .historial-col:first-of-type::before {
+    background: #d94343;
+  }
+
+  .historial-row .historial-col:first-of-type strong {
+    display: none;
+  }
+
+  .historial-row .historial-col:first-of-type p {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+  }
+
+  .historial-col p {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .historial-col.descripcion {
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .historial-col.descripcion p {
+    color: #d7dee8;
+    font-weight: 500;
+  }
+
+  .historial-col.fecha p,
+  .historial-row .historial-col:nth-of-type(4) p {
+    color: #9aa6b5;
+    font-size: 12px;
+  }
+
   .table-footer {
     align-items: flex-start;
     display: flex;
+    flex: 0 0 auto;
     flex-direction: column;
     gap: 10px;
   }
@@ -251,6 +375,7 @@
   .historial-table-wrapper {
     padding: 12px;
     max-height: none;
+    min-height: 0;
   }
 
   .historial-row {

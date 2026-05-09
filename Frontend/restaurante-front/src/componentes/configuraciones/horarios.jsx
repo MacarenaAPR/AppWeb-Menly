@@ -171,9 +171,14 @@ export default function HorariosConfig({ onUpdate }) {
     return horario.dia_nombre || DIAS.find((dia) => dia.value === Number(horario.dia))?.label || "-";
   };
 
+  const formatearHora = (hora) => {
+    if (!hora) return "--:--";
+    return String(hora).slice(0, 5);
+  };
+
   const formatearRango = (horario) => {
     if (horario.cerrado) return "Cerrado";
-    return `${horario.hora_apertura || "--:--"} - ${horario.hora_cierre || "--:--"}`;
+    return `${formatearHora(horario.hora_apertura)} - ${formatearHora(horario.hora_cierre)}`;
   };
 
   const horariosOrdenados = [...horarios].sort((a, b) => Number(a.dia) - Number(b.dia));

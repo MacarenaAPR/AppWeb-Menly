@@ -10,7 +10,7 @@ import { authFetch } from "../api";
 import { permisosPorRol } from "../utils/permisos";
 
 export default function CartaProducto(){
-    const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   const [data, setData] = useState(null);
   const [paginaActual, setPaginaActual] = useState(1);
@@ -24,6 +24,7 @@ export default function CartaProducto(){
   const [deletingId, setDeletingId] = useState(null);
   const navigate = useNavigate();
   const scrollRef = useRef(null);
+  const [productosPorPagina, setProductosPorPagina] = useState(8);
 
   useEffect(() => {
     const fetchRestaurante = async () => {
@@ -61,19 +62,10 @@ export default function CartaProducto(){
     fetchRestaurante();
   }, [slug, navigate]);
 
-  if (loading) {
-    return <p>Cargando dashboard...</p>;
-  }
-
-  if (error) {
-    return <div className="alert alert-danger">{error}</div>;
-  }
-
-  if (!data) {
-    return <p>No hay datos disponibles</p>;
-  }
-
-  const { productos, categorias, categorias_todas, usuario } = data;
+  const productos = data?.productos || [];
+  const categorias = data?.categorias || [];
+  const categorias_todas = data?.categorias_todas;
+  const usuario = data?.usuario;
   const permisos = permisosPorRol(usuario?.rol);
   const categoriasBase = categorias_todas || categorias;
   const categoriasFiltradas = categoriasBase.filter((cat) => {
@@ -131,16 +123,60 @@ export default function CartaProducto(){
       );
     });
 
-  const productosPorPagina = 8;
-  const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
+  const totalPaginas =
+    productosFiltrados.length === 0
+      ? 0
+      : Math.ceil(productosFiltrados.length / productosPorPagina);
 
-  const indiceUltimoProducto = paginaActual * productosPorPagina;
-  const indicePrimerProducto = indiceUltimoProducto - productosPorPagina;
+  const indiceInicio = (paginaActual - 1) * productosPorPagina;
+  const indiceUltimoProducto = indiceInicio + productosPorPagina;
 
   const productosActuales = productosFiltrados.slice(
-    indicePrimerProducto,
-    indiceUltimoProducto
+    indiceInicio,
+    indiceInicio + productosPorPagina
   );
+
+  useEffect(() => {
+    const updateProductosPorPagina = () => {
+      if (window.innerWidth <= 768) {
+        setProductosPorPagina(10);
+      } 
+      else if (window.innerWidth <= 1118) {
+        setProductosPorPagina(4);}
+      else if (window.innerWidth <= 1391) {
+        setProductosPorPagina(6);}
+      else if (window.innerWidth >= 1664) {
+        setProductosPorPagina(10);
+      } else {
+        setProductosPorPagina(8);
+      }
+    };
+
+    updateProductosPorPagina();
+    window.addEventListener("resize", updateProductosPorPagina);
+
+    return () => {
+      window.removeEventListener("resize", updateProductosPorPagina);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (totalPaginas > 0 && paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
+  if (loading) {
+    return <p>Cargando dashboard...</p>;
+  }
+
+  if (error) {
+    return <div className="alert alert-danger">{error}</div>;
+  }
+
+  if (!data) {
+    return <p>No hay datos disponibles</p>;
+  }
 
   const handleCategoriaClick = (categoria) => {
     setCategoriaActiva(categoria);
@@ -187,7 +223,7 @@ export default function CartaProducto(){
     left: dir === "left" ? -200 : 200,
     behavior: "smooth",
   });
-};;
+};
   const handleDeleteProducto = async (id) => {
     const confirmar = window.confirm("¿Seguro que quieres eliminar este producto?");
     if (!confirmar) return;
@@ -218,8 +254,9 @@ export default function CartaProducto(){
       setDeletingId(null);
     }
   };
+
     return(
-                <section className="body-main">
+                <section className="body-main carta-productos-page">
                   <header className="body-header">
                     <div className="header-name-search">
                       <h1>Carta / Productos</h1>
@@ -312,7 +349,7 @@ export default function CartaProducto(){
                     <div className="section-paginations-info">
                       <div className="div-info-paginacion">
                         <p>
-                          Mostrando {productosFiltrados.length === 0 ? 0 : indicePrimerProducto + 1} a{" "}
+                          Mostrando {productosFiltrados.length === 0 ? 0 : indiceInicio + 1} a{" "}
                           {Math.min(indiceUltimoProducto, productosFiltrados.length)} de{" "}
                           {productosFiltrados.length} Productos
                         </p>

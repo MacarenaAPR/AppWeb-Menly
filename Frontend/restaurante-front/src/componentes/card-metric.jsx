@@ -11,8 +11,8 @@ export default function Card({ titulo, icons, metrica, btnto }) {
               <circle cx="32.2581" cy="32.2581" r="32.2581" fill="url(#paint0_linear_83_37)"/>
               <defs>
                 <linearGradient id="paint0_linear_83_37" x1="31.828" y1="-5.16129" x2="32.2581" y2="64.5161" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#F8761D"/>
-                  <stop offset="0.9999" stop-color="#D44D29"/>
+                  <stop stopColor="#F8761D"/>
+                  <stop offset="0.9999" stopColor="#D44D29"/>
                 </linearGradient>
               </defs>
             </svg>

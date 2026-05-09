@@ -25,6 +25,11 @@ export default function ConfiguracionRestaurante() {
 
   const navigate = useNavigate();
 
+  const formatearHora = (hora) => {
+    if (!hora) return "--:--";
+    return String(hora).slice(0, 5);
+  };
+
   const cargarConfiguracion = useCallback(async () => {
     try {
       setLoading(true);
@@ -136,7 +141,7 @@ export default function ConfiguracionRestaurante() {
                 {seccionActiva === "integraciones" && <IntegracionesConfig />}
                 {seccionActiva === "sistema" && <SistemaConfig />}
               <div className="config-bottom-grid">
-                <div className="config-card">
+                <div className="config-card horarios-summary-card">
                   <div className="card-title small">
                     <i className="bi bi-clock"></i>
                     <div>
@@ -152,7 +157,11 @@ export default function ConfiguracionRestaurante() {
                     data.horarios.map((h) => (
                       <div className="config-row" key={h.id}>
                         <span>{h.dia_nombre}</span>
-                        <p>{h.cerrado ? "Cerrado" : `${h.hora_apertura} - ${h.hora_cierre}`}</p>
+                        <p>
+                          {h.cerrado
+                            ? "Cerrado"
+                            : `${formatearHora(h.hora_apertura)} - ${formatearHora(h.hora_cierre)}`}
+                        </p>
                         <strong className={h.cerrado ? "status closed" : "status open"}>
                           {h.cerrado ? "Cerrado" : "Abierto"}
                         </strong>

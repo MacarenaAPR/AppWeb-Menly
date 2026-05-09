@@ -18,6 +18,11 @@
 .btn-main-componente:hover{
     color: #F06B0C;
 }
+.btn-main-componente.is-active{
+    color: #F06B0C;
+    border: 1px solid rgba(240, 107, 12, 0.45);
+    background: linear-gradient(90deg, rgba(192, 80, 0, 0.32) 0%, rgba(0, 5, 11, 0.00) 100%);
+}
 .btn-main-componente:active{
     border: 1px solid linear-gradient(90deg, rgba(240, 107, 12) 49.04%, rgba(0, 5, 11, 0.00) 100%);
     background: linear-gradient(90deg, rgba(192, 80, 0, 0.50) 49.04%, rgba(0, 5, 11, 0.00) 100%);
@@ -62,7 +67,8 @@
     background: linear-gradient(359deg, #090D13 36.86%, rgba(24, 29, 36, 0.97) 81.28%);
     box-shadow: 2.634px 2.634px 5.268px 0 #000;
     display: flex;
-    width: 250px;
+    min-width: 250px;
+    max-width: 450px;
     gap:0;
     height: 190px;
     flex-direction: column;
@@ -121,7 +127,8 @@
 /*Card Reportes COMPONENTES*/
 .cardreports{
     display: flex;
-    width: 500px;
+    width: auto;
+    max-width: 750px;
     padding: 8.704px 19.149px;
     justify-content: space-between;
     align-items: center;
@@ -357,6 +364,21 @@
         white-space: nowrap;
     }
 
+    .mobile-menu-logout .btn-cerrar-sesion {
+        min-width: 0;
+        max-width: 142px;
+        gap: 8px;
+    }
+
+    .mobile-menu-logout .btn-cerrar-sesion p {
+        font-size: 12px;
+    }
+
+    .mobile-drawer-logout .btn-cerrar-sesion {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
     .card-metrics {
         width: 100%;
         min-width: 0;
@@ -385,9 +407,72 @@
         font-size: 16px;
     }
 
+    .header-add-seguimiento{
+        align-items: center;
+    }
+
     .btn-cerrar-sesion {
         min-width: 118px;
         font-size: 13px;
+    }
+
+    .card-metrics {
+        flex: 0 0 clamp(168px, 46vw, 190px);
+        width: auto;
+        min-width: 0;
+        min-height: 158px;
+        height: auto;
+        padding: 14px 12px;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 12px;
+        border-radius: 18px;
+        scroll-snap-align: start;
+    }
+
+    .cards-icon-text {
+        align-items: center;
+        justify-content: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .icon-circle,
+    .icon-circle svg {
+        width: 46px;
+        height: 46px;
+    }
+
+    .icon-circle i {
+        font-size: 24px;
+    }
+
+    .div-text-metric {
+        width: 100%;
+        min-width: 0;
+        align-items: center;
+    }
+
+    .div-text-metric h1 {
+        font-size: 28px;
+        line-height: 1;
+        margin: 0 0 4px;
+    }
+
+    .div-text-metric p {
+        font-size: 12px;
+        line-height: 1.25;
+        margin: 0;
+    }
+
+    .Button-detalles {
+        width: 100%;
+        min-height: 34px;
+        padding: 0 10px;
+        font-size: 12px;
+        justify-content: center;
     }
 
     .cardreports {
@@ -396,6 +481,129 @@
     }
 
     #card-producto {
+        width: 100%;
         max-width: 100%;
+        min-height: 104px;
+        height: auto;
+        padding: 10px;
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        gap: 10px;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    #card-producto .producto-img-wrap {
+        flex: 0 0 84px;
+        width: 84px;
+        height: 84px;
+        align-self: center;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #091119;
+    }
+
+    #card-producto .producto-destacado-badge {
+        top: 6px;
+        left: 6px;
+        padding: 3px 6px;
+        border-radius: 6px;
+        font-size: 9px;
+        max-width: calc(100% - 12px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #card-producto .card-body {
+        min-width: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "title actions"
+            "category actions"
+            "price actions";
+        align-content: center;
+        align-items: center;
+        gap: 3px 10px;
+    }
+
+    #card-producto .titulo-text-card {
+        grid-area: title;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 15px;
+        line-height: 1.2;
+    }
+
+    #card-producto .categoria-text-card {
+        grid-area: category;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+        line-height: 1.2;
+    }
+
+    #card-producto .price-text-card {
+        grid-area: price;
+        font-size: 16px;
+        line-height: 1.2;
+    }
+
+    #card-producto .price-text-card span {
+        font-size: 10px;
+    }
+
+    #card-producto .div-form-buttons {
+        grid-area: actions;
+        align-self: stretch;
+        min-width: 48px;
+        margin: 0;
+        padding: 0;
+        border-top: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    #card-producto .form-switch {
+        width: auto;
+        height: auto;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+    }
+
+    #card-producto .form-check-label {
+        font-size: 10px;
+        line-height: 1;
+        color: #9A9A9F;
+    }
+
+    #card-producto .form-check-input {
+        margin: 0;
+        width: 36px;
+        height: 20px;
+    }
+
+    #card-producto .div-buttons {
+        gap: 6px;
+    }
+
+    #card-producto .div-buttons button {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border-radius: 7px;
     }
 }
