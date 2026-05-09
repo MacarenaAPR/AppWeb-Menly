@@ -81,7 +81,7 @@
 .form-control,
 .form-select,
 .input-group-text {
-  background: #091119;
+  background: #091119 !important;
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #fff;
   font-size: 12PX;
@@ -234,6 +234,12 @@ textarea::placeholder {
 .form-switch .form-check-input:focus {
   box-shadow: none;
 }
+.div-text-configuracion-producto{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width:170px;
+}
 
 .posicion-div{
   max-width:700px;
@@ -268,6 +274,9 @@ textarea::placeholder {
 @media (max-width: 768px) {
   .body-contenido1 {
     flex-direction: column;
+  }
+  .form-switch{
+    width: auto !important;
   }
 
   .contenido1,

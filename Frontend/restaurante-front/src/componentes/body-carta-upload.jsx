@@ -312,7 +312,7 @@ export default function EditProductos() {
                     <div className="posicion-div">
                       <div className="col-md-6">
                         <div className="config-item">
-                          <div>
+                          <div className="div-text-configuracion-producto">
                             <label className="form-label d-block mb-1">Disponible</label>
                             <small>El producto estará visible para los clientes</small>
                           </div>
@@ -331,7 +331,7 @@ export default function EditProductos() {
 
                       <div className="col-md-6">
                         <div className="config-item" id="config-item-1">
-                          <div>
+                          <div className="div-text-configuracion-producto">
                             <label className="form-label d-block mb-1">Destacado</label>
                             <small>Aparecerá en secciones destacadas</small>
                           </div>

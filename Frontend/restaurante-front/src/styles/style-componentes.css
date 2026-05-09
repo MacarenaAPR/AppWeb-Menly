@@ -264,7 +264,7 @@
 }
 .form-switch{
     display: flex;
-    width: 139.5px;
+    width: auto;
     height: 24px;
     justify-content: space-between;
     padding: 0;
