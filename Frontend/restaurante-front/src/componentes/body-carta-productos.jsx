@@ -141,6 +141,8 @@ export default function CartaProducto(){
       if (window.innerWidth <= 768) {
         setProductosPorPagina(10);
       } 
+      else if (window.innerWidth <= 973) {
+        setProductosPorPagina(6);}
       else if (window.innerWidth <= 1118) {
         setProductosPorPagina(4);}
       else if (window.innerWidth <= 1391) {
