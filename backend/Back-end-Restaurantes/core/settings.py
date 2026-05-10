@@ -129,6 +129,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_THROTTLE_RATES": {
         "login": "5/min",
+        "password_reset": "5/hour",
         "public_reservas": "20/hour",
         "producto_click": "30/min",
     },
@@ -164,7 +165,11 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config(
     "DEFAULT_FROM_EMAIL",
-    default=EMAIL_HOST_USER or "no-reply@menuo.local"
+    default=EMAIL_HOST_USER or "menly.contacto@gmail.com"
+)
+ADMIN_NOTIFICATION_EMAIL = config(
+    "ADMIN_NOTIFICATION_EMAIL",
+    default=DEFAULT_FROM_EMAIL
 )
 
 LOGGING = {

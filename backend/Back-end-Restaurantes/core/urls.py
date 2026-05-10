@@ -20,7 +20,7 @@ from django.urls import path
 from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from menu.views import menu_api,CustomLoginView, MiRestauranteView,ProductoListView,ProductoUpdateView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView
+from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, MiRestauranteView,ProductoListView,ProductoUpdateView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView
 from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView
 from menu.views import CategoriasView, CategoriaDetalleView
 from menu.views import MesasView, MesaDetalleView,IconosView
@@ -35,6 +35,7 @@ urlpatterns = [
 
     # 🔐 login custom
     path("api/login/", CustomLoginView.as_view(), name="login"),
+    path("api/password-reset-request/", PasswordResetRequestView.as_view(), name="password-reset-request"),
 
     # 🔄 refresh token
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

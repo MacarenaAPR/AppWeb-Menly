@@ -90,6 +90,91 @@ body {
   background-color: #FFF;
   color: #000;
 }
+
+.password-field {
+  position: relative;
+  width: 100%;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 46px;
+}
+
+.login-card .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  color: #3f3f46;
+  cursor: pointer;
+}
+
+.login-card .password-toggle:hover {
+  background: rgba(192, 80, 0, 0.12);
+  color: #C05000;
+}
+
+.login-card .forgot-password-link {
+  display: inline-block;
+  width: auto;
+  margin-top: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #e5e5e5;
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.login-card .forgot-password-link:hover {
+  background: transparent;
+  color: #fff;
+}
+
+.password-reset-form {
+  width: 100%;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+.login-card .password-reset-form button {
+  width: 100%;
+  max-width: 220px;
+  margin-inline: auto;
+}
+
+.login-card .password-reset-form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.success {
+  color: #bbf7d0;
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
 .div-btn{
   width: 360px;
   display: flex;
@@ -146,6 +231,7 @@ body {
 
   .login-card form,
   .login-card input,
+  .password-field,
   .div-btn {
     width: 100%;
   }

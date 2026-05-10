@@ -383,11 +383,51 @@ class ProductoCreateSerializer(serializers.ModelSerializer):
         return categoria
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = "email"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"] = serializers.EmailField(
+            write_only=True,
+            required=True,
+            error_messages={
+                "required": "El correo electrónico es obligatorio.",
+                "blank": "El correo electrónico es obligatorio.",
+                "invalid": "Ingresa un correo electrónico válido.",
+            },
+        )
+        self.fields["password"].error_messages.update({
+            "required": "La contraseña es obligatoria.",
+            "blank": "La contraseña es obligatoria.",
+        })
 
     def validate(self, attrs):
-        data = super().validate(attrs)
+        email = (attrs.get("email") or "").strip().lower()
+        password = attrs.get("password")
 
-        user = self.user
+        if not email:
+            raise serializers.ValidationError({
+                "email": "El correo electrónico es obligatorio."
+            })
+
+        if not password:
+            raise serializers.ValidationError({
+                "password": "La contraseña es obligatoria."
+            })
+
+        user = User.objects.filter(email__iexact=email).first()
+
+        if not user or not user.is_active or not user.check_password(password):
+            raise AuthenticationFailed("Correo o contraseña incorrectos")
+
+        refresh = self.get_token(user)
+
+        data = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
+
+        self.user = user
 
         try:
             perfil = user.perfil_restaurante

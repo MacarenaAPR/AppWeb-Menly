@@ -10,7 +10,7 @@ from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
 from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto
-from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView
+from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle
 from .cache_utils import menu_cache_key
 from django.core.cache import cache
 
@@ -243,7 +243,7 @@ class RestauranteInactivoTests(BaseTestCase):
         response = self.client.post(
             "/api/login/",
             {
-                "username": "dueno@test.com",
+                "email": "dueno@test.com",
                 "password": "123456",
             },
             format="json"
@@ -251,6 +251,39 @@ class RestauranteInactivoTests(BaseTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["restaurante"]["activo"])
+
+    @patch("menu.views.send_mail")
+    def test_password_reset_request_responde_generico_y_notifica_admin(self, send_mail_mock):
+        response = self.client.post(
+            "/api/password-reset-request/",
+            {"email": "DUENO@test.com"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["message"],
+            "Si el correo está registrado, el administrador será notificado.",
+        )
+        send_mail_mock.assert_called_once()
+        self.assertIn("Usuario encontrado:\nSí", send_mail_mock.call_args.kwargs["message"])
+        self.assertIn("dueno@test.com", send_mail_mock.call_args.kwargs["message"])
+
+    @patch("menu.views.send_mail")
+    def test_password_reset_request_no_revela_email_inexistente(self, send_mail_mock):
+        response = self.client.post(
+            "/api/password-reset-request/",
+            {"email": "noexiste@test.com"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data["message"],
+            "Si el correo está registrado, el administrador será notificado.",
+        )
+        send_mail_mock.assert_called_once()
+        self.assertIn("Usuario encontrado:\nNo", send_mail_mock.call_args.kwargs["message"])
 
     def test_restaurante_inactivo_puede_ver_mi_restaurante(self):
         self.desactivar_restaurante()
@@ -630,7 +663,7 @@ class UsuariosTests(BaseTestCase):
         login_response = self.client.post(
             "/api/login/",
             {
-                "username": "empleado-login",
+                "email": "empleado-login@test.com",
                 "password": "12345678",
             },
             format="json"
@@ -1084,9 +1117,11 @@ class ProductoClickTests(BaseTestCase):
 
         self.assertEqual(rates["producto_click"], "30/min")
         self.assertEqual(rates["login"], "5/min")
+        self.assertEqual(rates["password_reset"], "3/hour")
         self.assertEqual(rates["public_reservas"], "20/hour")
         self.assertIn(ProductoClickRateThrottle, ProductoClickView.throttle_classes)
         self.assertIn(PublicReservaRateThrottle, CrearReservaPublicaView.throttle_classes)
+        self.assertIn(PasswordResetRateThrottle, PasswordResetRequestView.throttle_classes)
 
 
 class MultiTenantIsolationTests(BaseTestCase):
@@ -1676,7 +1711,7 @@ class SeguridadCriticaTests(BaseTestCase):
         response = self.client.post(
             "/api/login/",
             {
-                "username": "sinperfil@test.com",
+                "email": "sinperfil@test.com",
                 "password": "123456",
             },
             format="json"

@@ -1,6 +1,11 @@
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 import logging
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.core.validators import validate_email
 from .serializers import CustomTokenObtainPairSerializer,ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from rest_framework.views import APIView
@@ -39,6 +44,10 @@ class IconosView(APIView):
 
 class LoginRateThrottle(AnonRateThrottle):
     scope = "login"
+
+
+class PasswordResetRateThrottle(AnonRateThrottle):
+    scope = "password_reset"
 
 
 class PublicReservaRateThrottle(AnonRateThrottle):
@@ -1740,6 +1749,90 @@ class LogoutView(APIView):
 class CustomLoginView(TokenObtainPairView):
         serializer_class = CustomTokenObtainPairSerializer
         throttle_classes = [LoginRateThrottle]
+
+
+class PasswordResetRequestView(APIView):
+        permission_classes = [AllowAny]
+        throttle_classes = [PasswordResetRateThrottle]
+
+        GENERIC_MESSAGE = (
+            "Si el correo está registrado, el administrador será notificado."
+        )
+
+        def post(self, request):
+            email = (request.data.get("email") or "").strip().lower()
+
+            if not email:
+                return Response(
+                    {"email": "El correo electrónico es obligatorio."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                validate_email(email)
+            except ValidationError:
+                return Response(
+                    {"email": "Ingresa un correo electrónico válido."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user = User.objects.filter(email__iexact=email).first()
+            perfil = None
+
+            if user:
+                try:
+                    perfil = user.perfil_restaurante
+                except UsuarioRestaurante.DoesNotExist:
+                    perfil = None
+
+            restaurante = perfil.restaurante if perfil else None
+            admin_email = (
+                getattr(settings, "ADMIN_NOTIFICATION_EMAIL", None)
+                or settings.DEFAULT_FROM_EMAIL
+            )
+
+            if not admin_email:
+                logger.warning(
+                    "Solicitud de recuperación para %s sin email admin configurado.",
+                    email,
+                )
+                return Response({"message": self.GENERIC_MESSAGE})
+
+            usuario_encontrado = "Sí" if user else "No"
+            detalles_usuario = (
+                f"- username: {user.username}\n"
+                f"- email: {user.email}\n"
+                f"- restaurante asociado: {restaurante.nombre_empresa if restaurante else 'Sin restaurante'}\n"
+                f"- rol: {perfil.rol if perfil else 'Sin rol'}\n"
+                if user
+                else "- Sin datos de usuario registrado.\n"
+            )
+
+            cuerpo = (
+                "Se recibió una solicitud de recuperación de contraseña.\n\n"
+                f"Correo solicitado:\n{email}\n\n"
+                f"Usuario encontrado:\n{usuario_encontrado}\n\n"
+                "Detalles:\n"
+                f"{detalles_usuario}\n"
+                "Acción sugerida:\n"
+                "Contactar al usuario y restablecer la contraseña desde el panel admin de Django."
+            )
+
+            try:
+                send_mail(
+                    subject="Solicitud de recuperación de contraseña - Menly",
+                    message=cuerpo,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[admin_email],
+                    fail_silently=False,
+                )
+            except Exception:
+                logger.exception(
+                    "Error enviando notificación de recuperación para %s.",
+                    email,
+                )
+
+            return Response({"message": self.GENERIC_MESSAGE})
 
 
 

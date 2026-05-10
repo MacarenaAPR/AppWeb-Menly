@@ -1,9 +1,17 @@
 import api from "./axios";
 
-export const loginRequest = async (username, password) => {
+export const loginRequest = async (email, password) => {
   const response = await api.post("/login/", {
-    username,
+    email,
     password,
+  });
+
+  return response.data;
+};
+
+export const passwordResetRequest = async (email) => {
+  const response = await api.post("/password-reset-request/", {
+    email,
   });
 
   return response.data;
