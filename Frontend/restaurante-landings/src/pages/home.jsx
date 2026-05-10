@@ -5,7 +5,6 @@ import ReservaForm from "../components/ReservaForm";
 import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
 import { getOptimizedImageUrl } from "../utils/images";
 import "../themes/themes.css";
-import "../assets/FormHardcoreTheme-9.jpg";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -381,7 +380,7 @@ export default function Home() {
     <div
       className={`page-shell ${themeClass}`}
       style={{
-        "--bg-principal": restaurante?.imgen_principal
+        "--img-principal-base-restaurante": restaurante?.imgen_principal
           ? `url(${imagenPrincipalOptimizada})`
           : "none",
       }}
