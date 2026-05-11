@@ -1,4 +1,4 @@
-const WHATSAPP_MESSAGE = "Hola, vengo desde la página web y quisiera hacer una consulta.";
+const WHATSAPP_MESSAGE = "Hola, quisiera hacer una consulta.";
 
 const limpiarTelefonoWhatsApp = (telefono = "") =>
   String(telefono).replace(/[\s+\-()]/g, "");
