@@ -62,7 +62,7 @@
     var(--img-principal-base-restaurante),
     var(--texture-bg),
     var(--color-bg);
-  background-size: cover, cover, min(720px, 85vw) auto, 10px 10px, cover;
+  background-size: contain, cover, min(720px, 85vw) auto, 10px 10px, cover;
   background-position: center, center, right 20px top 100px, center, center;
   background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
 }
