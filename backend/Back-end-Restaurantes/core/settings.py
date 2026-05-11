@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-from decouple import config
+from decouple import Csv, config
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
@@ -33,7 +33,11 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "True") == "True"
 IS_TESTING = "test" in sys.argv
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
+ALLOWED_HOSTS = config(
+    "ALLOWED_HOSTS",
+    default="127.0.0.1,localhost,api.menly.cl",
+    cast=Csv(),
+)
 
 
 # Application definition
@@ -55,8 +59,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     "corsheaders.middleware.CorsMiddleware",
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -109,11 +113,21 @@ else:
         }
     }
 
-CORS_ALLOWED_ORIGINS = os.getenv(
+CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:5174"
-).split(",")
-print("CORS_ALLOWED_ORIGINS:", CORS_ALLOWED_ORIGINS)
+    default="http://localhost:5173,http://localhost:5174,https://menly.cl,https://www.menly.cl",
+    cast=Csv(),
+)
+CORS_ALLOWED_ORIGIN_REGEXES = config(
+    "CORS_ALLOWED_ORIGIN_REGEXES",
+    default=r"^https://[a-z0-9-]+\.menly\.cl$",
+    cast=Csv(),
+)
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="http://localhost:5173,http://localhost:5174,https://menly.cl,https://www.menly.cl,https://*.menly.cl",
+    cast=Csv(),
+)
 CORS_ALLOW_ALL_ORIGINS = False
 
 CACHES = {
