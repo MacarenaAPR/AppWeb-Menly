@@ -1,8 +1,8 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
 import Menu from "../components/Menu";
 import ReservaForm from "../components/ReservaForm";
 import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
+import { getSlugFromHostname } from "../utils/getSlugFromHostname";
 import { getOptimizedImageUrl } from "../utils/images";
 import "../themes/themes.css";
 
@@ -60,7 +60,7 @@ const setCachedMenu = (slug, data) => {
 
 export default function Home() {
   
-  const { slug } = useParams();
+  const slug = getSlugFromHostname();
   
   const [restaurante, setRestaurante] = useState(null);
   const [categorias, setCategorias] = useState([]);
@@ -75,6 +75,15 @@ export default function Home() {
   const destacadosCarouselRef = useRef(null);
 
   useEffect(() => {
+    const hostname = window.location.hostname;
+    console.log("hostname:", hostname);
+    console.log("slug:", slug);
+
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const cachedMenu = getCachedMenu(slug);
@@ -352,6 +361,20 @@ export default function Home() {
     return (
       <div className="page-shell loading-screen">
         <p>Cargando menú...</p>
+      </div>
+    );
+  }
+
+  if (!slug) {
+    return (
+      <div className="page-shell inactive-restaurant-screen">
+        <section className="inactive-restaurant-card">
+          <span className="inactive-restaurant-kicker">Menú no disponible</span>
+          <h1>No encontramos un restaurante para este dominio.</h1>
+          <p>
+            Ingresa desde el subdominio asignado a tu restaurante o usa un enlace válido.
+          </p>
+        </section>
       </div>
     );
   }
