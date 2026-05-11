@@ -4,7 +4,7 @@ import ButtonMain from "./link-menu";
 import ButtonLogout from "./btn-cerrar-sesion";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { authFetch, buildMenuUrl } from "../api";
+import { authFetch } from "../api";
 import { permisosPorRol } from "../utils/permisos";
 
 export default function MainMenu(){
@@ -65,12 +65,8 @@ export default function MainMenu(){
 
   const { restaurante, usuario } = data;
   const permisos = permisosPorRol(usuario?.rol || restaurante?.rol);
-  const paginaWeb = restaurante?.sitio_web?.trim();
-  const paginaWebUrl = paginaWeb
-    ? paginaWeb.match(/^https?:\/\//i)
-      ? paginaWeb
-      : `http://${paginaWeb}`
-    : buildMenuUrl(restaurante.slug);
+  const restauranteSlug = restaurante?.slug;
+  const paginaWebUrl = restauranteSlug ? `https://${restauranteSlug}.menly.cl` : "";
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
   const navigateAndClose = (path) => {
@@ -78,7 +74,9 @@ export default function MainMenu(){
     closeMobileMenu();
   };
   const openPageAndClose = () => {
-    window.open(paginaWebUrl, "_blank");
+    if (!paginaWebUrl) return;
+
+    window.open(paginaWebUrl, "_blank", "noopener,noreferrer");
     closeMobileMenu();
   };
 
@@ -113,7 +111,7 @@ export default function MainMenu(){
       isActive: location.pathname === `/dashboard/${restaurante.slug}/reservas`,
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/reservas`),
     },
-    {
+    restauranteSlug && {
       key: "web",
       icon: <i className="bi bi-globe"></i>,
       name: "Mi página web",
