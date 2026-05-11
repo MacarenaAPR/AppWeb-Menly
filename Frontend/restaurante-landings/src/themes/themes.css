@@ -64,7 +64,7 @@
     var(--texture-bg),
     var(--color-bg);
   background-size: cover, cover, min(720px, 85vw) auto, 10px 10px, cover;
-  background-position: center, center, right 20px top 0px, center, center;
+  background-position: center, center, right 20px top 100px, center, center;
   background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
 }
 /* Theme 2 - Clásico / Cocina casera */
