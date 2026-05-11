@@ -2,7 +2,7 @@
 .theme_1 {
   --img-principal-base-restaurante: none;
   --img-bg-formulario:
-    linear-gradient(rgba(246, 236, 219, 0.78), rgba(246, 236, 219, 0.94)),
+    linear-gradient(rgba(246, 236, 219, 0.2), rgba(246, 236, 219, 0.94)),
     url(../assets/fondoFormulario/theme1.png);
   --img-bg-formulario-size: cover;
 
@@ -55,7 +55,6 @@
   --color-border: rgba(72, 50, 32, 0.16);
   --color-border-2: rgba(72, 50, 32, 0.1);
 }
-
 .page-shell.theme_1 {
   background:
     radial-gradient(circle at top right, var(--theme-glow), transparent 38%),
@@ -67,6 +66,7 @@
   background-position: center, center, right 20px top 100px, center, center;
   background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
 }
+
 /* Theme 2 - Clásico / Cocina casera */
 .theme_2 {
   /* Imágenes */
@@ -273,7 +273,7 @@
   --img-bg-formulario:
     linear-gradient(rgba(8, 10, 8, 0.3), rgba(131, 131, 131, 0.2)),
     url(../assets/fondoFormulario/theme4.png);
-  --img-bg-formulario-size: contain;
+  --img-bg-formulario-size: cover;
 
   /* Fondo base */
   --color-bg: #191716;
@@ -350,7 +350,7 @@
   /* Imágenes */
   --img-principal-base-restaurante: none;
   --img-bg-formulario:
-    linear-gradient(rgba(20, 45, 30, 0.82), rgba(20, 45, 30, 0.9)),
+    linear-gradient(rgba(20, 45, 30, 0.3), rgba(20, 45, 30, 0.5)),
     url(../assets/fondoFormulario/theme5.png);
   --img-bg-formulario-size: contain, cover;
 
@@ -431,9 +431,9 @@
   /* Imágenes */
   --img-principal-base-restaurante: none;
   --img-bg-formulario:
-    linear-gradient(rgba(255, 230, 229, 0.10), rgba(246, 157, 166, 0.40)),
+    linear-gradient(rgba(255, 230, 229, 0.10), rgba(246, 157, 166, 0.5)),
     url(../assets/fondoFormulario/theme6.png);
-  --img-bg-formulario-size: contain;
+  --img-bg-formulario-size: cover;
 
   /* Fondo base */
   --color-bg: #fff1ed;
@@ -512,7 +512,7 @@
   /* Imágenes */
   --img-principal-base-restaurante: none;
   --img-bg-formulario:
-    linear-gradient(rgba(201, 228, 238, 0.7), rgba(8, 56, 73, 0.88)),
+    linear-gradient(rgba(201, 228, 238, 0.3), rgba(8, 56, 73, 0.6)),
     url(../assets/fondoFormulario/theme7.png);
   --img-bg-formulario-size: none;
 
@@ -592,8 +592,8 @@
 .theme_8 {
   /* Imágenes */
   --img-principal-base-restaurante:none;
-  --img-bg-formulario: linear-gradient(rgba(116, 93, 54, 0.411), rgba(238, 219, 187, 0.103)), url(../assets/fondoFormulario/theme8.png);
-  --img-bg-formulario-size:none;
+  --img-bg-formulario: linear-gradient(rgba(116, 93, 54, 0.2), rgba(238, 219, 187, 0.6)), url(../assets/fondoFormulario/theme8.png);
+  --img-bg-formulario-size:cover;
   /* Fondo base */
   --color-bg: #f4ead8;
   --texture-bg:
