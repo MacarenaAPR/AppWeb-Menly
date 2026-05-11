@@ -2222,10 +2222,6 @@ main{
     overflow: hidden;
     border-radius: 22px;
     border: 1px solid var(--color-border);
-    background:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.24) 0%, rgba(0, 0, 0, 0.66) 62%, rgba(0, 0, 0, 0.88) 100%),
-      var(--img-principal-base-restaurante),
-      var(--color-bg);
     background-size: cover;
     background-position: center;
   }
@@ -2412,7 +2408,7 @@ main{
     min-height: auto;
     border-radius: 18px;
     background:
-      linear-gradient(180deg, rgba(8, 5, 3, 0.96) 0%, rgba(8, 5, 3, 0.86) 58%, rgba(8, 5, 3, 0.74) 100%),
+      linear-gradient(180deg, rgba(8, 5, 3, 0.1) 0%, rgba(8, 5, 3, 0.86) 58%, rgba(8, 5, 3, 0.74) 100%),
       var(--about-bg);
     background-position: center;
     background-size: cover;
