@@ -1,3 +1,593 @@
+/* Theme 1 - Cafetería / Minimalista */
+.theme_1 {
+  --img-principal-base-restaurante: none;
+  --img-bg-formulario:
+    linear-gradient(rgba(246, 236, 219, 0.78), rgba(246, 236, 219, 0.94)),
+    url(../assets/fondoFormulario/theme1.png);
+  --img-bg-formulario-size: cover;
+
+  --color-bg: #f3eadc;
+  --texture-bg:
+    radial-gradient(circle, rgba(75, 55, 36, 0.055) 1px, transparent 1px);
+
+  --theme-glow: rgba(164, 116, 68, 0.12);
+
+  --color-bg-primary: rgba(255, 249, 239, 0.92);
+  --color-bg-secondary: rgba(162, 120, 78, 0.18);
+  --color-bg-info-grid: rgba(255, 249, 239, 0.596);
+  --color-text-info-grid-p: rgba(58, 43, 30, 0.72);
+  --color-text-promociones-destacadas-h2: #3b2a1d;
+
+  --color-text-destacado: #8c6339;
+  --text-size-destacados: 2rem;
+
+  --color-border-nav: rgba(72, 50, 32, 0.16);
+  --texto-color-nav: #2f241a;
+  --size-text-nav: 1.5rem;
+  --size-text-reserva:2.3rem;
+  --size-text-header:1.7rem;
+  --bg-color-btn1: #fff8ec;
+  --border-color-btn1: rgba(72, 50, 32, 0.2);
+  --text-color-btn1: #2f241a;
+
+  --color-bg-btn-pedidosya: #8c6339;
+  --color-bg-btn-pedidosya-hover: #6f4d2c;
+  --color-text-btn-pedidosya: #ffffff;
+
+  --bg-color-btn2: #8c6339;
+  --text-color-btn2: #ffffff;
+
+  --bg-color-btn3: #2f241a;
+  --text-color-btn3: #ffffff;
+
+  --bg-div-destacado: rgba(255, 249, 239, 0.96);
+
+  --font-family-precios-destacados: "Playfair Display", Georgia, serif;
+  --font-family-base: "Poppins", system-ui, sans-serif;
+
+  --color-text-primary: #2f241a;
+  --color-text-secondary: rgba(58, 43, 30, 0.72);
+
+  --color-surface: #fff8ec;
+  --color-primary: #8c6339;
+  --color-secondary: #b98b5e;
+
+  --color-border: rgba(72, 50, 32, 0.16);
+  --color-border-2: rgba(72, 50, 32, 0.1);
+}
+
+.page-shell.theme_1 {
+  background:
+    radial-gradient(circle at top right, var(--theme-glow), transparent 38%),
+    linear-gradient(to bottom, rgba(255, 249, 239, 0.55) 0%, var(--color-bg) 48%, var(--color-bg) 100%),
+    var(--img-principal-base-restaurante),
+    var(--texture-bg),
+    var(--color-bg);
+  background-size: cover, cover, min(720px, 85vw) auto, 10px 10px, cover;
+  background-position: center, center, right 20px top 0px, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+}
+/* Theme 2 - Clásico / Cocina casera */
+.theme_2 {
+  /* Imágenes */
+  --img-principal-base-restaurante: none;
+  --img-bg-formulario:
+    linear-gradient(rgba(246, 240, 229, 0.78), rgba(246, 240, 229, 0.92)),
+    url(../assets/fondoFormulario/theme2.png);
+  --img-bg-formulario-size: cover;
+
+  /* Fondo base */
+  --color-bg: #f6f0e5;
+  --texture-bg:
+    radial-gradient(circle, rgba(82, 63, 38, 0.06) 1px, transparent 1px);
+
+  --theme-glow: rgba(172, 124, 55, 0.14);
+
+  /* Promos / destacados / info */
+  --color-bg-primary: rgba(255, 251, 243, 0.92);
+  --color-bg-secondary: rgba(200, 168, 112, 0.22);
+  --color-bg-info-grid: rgba(209, 224, 196, 0.671);
+  --color-text-info-grid-p: rgba(53, 42, 28, 0.72);
+  --color-text-promociones-destacadas-h2: #3d321f;
+
+  /* Precios */
+  --color-text-destacado: #ffc400;
+  --text-size-destacados:2rem;
+
+  /* NAV */
+  --color-border-nav: rgba(82, 63, 38, 0.14);
+  --texto-color-nav: #2f2a22;
+  --size-text-nav: 2rem;
+
+  /* Botón secundario */
+  --bg-color-btn1: #fffaf0;
+  --border-color-btn1: rgba(82, 63, 38, 0.18);
+  --text-color-btn1: #2f2a22;
+
+  /* PedidosYa */
+  --color-bg-btn-pedidosya: #55772c;
+  --color-bg-btn-pedidosya-hover: #456424;
+  --color-text-btn-pedidosya: #ffffff;
+
+  /* Botón principal */
+  --bg-color-btn2: #55772c;
+  --text-color-btn2: #ffffff;
+
+  /* Botón información / escríbenos */
+  --bg-color-btn3: #2f2a22;
+  --text-color-btn3: #ffffff;
+
+  /* Destacados */
+  --bg-div-destacado: rgba(255, 251, 243, 0.96);
+
+  /* Fuentes */
+  --font-family-precios-destacados: "Playfair Display", Georgia, serif;
+  --font-family-base: "Poppins", system-ui, sans-serif;
+
+  /* Textos */
+  --color-text-primary: #2f2a22;
+  --color-text-secondary: rgba(53, 42, 28, 0.72);
+  --size-text-reserva: 4rem;
+
+  /* Base */
+  --color-surface: #fffaf0;
+  --color-primary: #55772c;
+  --color-secondary: #55772c;
+
+  --color-border: rgba(82, 63, 38, 0.16);
+  --color-border-2: rgba(82, 63, 38, 0.1);
+}
+.page-shell.theme_2 {
+  background:
+    radial-gradient(circle at top right, var(--theme-glow), transparent 38%),
+    linear-gradient(to bottom, rgba(255, 251, 243, 0.55) 0%, var(--color-bg) 48%, var(--color-bg) 100%),
+    var(--img-principal-base-restaurante),
+    var(--texture-bg),
+    var(--color-bg);
+  background-size: cover, cover, min(720px, 85vw) auto, 10px 10px, cover;
+  background-position: center, center, right 20px top 100px, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+}
+
+/*theme 3 Japones */
+.theme_3 {
+  /* Imágenes */
+  --img-principal-base-restaurante: none;
+  --img-bg-formulario:
+    linear-gradient(rgba(252, 252, 252, 0.1), rgba(18, 18, 18, 0.1)),
+    url(../assets/fondoFormulario/theme3.png);
+  --img-bg-formulario-size: cover;
+
+  /* Fondo base */
+  --color-bg: #060606;
+  --texture-bg:
+    radial-gradient(circle, rgba(255, 59, 24, 0.06) 1px, transparent 1px);
+
+  --theme-glow: rgba(255, 72, 32, 0.14);
+
+  /* Promos / destacados / info */
+  --color-bg-primary: rgba(255, 72, 32, 0.16);
+  --color-bg-secondary: rgba(255, 72, 32, 0.06);
+
+  --color-bg-info-grid: rgba(18, 18, 18, 0.96);
+  --color-text-info-grid-p: rgba(255, 255, 255, 0.72);
+
+  --color-text-promociones-destacadas-h2: #ffffff;
+
+  /* NAV */
+  --color-border-nav: rgba(255, 255, 255, 0.08);
+  --texto-color-nav: rgba(255, 255, 255, 0.88);
+  --size-text-nav: 2.2rem;
+
+  /* Botón secundario */
+  --bg-color-btn1: rgba(255, 255, 255, 0.04);
+  --border-color-btn1: rgba(255, 72, 32, 0.22);
+  --text-color-btn1: #f5f5f5;
+
+  /* PedidosYa */
+  --color-bg-btn-pedidosya: transparent;
+  --color-bg-btn-pedidosya-hover: rgba(255, 72, 32, 0.1);
+  --color-text-btn-pedidosya: #f5f5f5;
+
+  /* Botón principal */
+  --bg-color-btn2: #9b1700;
+  --text-color-btn2: #ffffff;
+
+  /* Botón información / escríbenos */
+  --bg-color-btn3: #941600;
+  --text-color-btn3: #ffffff;
+
+  /* Destacados */
+  --bg-div-destacado: rgba(12, 12, 12, 0.96);
+
+  /* Precios */
+  --color-text-destacado: #ffffff;
+  --text-size-destacados: 2.5rem;
+
+  /* Fuentes */
+  --font-family-precios-destacados:
+    Tangerine,
+    "Noto Sans JP",
+    sans-serif;
+
+  --font-family-base:
+    "Inter",
+    "Poppins",
+    system-ui,
+    sans-serif;
+
+  /* Textos */
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: rgb(255, 255, 255);
+  --size-text-reserva:4rem;
+  --size-text-header:3rem;
+
+  /* Base */
+  --color-surface: #111111;
+
+  --color-primary: #a51900;
+  --color-secondary: #141414;
+
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-2: rgba(255, 73, 32, 0.171);
+}
+.page-shell.theme_3 {
+  background:
+    radial-gradient(circle at top right, var(--theme-glow), transparent 38%),
+    linear-gradient(
+      to bottom,
+      rgba(8, 8, 8, 0.68) 0%,
+      var(--color-bg) 48%,
+      var(--color-bg) 100%
+    ),
+    var(--img-principal-base-restaurante),
+    var(--texture-bg),
+    var(--color-bg);
+
+  background-size:
+    cover,
+    cover,
+    min(720px, 85vw) auto,
+    12px 12px,
+    cover;
+
+  background-position:
+    center,
+    center,
+    right 20px top 100px,
+    center,
+    center;
+
+  background-repeat:
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    repeat,
+    no-repeat;
+}
+
+/*theme 4 colorido latino*/
+.theme_4 {
+  /* Imágenes */
+  --img-principal-base-restaurante: none;
+  --img-bg-formulario:
+    linear-gradient(rgba(8, 10, 8, 0.3), rgba(131, 131, 131, 0.2)),
+    url(../assets/fondoFormulario/theme4.png);
+  --img-bg-formulario-size: contain;
+
+  /* Fondo base */
+  --color-bg: #191716;
+  --texture-bg:
+    radial-gradient(circle, rgba(255, 177, 32, 0) 1px, transparent 1px);
+
+  --theme-glow: rgba(255, 177, 32, 0);
+
+  /* Promos / destacados / info */
+  --color-bg-primary: #f3990788;
+  --color-bg-secondary: rgba(255, 72, 32, 0.38);
+  --color-bg-info-grid: rgba(16, 20, 16, 0.527);
+  --color-text-info-grid-p: rgba(255, 238, 196, 0.78);
+  --color-text-promociones-destacadas-h2: #ff3b1f;
+
+  /* Precios */
+  --color-text-destacado: #ff3b1f;
+  --text-size-destacados: 2.5rem;
+
+  /* NAV */
+  --color-border-nav: rgba(255, 176, 32, 0.22);
+  --texto-color-nav: #ffdd8a;
+  --size-text-nav: 1.15rem;
+
+  /* Botón secundario */
+  --bg-color-btn1: #274c33;
+  --border-color-btn1: rgba(255, 176, 32, 0.34);
+  --text-color-btn1: #ffdd8a;
+
+  /* PedidosYa */
+  --color-bg-btn-pedidosya: #ff3b1f;
+  --color-bg-btn-pedidosya-hover: #d92f18;
+  --color-text-btn-pedidosya: #ffffff;
+
+  /* Botón principal */
+  --bg-color-btn2: #ff3b1f;
+  --text-color-btn2: #ffffff;
+
+  /* Botón información / escríbenos */
+  --bg-color-btn3: #ffb020;
+  --text-color-btn3: #1b1205;
+
+  /* Destacados */
+  --bg-div-destacado: #111611;
+
+  /* Fuentes */
+  --font-family-precios-destacados: "Fredericka the Great", "Bebas Neue", Georgia, serif;
+  --font-family-base: "Poppins", system-ui, sans-serif;
+
+  /* Textos */
+  --color-text-primary: #fff1c7;
+  --color-text-secondary: rgba(255, 241, 199, 0.76);
+
+  /* Base */
+  --color-surface: #101410;
+  --color-primary: #ff3b1f;
+  --color-secondary: #f39a07;
+
+  --color-border: rgba(255, 176, 32, 0.26);
+  --color-border-2: #274c33;
+}
+.page-shell.theme_4 {
+  background:
+    radial-gradient(circle at top right, var(--theme-glow), transparent 0%),
+    linear-gradient(to bottom, rgba(8, 10, 8, 0.1) 0%, var(--color-bg) 48%, var(--color-bg) 100%),
+    var(--img-principal-base-restaurante),
+    var(--color-bg);
+  background-size: cover, cover, min(720px, 85vw) auto, 10px 10px, cover;
+  background-position: center, center, right 20px top 100px, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+}
+/*theme 5 verde mexicano*/
+.theme_5 {
+  /* Imágenes */
+  --img-principal-base-restaurante: none;
+  --img-bg-formulario:
+    linear-gradient(rgba(20, 45, 30, 0.82), rgba(20, 45, 30, 0.9)),
+    url(../assets/fondoFormulario/theme5.png);
+  --img-bg-formulario-size: contain, cover;
+
+  /* Fondo base */
+  --color-bg: #10291c;
+  --texture-bg:
+    radial-gradient(circle, rgba(255, 183, 77, 0.08) 1px, transparent 1px);
+
+  --theme-glow: rgba(255, 145, 35, 0.18);
+
+  /* Promos / destacados / info */
+  --color-bg-primary: #b43a18;
+  --color-bg-secondary: #b43a181f;
+  --color-bg-info-grid: #10291c52;
+  --color-text-info-grid-p: rgba(241, 243, 242, 0.78);
+  --color-text-promociones-destacadas-h2: #b43a18;
+
+  /* Precios */
+  --color-text-destacado: #b43a18;
+  --text-size-destacados: 2rem;
+
+  /* NAV */
+  --color-border-nav: rgba(255, 183, 77, 0.2);
+  --texto-color-nav: #f8e9c8;
+  --size-text-nav: 1.15rem;
+
+  /* Botón secundario */
+  --bg-color-btn1: #1b3827;
+  --border-color-btn1: rgba(255, 183, 77, 0.38);
+  --text-color-btn1: #f8e9c8;
+
+  /* PedidosYa */
+  --color-bg-btn-pedidosya: #f25a24;
+  --color-bg-btn-pedidosya-hover: #c93f16;
+  --color-text-btn-pedidosya: #ffffff;
+
+  /* Botón principal */
+  --bg-color-btn2: #d94a1e;
+  --text-color-btn2: #ffffff;
+
+  /* Botón información / escríbenos */
+  --bg-color-btn3: #f5b24d;
+  --text-color-btn3: #2b1a0d;
+
+  /* Destacados */
+  --bg-div-destacado: rgba(20, 45, 30, 0.92);
+
+  /* Fuentes */
+  --font-family-precios-destacados: "Fredericka the Great", Georgia, serif;
+  --font-family-base: "Poppins", system-ui, sans-serif;
+
+  /* Textos */
+  --color-text-primary: #f8e9c8;
+  --color-text-secondary: rgb(151, 161, 91);
+
+  /* Base */
+  --color-surface: #173321;
+  --color-primary: #f25a24;
+  --color-secondary: #dbba82;
+
+  --color-border: rgba(255, 183, 77, 0.26);
+  --color-border-2: rgba(242, 90, 36, 0.22);
+}
+.page-shell.theme_5 {
+  background:
+    radial-gradient(circle at top right, var(--theme-glow), transparent 38%),
+    linear-gradient(to bottom, rgba(16, 41, 28, 0.72) 0%, var(--color-bg) 48%, var(--color-bg) 100%),
+    var(--img-principal-base-restaurante),
+    var(--texture-bg),
+    var(--color-bg);
+  background-size: cover, cover, min(720px, 85vw) auto, 10px 10px, cover;
+  background-position: center, center, right 20px top 100px, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+}
+
+/*Theme 6 pasteleria rosa*/
+.theme_6 {
+  /* Imágenes */
+  --img-principal-base-restaurante: none;
+  --img-bg-formulario:
+    linear-gradient(rgba(255, 230, 229, 0.10), rgba(246, 157, 166, 0.40)),
+    url(../assets/fondoFormulario/theme6.png);
+  --img-bg-formulario-size: contain;
+
+  /* Fondo base */
+  --color-bg: #fff1ed;
+  --texture-bg:
+    radial-gradient(circle, rgba(215, 119, 128, 0.08) 1px, transparent 1px);
+
+  --theme-glow: rgba(246, 157, 166, 0.22);
+
+  /* Promos / destacados / info */
+  --color-bg-primary: rgba(255, 246, 241, 0.82);
+  --color-bg-secondary: rgba(246, 157, 166, 0.34);
+  --color-bg-info-grid: rgba(246, 157, 166, 0.72);
+  --color-text-info-grid-p: rgba(92, 45, 50, 0.78);
+  --color-text-promociones-destacadas-h2: #bb3242;
+  /* Precios */
+  --color-text-destacado: #4e1a20;
+  --text-size-destacados: 2rem;
+  /* NAV */
+  --color-border-nav: rgba(184, 95, 105, 0.18);
+  --texto-color-nav: #8f4d56;
+  --size-text-nav: 1.15rem;
+
+  /* Botón secundario */
+  --bg-color-btn1: rgba(255, 248, 245, 0.9);
+  --border-color-btn1: rgba(184, 95, 105, 0.28);
+  --text-color-btn1: #8f4d56;
+
+  /* PedidosYa */
+  --color-bg-btn-pedidosya: transparent;
+  --color-bg-btn-pedidosya-hover: rgba(246, 157, 166, 0.18);
+  --color-text-btn-pedidosya: #8f4d56;
+
+  /* Botón principal */
+  --bg-color-btn2: #e88691;
+  --text-color-btn2: #ffffff;
+
+  /* Botón información / escríbenos */
+  --bg-color-btn3: #d76f7c;
+  --text-color-btn3: #ffffff;
+
+  /* Destacados */
+  --bg-div-destacado: rgba(255, 248, 245, 0.92);
+
+ 
+
+  /* Fuentes */
+  --font-family-precios-destacados: Fredericka the Great, Georgia, serif;
+  --font-family-base: "Poppins", system-ui, sans-serif;
+
+  /* Textos */
+  --color-text-primary: #7a3f48;
+  --color-text-secondary: rgba(92, 45, 50, 0.76);
+
+  /* Base */
+  --color-surface: rgba(255, 248, 245, 0.9);
+  --color-primary: #d76f7c;
+  --color-secondary: #e88691;
+
+  --color-border: rgba(184, 95, 105, 0.22);
+  --color-border-2: rgba(184, 95, 105, 0.14);
+}
+.page-shell.theme_6 {
+  background:
+    radial-gradient(circle at top right, var(--theme-glow), transparent 38%),
+    linear-gradient(to bottom, rgba(255, 248, 245, 0.45) 0%, var(--color-bg) 48%, var(--color-bg) 100%),
+    var(--img-principal-base-restaurante),
+    var(--texture-bg),
+    var(--color-bg);
+  background-size: cover, cover, min(720px, 85vw) auto, 10px 10px, cover;
+  background-position: center, center, right 20px top 0px, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+}
+
+/*theme 7 mar-azul-base-blanca*/
+.theme_7 {
+  /* Imágenes */
+  --img-principal-base-restaurante: none;
+  --img-bg-formulario:
+    linear-gradient(rgba(201, 228, 238, 0.7), rgba(8, 56, 73, 0.88)),
+    url(../assets/fondoFormulario/theme7.png);
+  --img-bg-formulario-size: none;
+
+  /* Fondo base */
+  --color-bg: #f3efe6;
+  --texture-bg:
+    radial-gradient(circle, rgba(30, 91, 111, 0.08) 1px, transparent 1px);
+
+  --theme-glow: rgba(38, 111, 135, 0.16);
+
+  /* Promos / destacados / info */
+  --color-bg-primary: rgba(255, 252, 244, 0.74);
+  --color-bg-secondary: rgba(178, 216, 221, 0.36);
+  --color-bg-info-grid: #07394ac5;
+  --color-text-info-grid-p: rgba(255, 255, 255, 0.78);
+  --color-text-promociones-destacadas-h2:rgba(255, 255, 255, 0.925);
+
+  /* NAV */
+  --color-border-nav: rgba(24, 83, 105, 0.18);
+  --texto-color-nav: #163d4f;
+  --size-text-nav: 1.15rem;
+
+  /* Botón secundario */
+  --bg-color-btn1: rgba(255, 252, 244, 0.82);
+  --border-color-btn1: rgba(24, 83, 105, 0.34);
+  --text-color-btn1: #163d4f;
+
+  /* PedidosYa */
+  --color-bg-btn-pedidosya: transparent;
+  --color-bg-btn-pedidosya-hover: rgba(24, 83, 105, 0.12);
+  --color-text-btn-pedidosya: #163d4f;
+
+  /* Botón principal */
+  --bg-color-btn2: #1d6f8d;
+  --text-color-btn2: #ffffff;
+
+  /* Botón información / escríbenos */
+  --bg-color-btn3: #0b5870;
+  --text-color-btn3: #ffffff;
+
+  /* Destacados */
+  --bg-div-destacado: rgba(255, 252, 244, 0.9);
+
+  /* Precios */
+  --color-text-destacado: #001a24;
+  --text-size-destacados: 2rem;
+
+  /* Fuentes */
+  --font-family-precios-destacados: Cinzel, Georgia, serif;
+  --font-family-base: "Poppins", system-ui, sans-serif;
+
+  /* Textos */
+  --color-text-primary: #163d4f;
+  --color-text-secondary: rgb(0, 43, 63);
+
+  /* Base */
+  --color-surface: rgba(255, 252, 244, 0.88);
+  --color-primary: #557f8f;
+  --color-secondary: #0b5870;
+
+  --color-border: rgba(24, 83, 105, 0.2);
+  --color-border-2: rgba(24, 83, 105, 0.14);
+}
+.page-shell.theme_7 {
+  background:
+    radial-gradient(circle at top right, var(--theme-glow), transparent 38%),
+    linear-gradient(to bottom, rgba(255, 252, 244, 0.35) 0%, var(--color-bg) 48%, var(--color-bg) 100%),
+    var(--img-principal-base-restaurante),
+    var(--texture-bg),
+    var(--color-bg);
+  background-size: cover, cover, min(720px, 85vw) auto, 10px 10px, cover;
+  background-position: center, center, right 20px top 0px, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+}
+
 /*theme 8 cafeteria rustica*/
 .theme_8 {
   /* Imágenes */
@@ -365,6 +955,7 @@ main{
   font-weight: 700;
   letter-spacing: 1px;
   font-family: var(--font-family-precios-destacados);
+  font-size: var(--size-text-header);
   
 }
 
@@ -602,6 +1193,7 @@ main{
   font-size: clamp(1.7rem, 2.8vw, 2.5rem);
   line-height: 1.05;
   overflow-wrap: break-word;
+  color: var(--color-text-promociones-destacadas-h2);
 }
 .promo-item p{
   color: var(--color-text-secondary);
@@ -1150,7 +1742,7 @@ main{
   font-weight: 700;
   font-family: var(--font-family-precios-destacados);
   display: inline-block;
-  font-size: 2rem;
+  font-size: var(--size-text-reserva);
   margin-bottom: 10px;
 }
 
@@ -1214,7 +1806,7 @@ main{
 .gallery-panel h2 {
   margin: 0;
   font-family: var(--font-family-precios-destacados);
-  font-size: 2.2rem;
+  font-size: var(--size-text-reserva);
 }
 
 .gallery-grid {
@@ -1756,6 +2348,7 @@ main{
   .promo-item h2 {
     font-size: clamp(1.1rem, 5.4vw, 1.55rem);
     line-height: 1.05;
+    
   }
 
   .promo-item p,
