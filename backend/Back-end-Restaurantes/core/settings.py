@@ -160,7 +160,6 @@ CONTENT_SECURITY_POLICY = "; ".join([
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
     "img-src 'self' " + " ".join(CSP_EXTRA_IMG_SRC),
     "connect-src 'self' " + " ".join(API_ALLOWED_CONNECT_ORIGINS),
-    "require-trusted-types-for 'script'",
     "upgrade-insecure-requests",
 ])
 PERMISSIONS_POLICY = (
