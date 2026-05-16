@@ -11,8 +11,8 @@ class ProductionSecurityHeadersMiddleware:
         response = self.get_response(request)
 
         #csp = getattr(settings, "CONTENT_SECURITY_POLICY", "")
-        #if csp:
-        #    response.setdefault("Content-Security-Policy", csp)
+  
+       
 
         response.setdefault("Permissions-Policy", getattr(settings, "PERMISSIONS_POLICY", ""))
         response.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
