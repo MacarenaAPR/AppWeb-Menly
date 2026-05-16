@@ -2,11 +2,10 @@
 import Menu from "../components/Menu";
 import ReservaForm from "../components/ReservaForm";
 import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
+import { apiFetch, BASE_URL } from "../Services/api";
 import { getSlugFromHostname } from "../utils/getSlugFromHostname";
 import { getOptimizedImageUrl } from "../utils/images";
 import "../themes/themes.css";
-
-const BASE_URL = import.meta.env.VITE_API_URL;
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 const MENU_CACHE_TTL = 60 * 5 * 1000;
@@ -28,6 +27,32 @@ const getAbsoluteUrl = (url) => {
   if (!url) return "";
 
   return new URL(url, window.location.origin).href;
+};
+
+const upsertLinkTag = (selector, attributes) => {
+  let link = document.querySelector(selector);
+
+  if (!link) {
+    link = document.createElement("link");
+    document.head.appendChild(link);
+  }
+
+  Object.entries(attributes).forEach(([key, value]) => {
+    link.setAttribute(key, value);
+  });
+};
+
+const upsertJsonLd = (id, data) => {
+  let script = document.getElementById(id);
+
+  if (!script) {
+    script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = id;
+    document.head.appendChild(script);
+  }
+
+  script.textContent = JSON.stringify(data);
 };
 
 const getCachedMenu = (slug) => {
@@ -75,10 +100,6 @@ export default function Home() {
   const destacadosCarouselRef = useRef(null);
 
   useEffect(() => {
-    const hostname = window.location.hostname;
-    console.log("hostname:", hostname);
-    console.log("slug:", slug);
-
     if (!slug) {
       setLoading(false);
       return;
@@ -91,17 +112,14 @@ export default function Home() {
           setCategorias(cachedMenu);
         }
 
-        const [resRestaurante, resMenu] = await Promise.all([
-          fetch(`${BASE_URL}/restaurantes/${slug}/`),
-          fetch(`${BASE_URL}/menu/${slug}/`),
+        const [dataRestaurante, dataMenu] = await Promise.all([
+          apiFetch(`/restaurantes/${slug}/`),
+          apiFetch(`/menu/${slug}/`),
         ]);
 
-        const dataRestaurante = await resRestaurante.json();
-        const dataMenu = await resMenu.json();
-
         if (
-          (resRestaurante.status === 403 && dataRestaurante?.estado === "inactivo") ||
-          (resMenu.status === 403 && dataMenu?.estado === "inactivo")
+          dataRestaurante?.estado === "inactivo" ||
+          dataMenu?.estado === "inactivo"
         ) {
           localStorage.removeItem(`menu_${slug}`);
           setRestauranteInactivo(dataRestaurante?.estado === "inactivo" ? dataRestaurante : dataMenu);
@@ -112,7 +130,13 @@ export default function Home() {
         setCategorias(dataMenu);
         setCachedMenu(slug, dataMenu);
       } catch (error) {
-        console.error(error);
+        const payload = error?.payload;
+        if (error?.status === 403 && payload?.estado === "inactivo") {
+          localStorage.removeItem(`menu_${slug}`);
+          setRestauranteInactivo(payload);
+        } else {
+          setError("No pudimos cargar el restaurante. Revisa tu conexion e intenta nuevamente.");
+        }
       } finally {
         setLoading(false);
       }
@@ -123,11 +147,12 @@ export default function Home() {
 
   const handleClickProducto = async (id) => {
     try {
-      await fetch(`${BASE_URL}/productos/${id}/click/`, {
+      await apiFetch(`/productos/${id}/click/`, {
         method: "POST",
+        retries: 0,
       });
-    } catch (error) {
-      console.error("Error click", error);
+    } catch {
+      // Metric-only endpoint: do not interrupt the customer experience.
     }
   };
 
@@ -192,25 +217,23 @@ export default function Home() {
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/reservas/${slug}/`, {
+      await apiFetch(`/reservas/${slug}/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        retries: 0,
       });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        setError(result.error || "No se pudo enviar la reserva. Intenta nuevamente.");
-        return;
-      }
 
       setMensaje("Reserva enviada correctamente. Te contactaremos para confirmar.");
       form.reset();
-    } catch {
-      setError("No se pudo enviar la reserva. Intenta nuevamente.");
+    } catch (requestError) {
+      const apiMessage =
+        requestError?.payload?.error ||
+        requestError?.payload?.detail ||
+        "No se pudo enviar la reserva. Intenta nuevamente.";
+      setError(apiMessage);
     } finally {
       setEnviando(false);
     }
@@ -270,6 +293,32 @@ export default function Home() {
   });
 
   useEffect(() => {
+    if (BASE_URL) {
+      try {
+        const apiOrigin = new URL(BASE_URL, window.location.origin).origin;
+        upsertLinkTag(`link[rel="preconnect"][href="${apiOrigin}"]`, {
+          rel: "preconnect",
+          href: apiOrigin,
+        });
+      } catch {
+        // Invalid API URL is handled by apiFetch when requests are made.
+      }
+    }
+
+    if (CLOUDINARY_BASE) {
+      try {
+        const cloudinaryOrigin = new URL(CLOUDINARY_BASE, window.location.origin).origin;
+        upsertLinkTag(`link[rel="preconnect"][href="${cloudinaryOrigin}"]`, {
+          rel: "preconnect",
+          href: cloudinaryOrigin,
+        });
+      } catch {
+        // Optional optimization only.
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (!restaurante?.nombre_empresa) return;
 
     const nombre = restaurante.nombre_empresa;
@@ -297,6 +346,46 @@ export default function Home() {
     upsertMetaTag('meta[property="og:image"]', {
       property: "og:image",
       content: ogImage,
+    });
+    upsertMetaTag('meta[property="og:url"]', {
+      property: "og:url",
+      content: window.location.href,
+    });
+    upsertMetaTag('meta[property="og:type"]', {
+      property: "og:type",
+      content: "restaurant",
+    });
+    upsertMetaTag('meta[name="twitter:card"]', {
+      name: "twitter:card",
+      content: "summary_large_image",
+    });
+    upsertMetaTag('meta[name="twitter:title"]', {
+      name: "twitter:title",
+      content: `${nombre} | Menú Digital`,
+    });
+    upsertMetaTag('meta[name="twitter:description"]', {
+      name: "twitter:description",
+      content: descripcion,
+    });
+    upsertMetaTag('meta[name="twitter:image"]', {
+      name: "twitter:image",
+      content: ogImage,
+    });
+    upsertLinkTag('link[rel="canonical"]', {
+      rel: "canonical",
+      href: window.location.href.split("#")[0],
+    });
+    upsertJsonLd("menly-restaurant-jsonld", {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      name: nombre,
+      description: descripcion,
+      image: ogImage,
+      address: `${restaurante.direccion || ""}, ${restaurante.ciudad || ""}`.trim(),
+      telephone: restaurante.telefono || restaurante.whatsapp || "",
+      url: window.location.href.split("#")[0],
+      servesCuisine: "Restaurant",
+      hasMenu: `${window.location.href.split("#")[0]}#menu`,
     });
   }, [imagenPrincipalOptimizada, logoOptimizado, restaurante]);
 
@@ -360,7 +449,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="page-shell loading-screen">
-        <p>Cargando menú...</p>
+        <div className="skeleton-card" aria-label="Cargando menú"></div>
       </div>
     );
   }

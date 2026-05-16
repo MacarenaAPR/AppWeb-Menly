@@ -54,6 +54,13 @@ class Restaurante(models.Model):
     slogan = models.CharField(max_length=255, blank=True)
     mensaje_bienvenida = models.TextField(blank=True)
     theme_color = models.CharField(max_length=7, blank=True, null=True)  # Ejemplo: #RRGGBB
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["slug", "activo"], name="rest_slug_activo_idx"),
+            models.Index(fields=["fecha_creacion"], name="rest_fecha_creacion_idx"),
+        ]
+
     def __str__(self):
         return self.nombre_empresa
     
@@ -86,6 +93,9 @@ class ImagenRestaurante(models.Model):
 
     class Meta:
         ordering = ["orden"]
+        indexes = [
+            models.Index(fields=["restaurante", "activa", "orden"], name="img_rest_activa_orden_idx"),
+        ]
 
     def __str__(self):
         return f"{self.restaurante.nombre_empresa} - {self.label}"
@@ -104,6 +114,9 @@ class Categoria(models.Model):
     )
     class Meta:
         ordering = ["orden"]
+        indexes = [
+            models.Index(fields=["restaurante", "activa", "orden"], name="cat_rest_activa_orden_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["restaurante", "nombre"],
@@ -144,6 +157,10 @@ class Producto(models.Model):
     
     class Meta:
         ordering = ["orden"]
+        indexes = [
+            models.Index(fields=["restaurante", "categoria", "disponible", "orden"], name="prod_menu_lookup_idx"),
+            models.Index(fields=["restaurante", "clicks"], name="prod_clicks_idx"),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["restaurante", "nombre"],
@@ -236,6 +253,9 @@ class BitacoraProducto(models.Model):
 
     class Meta:
         ordering = ["-fecha"]
+        indexes = [
+            models.Index(fields=["restaurante", "-fecha"], name="bit_rest_fecha_idx"),
+        ]
 
     def __str__(self):
         return f"{self.accion} - {self.producto_nombre}"
@@ -294,6 +314,11 @@ class Reserva(models.Model):
 
     class Meta:
         ordering = ["-fecha_creacion"]
+        indexes = [
+            models.Index(fields=["restaurante", "-fecha_creacion"], name="res_rest_creacion_idx"),
+            models.Index(fields=["restaurante", "fecha", "hora", "estado"], name="res_rest_fecha_hora_idx"),
+            models.Index(fields=["restaurante", "estado"], name="res_rest_estado_idx"),
+        ]
 
     def __str__(self):
         return f"{self.nombre_cliente} - {self.fecha} {self.hora}"

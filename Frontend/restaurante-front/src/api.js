@@ -13,6 +13,7 @@ const getRequiredEnv = (name) => {
 
 export const API = trimTrailingSlash(getRequiredEnv("VITE_API_URL"));
 export const API_ORIGIN = API.replace(/\/api$/, "");
+const REQUEST_TIMEOUT_MS = 10000;
 export const MENSAJE_CUENTA_INACTIVA =
   "Tu cuenta está inactiva. Contacta al soporte de Menly.";
 
@@ -52,6 +53,22 @@ export async function authFetch(url, options = {}) {
   const finalUrl = buildApiUrl(url);
   const method = (options.method || "GET").toUpperCase();
   const restaurante = JSON.parse(localStorage.getItem("restaurante") || "null");
+  const withTimeout = async (requestUrl, requestOptions = {}) => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      requestOptions.timeout || REQUEST_TIMEOUT_MS
+    );
+
+    try {
+      return await fetch(requestUrl, {
+        ...requestOptions,
+        signal: controller.signal,
+      });
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  };
 
   if (
     restaurante?.activo === false &&
@@ -67,9 +84,10 @@ export async function authFetch(url, options = {}) {
   }
 
   const hacerRequest = (accessToken) =>
-    fetch(finalUrl, {
+    withTimeout(finalUrl, {
       ...options,
       headers: {
+        Accept: "application/json",
         ...(options.headers || {}),
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
@@ -88,7 +106,7 @@ export async function authFetch(url, options = {}) {
     return response;
   }
 
-  const refreshResponse = await fetch(buildApiUrl("/token/refresh/"), {
+  const refreshResponse = await withTimeout(buildApiUrl("/token/refresh/"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
+from django.views.decorators.cache import cache_control
 import logging
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -14,7 +15,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
-from django.db.models import Count, Q, F
+from django.db.models import Count, Q, F, Prefetch
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
@@ -103,6 +104,12 @@ def contiene_solo_campos(request, campos_permitidos):
 
 def paginated_response(request, queryset, serialize_page, pagination_class=DefaultListPagination):
     paginator = pagination_class()
+    requested_page_size = request.query_params.get("page_size")
+    if requested_page_size:
+        try:
+            paginator.page_size = min(max(int(requested_page_size), 1), 50)
+        except (TypeError, ValueError):
+            paginator.page_size = paginator.page_size
     page = paginator.paginate_queryset(queryset, request)
 
     if page is not None:
@@ -1154,6 +1161,9 @@ class ReservasDashboardView(APIView):
 
         reservas = Reserva.objects.filter(
             restaurante=usuario_restaurante.restaurante
+        ).select_related(
+            "creada_por__user",
+            "gestionada_por__user",
         ).order_by("-fecha_creacion")
 
         return paginated_response(
@@ -1391,7 +1401,7 @@ class HistorialBitacoraView(APIView):
 
         historial = BitacoraProducto.objects.filter(
             restaurante=restaurante
-        ).order_by("-fecha")
+        ).select_related("usuario").order_by("-fecha")
 
         def serialize_historial(items):
             return [
@@ -1975,6 +1985,7 @@ class MiRestauranteView(APIView):
 
 
 #PUBLICOS REQUESTS
+@cache_control(public=True, max_age=300, stale_while_revalidate=60)
 def menu_api(request, slug):
     restaurante = get_object_or_404(Restaurante, slug=slug)
 
@@ -1989,16 +2000,20 @@ def menu_api(request, slug):
         logger.info("Menu publico servido desde cache", extra={"slug": slug})
         return JsonResponse(cached_data, safe=False)
 
+    productos_disponibles = Producto.objects.filter(
+        disponible=True
+    ).order_by("orden", "id")
+
     categorias = Categoria.objects.filter(
         restaurante=restaurante,
         activa=True
-    ).prefetch_related("productos", "icono")
+    ).select_related("icono").prefetch_related(
+        Prefetch("productos", queryset=productos_disponibles)
+    )
 
     data = []
 
     for categoria in categorias:
-        productos = categoria.productos.filter(disponible=True)
-
         data.append({
             "id": categoria.id,
             "nombre": categoria.nombre,
@@ -2013,7 +2028,7 @@ def menu_api(request, slug):
                     "imagen": p.imagen.url if p.imagen else None,
                     "destacado": p.destacado,
                 }
-                for p in productos
+                for p in categoria.productos.all()
             ]
         })
 
@@ -2041,7 +2056,9 @@ class RestaurantePublicoDetalleView(APIView):
             restaurante,
             context={"request": request}
         )
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        response["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
+        return response
 
 
 class RespaldosRestauranteView(APIView):

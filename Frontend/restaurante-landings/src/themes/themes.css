@@ -1157,10 +1157,10 @@ main{
 .promo-slide-image img,
 .featured-slide-image img {
   width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 0;
   max-height: 300px;
-  object-fit: unset;
+  object-fit: cover;
   object-position: center;
   display: block;
   border-radius: 15px;
@@ -1767,9 +1767,20 @@ main{
   gap: 40px;
 }
 
+.reserva-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.reserva-form label span {
+  font-size: 0.92rem;
+}
+
 .reserva-form input,
 .reserva-form textarea {
-  width: 90%;
+  width: 100%;
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid var(--color-border);
@@ -1778,9 +1789,38 @@ main{
 }
 
 .reserva-form textarea {
-  width: 95%;
   min-height: 120px;
   resize: vertical;
+}
+
+.reserva-form input:focus-visible,
+.reserva-form textarea:focus-visible,
+.reserva-form button:focus-visible,
+.menu-tab:focus-visible,
+.producto-card:focus-visible,
+.promo-button:focus-visible,
+.button-primary:focus-visible,
+.button-secondary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary), white 25%);
+  outline-offset: 3px;
+}
+
+.skeleton-card {
+  width: min(860px, 90vw);
+  min-height: 320px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #ececec 25%, #f7f7f7 37%, #ececec 63%);
+  background-size: 400% 100%;
+  animation: menly-skeleton 1.4s ease infinite;
+}
+
+@keyframes menly-skeleton {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 
 .reserve-wrapper {

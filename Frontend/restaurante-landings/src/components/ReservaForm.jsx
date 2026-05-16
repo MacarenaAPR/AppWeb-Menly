@@ -6,37 +6,58 @@ export default function ReservaForm({ onSubmit, enviando, mensaje, error }) {
           <span>Reserva tu mesa</span>
           <h2>Agenda tu visita</h2>
           <p>
-            Completa el formulario y prepárate para disfrutar de nuestros mejores platos en un
+            Completa el formulario y preparate para disfrutar de nuestros mejores platos en un
             ambiente acogedor.
           </p>
         </div>
 
         <form className="reserva-form" onSubmit={onSubmit}>
           <div className="reserva-row">
-            <input name="nombre_cliente" placeholder="Nombre" required />
-            <input name="telefono" placeholder="Teléfono" required />
+            <label>
+              <span>Nombre</span>
+              <input name="nombre_cliente" autoComplete="name" required />
+            </label>
+            <label>
+              <span>Telefono</span>
+              <input name="telefono" type="tel" autoComplete="tel" required />
+            </label>
           </div>
 
           <div className="reserva-row">
-            <input name="email" type="email" placeholder="Email" />
-            <input name="fecha" type="date" required />
+            <label>
+              <span>Email</span>
+              <input name="email" type="email" autoComplete="email" />
+            </label>
+            <label>
+              <span>Fecha</span>
+              <input name="fecha" type="date" required />
+            </label>
           </div>
 
           <div className="reserva-row">
-            <input name="hora" type="time" required />
-            <input name="cantidad_personas" type="number" min="1" placeholder="Personas" required />
+            <label>
+              <span>Hora</span>
+              <input name="hora" type="time" required />
+            </label>
+            <label>
+              <span>Personas</span>
+              <input name="cantidad_personas" type="number" min="1" inputMode="numeric" required />
+            </label>
           </div>
 
-          <textarea name="mensaje" placeholder="Mensaje opcional"></textarea>
+          <label className="reserva-message-field">
+            <span>Mensaje opcional</span>
+            <textarea name="mensaje"></textarea>
+          </label>
 
           {mensaje && (
-            <div className="alert alert-success">
+            <div className="alert alert-success" role="status">
               {mensaje}
             </div>
           )}
 
           {error && (
-            <div className="alert alert-danger">
+            <div className="alert alert-danger" role="alert">
               {error}
             </div>
           )}

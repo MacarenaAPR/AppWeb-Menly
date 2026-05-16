@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 #from django.conf import settings
 from django.urls import path
+from django.http import JsonResponse, HttpResponse
 from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -32,6 +33,15 @@ urlpatterns = [
 
 
     path('admin/', admin.site.urls),
+    path("healthz/", lambda request: JsonResponse({"status": "ok"}), name="healthz"),
+    path(
+        "robots.txt",
+        lambda request: HttpResponse(
+            "User-agent: *\nAllow: /\nSitemap: https://menly.cl/sitemap.xml\n",
+            content_type="text/plain",
+        ),
+        name="robots",
+    ),
 
     # 🔐 login custom
     path("api/login/", CustomLoginView.as_view(), name="login"),
