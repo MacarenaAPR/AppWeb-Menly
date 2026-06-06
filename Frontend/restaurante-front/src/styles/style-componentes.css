@@ -15,6 +15,7 @@
 .btn-main-componente p{
     margin: 0;
     color: whitesmoke !important;
+    text-align: start;
 }
 .btn-main-componente:hover{
     color: #F06B0C;

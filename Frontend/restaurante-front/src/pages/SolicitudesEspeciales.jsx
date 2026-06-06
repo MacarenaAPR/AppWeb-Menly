@@ -468,9 +468,9 @@ export default function SolicitudesEspecialesDashboard() {
               </tbody>
             </table>
 
-            <footer className="reservas-pagination">
+            <footer className="table-footer">
               <span>Página {paginaActual} · Mostrando {solicitudesFiltradas.length} de {totalSolicitudes} solicitudes</span>
-              <div>
+              <div className="paginations">
                 <button
                   disabled={!paginaAnterior}
                   onClick={() => {

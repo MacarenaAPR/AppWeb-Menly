@@ -44,8 +44,8 @@
     min-height: 0;
     flex: 1 1 auto;
     border-radius: 20px;
-    border: 1.5px solid #1E293B;
-    background: #060B11;
+    
+
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -83,9 +83,9 @@
     padding: 18px 20px 20px;
     min-height: calc(100vh - 50px);
     height: auto;
-    max-height: 100vh;
+
     border-radius: 20px;
-    border: 3px solid #16191F;
+    border: 1.5px solid #16191F;
     background: #00050B;
 
     top: 5px;
