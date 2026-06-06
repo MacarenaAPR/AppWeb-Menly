@@ -1103,6 +1103,13 @@ class CrearReservaPublicaView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        if not restaurante.reservas_activas:
+            logger.info("Reserva publica rechazada por modulo inactivo", extra={"slug": slug})
+            return Response(
+                {"error": "Las reservas no están disponibles para este restaurante."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         serializer = ReservaPublicaSerializer(data=request.data)
 
         if serializer.is_valid():

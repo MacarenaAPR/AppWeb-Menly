@@ -35,7 +35,16 @@ IS_TESTING = "test" in sys.argv
 
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
-    default="127.0.0.1,localhost,api.menly.cl",
+    default=(
+        "127.0.0.1,localhost,.localhost,.menly.localhost,"
+        ".lvh.me,.nip.io,api.menly.cl,.menly.cl"
+    ),
+    cast=Csv(),
+)
+
+TENANT_BASE_DOMAINS = config(
+    "TENANT_BASE_DOMAINS",
+    default="menly.cl,menly.localhost,localhost,lvh.me,nip.io",
     cast=Csv(),
 )
 
@@ -116,17 +125,39 @@ else:
 
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://localhost:5173,http://localhost:5174,https://menly.cl,https://www.menly.cl",
+    default=(
+        "http://localhost:5173,http://localhost:5174,"
+        "http://127.0.0.1:5173,http://127.0.0.1:5174,"
+        "https://menly.cl,https://www.menly.cl"
+    ),
     cast=Csv(),
 )
 CORS_ALLOWED_ORIGIN_REGEXES = config(
     "CORS_ALLOWED_ORIGIN_REGEXES",
-    default=r"^https://[a-z0-9-]+\.menly\.cl$",
+    default=(
+        r"^http://[a-z0-9-]+\.localhost:5173$,"
+        r"^http://[a-z0-9-]+\.localhost:5174$,"
+        r"^http://[a-z0-9-]+\.menly\.localhost:5173$,"
+        r"^http://[a-z0-9-]+\.menly\.localhost:5174$,"
+        r"^http://[a-z0-9-]+\.lvh\.me:5173$,"
+        r"^http://[a-z0-9-]+\.lvh\.me:5174$,"
+        r"^http://[a-z0-9-]+\.nip\.io:5173$,"
+        r"^http://[a-z0-9-]+\.nip\.io:5174$,"
+        r"^https://[a-z0-9-]+\.menly\.cl$"
+    ),
     cast=Csv(),
 )
 CSRF_TRUSTED_ORIGINS = config(
     "CSRF_TRUSTED_ORIGINS",
-    default="http://localhost:5173,http://localhost:5174,https://menly.cl,https://www.menly.cl,https://*.menly.cl",
+    default=(
+        "http://localhost:5173,http://localhost:5174,"
+        "http://127.0.0.1:5173,http://127.0.0.1:5174,"
+        "http://*.localhost:5173,http://*.localhost:5174,"
+        "http://*.menly.localhost:5173,http://*.menly.localhost:5174,"
+        "http://*.lvh.me:5173,http://*.lvh.me:5174,"
+        "http://*.nip.io:5173,http://*.nip.io:5174,"
+        "https://menly.cl,https://www.menly.cl,https://*.menly.cl"
+    ),
     cast=Csv(),
 )
 CORS_ALLOW_ALL_ORIGINS = False

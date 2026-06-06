@@ -14,6 +14,22 @@ import RequireRole from './componentes/RequireRole'
 import Footer from './componentes/Footer'
 
 
+function MetricasPlaceholder() {
+  return (
+    <main className="dashboard">
+      <section className="dashboard-header">
+        <div>
+          <p>Menly</p>
+          <h1>Métricas</h1>
+        </div>
+      </section>
+      <section className="dashboard-section">
+        <p>El módulo de métricas está activo. La página se implementará próximamente.</p>
+      </section>
+    </main>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -25,6 +41,7 @@ function App() {
             </RequireRole>
           }/>
           <Route path="/dashboard/:slug/reservas" element={<ReservasDashboard />} />
+          <Route path="/dashboard/:slug/metricas" element={<MetricasPlaceholder />} />
           <Route path="/carta-add/:slug" element={
             <RequireRole roles={["dueno", "admin"]}>
               <AddProductos />

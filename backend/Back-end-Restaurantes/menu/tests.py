@@ -12,7 +12,20 @@ from unittest.mock import patch
 from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle
 from .cache_utils import menu_cache_key
+from .utils import get_slug_from_host
 from django.core.cache import cache
+
+
+class TenantHostTests(TestCase):
+    def test_get_slug_from_host_soporta_produccion_y_local(self):
+        self.assertEqual(get_slug_from_host("lamechada.menly.cl"), "lamechada")
+        self.assertEqual(get_slug_from_host("demo.menly.localhost:5173"), "demo")
+        self.assertEqual(get_slug_from_host("lamechada.lvh.me:5173"), "lamechada")
+
+    def test_get_slug_from_host_ignora_hosts_raiz_y_subdominios_reservados(self):
+        self.assertIsNone(get_slug_from_host("localhost:5173"))
+        self.assertIsNone(get_slug_from_host("menly.cl"))
+        self.assertIsNone(get_slug_from_host("api.menly.cl"))
 
 
 class BaseTestCase(TestCase):
@@ -1793,6 +1806,23 @@ class SeguridadCriticaTests(BaseTestCase):
         }
         data.update(overrides)
         return data
+
+    def test_reserva_publica_rechaza_modulo_reservas_inactivo(self):
+        fecha_reserva = date.today() + timedelta(days=2)
+        self.restaurante.reservas_activas = False
+        self.restaurante.save(update_fields=["reservas_activas"])
+
+        response = self.client.post(
+            "/api/reservas/restaurante-test/",
+            self.payload_reserva_publica(fecha_reserva),
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            response.data["error"],
+            "Las reservas no están disponibles para este restaurante."
+        )
 
     def test_login_usuario_sin_perfil_falla(self):
         User.objects.create_user(

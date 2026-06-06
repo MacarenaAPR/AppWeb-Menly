@@ -8,6 +8,45 @@ from .models import HorarioAtencion
 
 logger = logging.getLogger(__name__)
 
+
+RESERVED_SUBDOMAINS = {"www", "api", "admin", "app"}
+DEFAULT_TENANT_BASE_DOMAINS = (
+    "menly.cl",
+    "menly.localhost",
+    "localhost",
+    "lvh.me",
+    "nip.io",
+)
+
+
+def get_slug_from_host(host, base_domains=None):
+    hostname = str(host or "").split(":")[0].lower()
+
+    if hostname in {"localhost", "127.0.0.1"}:
+        return None
+
+    tenant_base_domains = base_domains or getattr(
+        settings,
+        "TENANT_BASE_DOMAINS",
+        DEFAULT_TENANT_BASE_DOMAINS,
+    )
+
+    if hostname in tenant_base_domains:
+        return None
+
+    for base_domain in tenant_base_domains:
+        suffix = f".{base_domain}"
+
+        if not hostname.endswith(suffix):
+            continue
+
+        slug = hostname[: -len(suffix)].split(".")[0]
+        if slug and slug not in RESERVED_SUBDOMAINS:
+            return slug
+
+    return None
+
+
 def validar_horario_reserva(restaurante, fecha, hora, permitir_sin_horario=False):
     dia_semana = fecha.isoweekday()
 

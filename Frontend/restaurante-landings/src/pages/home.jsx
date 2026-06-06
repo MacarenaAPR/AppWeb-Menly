@@ -164,7 +164,7 @@ export default function Home() {
         retries: 0,
       });
     } catch {
-      // Metric-only endpoint: do not interrupt the customer experience.
+
     }
   };
 
@@ -499,7 +499,7 @@ export default function Home() {
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
     ? restaurante.theme_color
     : "theme_1";
-  const reservasActivas = restaurante?.reservas_activas !== false;
+  const reservasActivas = restaurante?.reservas_activas === true;
   console.log("routeSlug:", routeSlug);
   console.log("hostnameSlug:", hostnameSlug);
   console.log("slug final:", slug);

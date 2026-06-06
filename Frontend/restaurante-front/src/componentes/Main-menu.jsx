@@ -111,6 +111,13 @@ export default function MainMenu(){
       isActive: location.pathname === `/dashboard/${restaurante.slug}/reservas`,
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/reservas`),
     },
+    restaurante.metricas_activas === true && {
+      key: "metricas",
+      icon: <i className="bi bi-bar-chart-line"></i>,
+      name: "Métricas",
+      isActive: location.pathname === `/dashboard/${restaurante.slug}/metricas`,
+      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/metricas`),
+    },
     restauranteSlug && {
       key: "web",
       icon: <i className="bi bi-globe"></i>,
