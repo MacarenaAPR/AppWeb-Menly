@@ -2,6 +2,7 @@
 import Menu from "../components/Menu";
 import { useParams } from "react-router-dom";
 import ReservaForm from "../components/ReservaForm";
+import SolicitudEspecialForm from "../components/SolicitudEspecialForm";
 import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
 import { apiFetch, BASE_URL } from "../Services/api";
 import { getSlugFromHostname } from "../utils/getSlugFromHostname";
@@ -103,6 +104,9 @@ export default function Home() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [solicitudMensaje, setSolicitudMensaje] = useState("");
+  const [solicitudError, setSolicitudError] = useState("");
+  const [solicitudEnviando, setSolicitudEnviando] = useState(false);
   const [restauranteInactivo, setRestauranteInactivo] = useState(null);
   const promocionesCarouselRef = useRef(null);
   const destacadosCarouselRef = useRef(null);
@@ -248,6 +252,76 @@ export default function Home() {
       setError(apiMessage);
     } finally {
       setEnviando(false);
+    }
+  };
+
+  const handleSolicitudEspecial = async (e) => {
+    e.preventDefault();
+    if (solicitudEnviando) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    setSolicitudMensaje("");
+    setSolicitudError("");
+
+    const data = {
+      restaurante_id: restaurante?.id,
+      nombre: String(formData.get("nombre") || "").trim(),
+      apellido: String(formData.get("apellido") || "").trim(),
+      fecha_evento: formData.get("fecha_evento"),
+      telefono_contacto: String(formData.get("telefono_contacto") || "").trim(),
+      email_contacto: String(formData.get("email_contacto") || "").trim(),
+      descripcion_solicitud: String(formData.get("descripcion_solicitud") || "").trim(),
+    };
+
+    const camposRequeridos = [
+      "nombre",
+      "apellido",
+      "fecha_evento",
+      "telefono_contacto",
+      "email_contacto",
+      "descripcion_solicitud",
+    ];
+    const campoVacio = camposRequeridos.some((field) => !data[field]);
+
+    if (!data.restaurante_id) {
+      setSolicitudError("No se pudo identificar el restaurante. Recarga la página e intenta nuevamente.");
+      return;
+    }
+
+    if (campoVacio) {
+      setSolicitudError("Completa todos los campos para enviar la solicitud.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email_contacto)) {
+      setSolicitudError("Ingresa un email válido.");
+      return;
+    }
+
+    setSolicitudEnviando(true);
+
+    try {
+      await apiFetch(`/solicitudes-especiales/${slug}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        retries: 0,
+      });
+
+      setSolicitudMensaje("Solicitud enviada. El restaurante se pondrá en contacto contigo.");
+      form.reset();
+    } catch (requestError) {
+      const apiMessage =
+        requestError?.payload?.error ||
+        requestError?.payload?.detail ||
+        "Error al enviar la solicitud.";
+      setSolicitudError(apiMessage);
+    } finally {
+      setSolicitudEnviando(false);
     }
   };
 
@@ -500,6 +574,7 @@ export default function Home() {
     ? restaurante.theme_color
     : "theme_1";
   const reservasActivas = restaurante?.reservas_activas === true;
+  const solicitudesEspecialesActivas = restaurante?.solicitudes_especiales_activas === true;
   console.log("routeSlug:", routeSlug);
   console.log("hostnameSlug:", hostnameSlug);
   console.log("slug final:", slug);
@@ -856,6 +931,18 @@ export default function Home() {
               enviando={enviando}
               mensaje={mensaje}
               error={error}
+            />
+          </section>
+        )}
+
+        {solicitudesEspecialesActivas && (
+          <section className="reserve-wrapper" id="solicitudes-especiales">
+            <SolicitudEspecialForm
+              restauranteId={restaurante?.id}
+              onSubmit={handleSolicitudEspecial}
+              enviando={solicitudEnviando}
+              mensaje={solicitudMensaje}
+              error={solicitudError}
             />
           </section>
         )}

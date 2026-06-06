@@ -18,6 +18,7 @@ export function permisosPorRol(rol = "") {
     canAccessConfiguracion: rol === ROLES.DUENO || rol === ROLES.ADMIN,
     canManageProductos: rol === ROLES.DUENO || rol === ROLES.ADMIN,
     canManageReservas: [ROLES.DUENO, ROLES.ADMIN, ROLES.EMPLEADO].includes(rol),
+    canManageSolicitudesEspeciales: [ROLES.DUENO, ROLES.ADMIN, ROLES.EMPLEADO].includes(rol),
     canEditConfigCritica: rol === ROLES.DUENO,
     canToggleOperativa: rol === ROLES.DUENO || rol === ROLES.ADMIN,
   };

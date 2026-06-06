@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, Categoria, Reserva, Restaurante, Icono
+from .models import Producto, Categoria, Reserva, Restaurante, Icono, SolicitudEspecial
 from django.contrib.auth.models import User
 
 class MetodoPagoSerializer(serializers.ModelSerializer):
@@ -299,6 +299,85 @@ class ReservaPublicaSerializer(serializers.ModelSerializer):
             "cantidad_personas",
             "mensaje",
         ]
+
+
+class SolicitudEspecialPublicaSerializer(serializers.ModelSerializer):
+    restaurante_id = serializers.IntegerField(write_only=True, required=False)
+
+    class Meta:
+        model = SolicitudEspecial
+        fields = [
+            "id",
+            "restaurante_id",
+            "nombre",
+            "apellido",
+            "fecha_evento",
+            "telefono_contacto",
+            "email_contacto",
+            "descripcion_solicitud",
+            "estado",
+            "fecha_creacion",
+        ]
+        read_only_fields = ["id", "estado", "fecha_creacion"]
+
+    def validate(self, data):
+        for field in [
+            "nombre",
+            "apellido",
+            "telefono_contacto",
+            "email_contacto",
+            "descripcion_solicitud",
+        ]:
+            if not str(data.get(field) or "").strip():
+                raise serializers.ValidationError({
+                    field: "Este campo es obligatorio."
+                })
+
+        return data
+
+    def create(self, validated_data):
+        validated_data.pop("restaurante_id", None)
+        return super().create(validated_data)
+
+
+class SolicitudEspecialDashboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SolicitudEspecial
+        fields = [
+            "id",
+            "nombre",
+            "apellido",
+            "fecha_evento",
+            "telefono_contacto",
+            "email_contacto",
+            "descripcion_solicitud",
+            "estado",
+            "fecha_creacion",
+            "fecha_actualizacion",
+        ]
+        read_only_fields = ["id", "fecha_creacion", "fecha_actualizacion"]
+
+    def validate(self, data):
+        for field in [
+            "nombre",
+            "apellido",
+            "fecha_evento",
+            "telefono_contacto",
+            "email_contacto",
+            "descripcion_solicitud",
+        ]:
+            if field in data and not str(data.get(field) or "").strip():
+                raise serializers.ValidationError({
+                    field: "Este campo es obligatorio."
+                })
+
+        estado = data.get("estado")
+        if estado and estado not in dict(SolicitudEspecial.ESTADOS):
+            raise serializers.ValidationError({
+                "estado": "Estado de solicitud inválido."
+            })
+
+        return data
 
 class ReservaManualSerializer(serializers.ModelSerializer):
     mesa_asignada = serializers.PrimaryKeyRelatedField(

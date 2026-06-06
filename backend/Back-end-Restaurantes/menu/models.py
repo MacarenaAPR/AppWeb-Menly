@@ -328,6 +328,46 @@ class Reserva(models.Model):
     def __str__(self):
         return f"{self.nombre_cliente} - {self.fecha} {self.hora}"
 
+
+class SolicitudEspecial(models.Model):
+    ESTADOS = [
+        ("pendiente", "Pendiente"),
+        ("en_revision", "En revisión"),
+        ("aceptada", "Aceptada"),
+        ("rechazada", "Rechazada"),
+        ("completada", "Completada"),
+    ]
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="solicitudes_especiales"
+    )
+
+    nombre = models.CharField(max_length=120)
+    apellido = models.CharField(max_length=120)
+    fecha_evento = models.DateField()
+    telefono_contacto = models.CharField(max_length=30)
+    email_contacto = models.EmailField()
+    descripcion_solicitud = models.TextField()
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS,
+        default="pendiente"
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-fecha_creacion"]
+        indexes = [
+            models.Index(fields=["restaurante", "-fecha_creacion"], name="solesp_rest_creacion_idx"),
+            models.Index(fields=["restaurante", "estado"], name="solesp_rest_estado_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.nombre} {self.apellido} - {self.restaurante.nombre_empresa}"
+
 from django.db import models
 
 

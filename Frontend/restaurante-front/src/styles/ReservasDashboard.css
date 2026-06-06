@@ -205,9 +205,20 @@
   color: #22c55e;
 }
 
+.estado-badge.aceptada,
+.estado-badge.completada {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
 .estado-badge.pendiente {
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
+}
+
+.estado-badge.en_revision {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
 }
 
 .estado-badge.cancelada,
@@ -245,6 +256,21 @@
 .reservas-loading {
   padding: 30px;
   color: white;
+}
+
+.solicitudes-success {
+  margin: 6px 0 0;
+  color: #22c55e;
+  font-size: 14px;
+}
+
+.solicitudes-stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.solicitudes-table td:nth-child(4) {
+  max-width: 360px;
+  color: #cbd5e1;
 }
 
 .crear-reserva-btn {
@@ -352,6 +378,10 @@
   }
 
   .reservas-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .solicitudes-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -558,6 +588,40 @@
   }
 
   .reservas-table td:nth-child(7)::before {
+    content: "Acciones:";
+  }
+
+  .solicitudes-table td:nth-child(2)::before {
+    content: "Contacto:";
+  }
+
+  .solicitudes-table td:nth-child(3)::before {
+    content: "Fecha evento:";
+  }
+
+  .solicitudes-table td:nth-child(4)::before {
+    content: "Descripcion:";
+  }
+
+  .solicitudes-table td:nth-child(5) {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: flex-end;
+    justify-self: end;
+  }
+
+  .solicitudes-table td:nth-child(5)::before {
+    content: "";
+  }
+
+  .solicitudes-table td:nth-child(6) {
+    grid-column: 1 / -1;
+    grid-row: 5;
+    align-items: flex-start;
+    justify-self: stretch;
+  }
+
+  .solicitudes-table td:nth-child(6)::before {
     content: "Acciones:";
   }
 

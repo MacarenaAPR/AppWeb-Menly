@@ -104,12 +104,19 @@ export default function MainMenu(){
       isActive: location.pathname === "/historial",
       onClick: () => navigateAndClose("/historial"),
     },
-    {
+    restaurante.reservas_activas === true && {
       key: "reservas",
       icon: <i className="bi bi-calendar3"></i>,
       name: "Reservas",
       isActive: location.pathname === `/dashboard/${restaurante.slug}/reservas`,
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/reservas`),
+    },
+    restaurante.solicitudes_especiales_activas === true && permisos.canManageSolicitudesEspeciales && {
+      key: "solicitudes-especiales",
+      icon: <i className="bi bi-chat-square-text"></i>,
+      name: "Solicitudes especiales",
+      isActive: location.pathname === `/dashboard/${restaurante.slug}/solicitudes-especiales`,
+      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/solicitudes-especiales`),
     },
     restaurante.metricas_activas === true && {
       key: "metricas",

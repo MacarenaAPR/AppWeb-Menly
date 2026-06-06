@@ -9,8 +9,8 @@ from rest_framework import status
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto
-from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial
+from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host
 from django.core.cache import cache
@@ -1806,6 +1806,169 @@ class SeguridadCriticaTests(BaseTestCase):
         }
         data.update(overrides)
         return data
+
+    def payload_solicitud_especial(self, **overrides):
+        data = {
+            "restaurante_id": self.restaurante.id,
+            "nombre": "Cliente",
+            "apellido": "Especial",
+            "fecha_evento": (date.today() + timedelta(days=10)).isoformat(),
+            "telefono_contacto": "999999999",
+            "email_contacto": "cliente.especial@test.com",
+            "descripcion_solicitud": "Necesito un pedido especial para un evento.",
+        }
+        data.update(overrides)
+        return data
+
+    def test_solicitud_especial_publica_crea_en_restaurante_del_slug(self):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=["solicitudes_especiales_activas"])
+
+        response = self.client.post(
+            "/api/solicitudes-especiales/restaurante-test/",
+            self.payload_solicitud_especial(),
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        solicitud = SolicitudEspecial.objects.get(email_contacto="cliente.especial@test.com")
+        self.assertEqual(solicitud.restaurante, self.restaurante)
+
+    def test_solicitud_especial_rechaza_restaurante_id_distinto_al_slug(self):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=["solicitudes_especiales_activas"])
+
+        response = self.client.post(
+            "/api/solicitudes-especiales/restaurante-test/",
+            self.payload_solicitud_especial(restaurante_id=self.otro_restaurante.id),
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(SolicitudEspecial.objects.exists())
+
+    def test_solicitud_especial_rechaza_modulo_inactivo(self):
+        response = self.client.post(
+            "/api/solicitudes-especiales/restaurante-test/",
+            self.payload_solicitud_especial(),
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(SolicitudEspecial.objects.exists())
+
+    @patch("menu.utils.send_mail")
+    def test_solicitud_especial_publica_envia_notificacion_si_esta_configurado(self, send_mail_mock):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.notificar_reservas = True
+        self.restaurante.email_notificacion = " solicitudes@test.com "
+        self.restaurante.save(update_fields=[
+            "solicitudes_especiales_activas",
+            "notificar_reservas",
+            "email_notificacion",
+        ])
+
+        response = self.client.post(
+            "/api/solicitudes-especiales/restaurante-test/",
+            self.payload_solicitud_especial(),
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        send_mail_mock.assert_called_once()
+        kwargs = send_mail_mock.call_args.kwargs
+        self.assertEqual(kwargs["recipient_list"], ["solicitudes@test.com"])
+        self.assertIn("Cliente Especial", kwargs["message"])
+
+    def test_solicitud_especial_publica_tiene_throttle_configurado(self):
+        rates = settings.REST_FRAMEWORK.get("DEFAULT_THROTTLE_RATES", {})
+
+        self.assertIn("public_solicitudes_especiales", rates)
+        self.assertEqual(rates["public_solicitudes_especiales"], "20/hour")
+        self.assertIn(
+            PublicSolicitudEspecialRateThrottle,
+            CrearSolicitudEspecialPublicaView.throttle_classes
+        )
+
+    def test_dashboard_solicitudes_lista_solo_restaurante_autenticado(self):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=["solicitudes_especiales_activas"])
+        SolicitudEspecial.objects.create(
+            restaurante=self.restaurante,
+            nombre="Cliente",
+            apellido="Propio",
+            fecha_evento=date.today() + timedelta(days=10),
+            telefono_contacto="999999999",
+            email_contacto="propio@test.com",
+            descripcion_solicitud="Solicitud propia",
+        )
+        SolicitudEspecial.objects.create(
+            restaurante=self.otro_restaurante,
+            nombre="Cliente",
+            apellido="Externo",
+            fecha_evento=date.today() + timedelta(days=10),
+            telefono_contacto="888888888",
+            email_contacto="externo@test.com",
+            descripcion_solicitud="Solicitud externa",
+        )
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.get("/api/mi-restaurante/solicitudes-especiales/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        emails = [item["email_contacto"] for item in response.data["results"]]
+        self.assertIn("propio@test.com", emails)
+        self.assertNotIn("externo@test.com", emails)
+
+    def test_empleado_puede_gestionar_solicitudes_especiales(self):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=["solicitudes_especiales_activas"])
+
+        self.client.force_authenticate(user=self.empleado)
+        response = self.client.post(
+            "/api/mi-restaurante/solicitudes-especiales/",
+            self.payload_solicitud_especial(),
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            SolicitudEspecial.objects.filter(
+                restaurante=self.restaurante,
+                email_contacto="cliente.especial@test.com",
+            ).exists()
+        )
+
+    def test_dashboard_solicitudes_rechaza_modulo_inactivo(self):
+        self.client.force_authenticate(user=self.dueno)
+
+        response = self.client.get("/api/mi-restaurante/solicitudes-especiales/")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_dashboard_solicitudes_no_actualiza_otro_restaurante(self):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=["solicitudes_especiales_activas"])
+        solicitud_externa = SolicitudEspecial.objects.create(
+            restaurante=self.otro_restaurante,
+            nombre="Cliente",
+            apellido="Externo",
+            fecha_evento=date.today() + timedelta(days=10),
+            telefono_contacto="888888888",
+            email_contacto="externo@test.com",
+            descripcion_solicitud="Solicitud externa",
+        )
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.patch(
+            f"/api/mi-restaurante/solicitudes-especiales/{solicitud_externa.id}/",
+            {"estado": "aceptada"},
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        solicitud_externa.refresh_from_db()
+        self.assertEqual(solicitud_externa.estado, "pendiente")
 
     def test_reserva_publica_rechaza_modulo_reservas_inactivo(self):
         fecha_reserva = date.today() + timedelta(days=2)

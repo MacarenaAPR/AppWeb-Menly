@@ -124,3 +124,48 @@ def notificar_nueva_reserva(reserva):
         )
 
     return None
+
+
+def notificar_nueva_solicitud_especial(solicitud):
+    restaurante = solicitud.restaurante
+
+    if not restaurante.notificar_reservas:
+        return None
+
+    email_destino = (restaurante.email_notificacion or "").strip()
+
+    if not email_destino:
+        logger.info(
+            "Solicitud especial %s sin notificacion: restaurante %s no tiene email_notificacion.",
+            solicitud.id,
+            restaurante.id,
+        )
+        return None
+
+    asunto = f"Nueva solicitud especial - {restaurante.nombre_empresa}"
+    mensaje = (
+        "Se recibio una nueva solicitud especial.\n\n"
+        f"Cliente: {solicitud.nombre} {solicitud.apellido}\n"
+        f"Telefono: {solicitud.telefono_contacto}\n"
+        f"Email: {solicitud.email_contacto}\n"
+        f"Fecha del evento: {solicitud.fecha_evento.strftime('%d-%m-%Y')}\n"
+        f"Descripcion: {solicitud.descripcion_solicitud}\n\n"
+        f"Estado: {solicitud.estado}\n"
+    )
+
+    try:
+        send_mail(
+            subject=asunto,
+            message=mensaje,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email_destino],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception(
+            "Error enviando notificacion de solicitud especial %s al restaurante %s.",
+            solicitud.id,
+            restaurante.id,
+        )
+
+    return None

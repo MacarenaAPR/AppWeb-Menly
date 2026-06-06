@@ -1,4 +1,4 @@
-from menu.models import Restaurante,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa
+from menu.models import Restaurante,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial
 from .forms import ProductoCSVImportForm
 
 import csv
@@ -298,6 +298,33 @@ class ReservaAdmin(admin.ModelAdmin):
         "restaurante__nombre_empresa",
     )
     ordering = ("fecha", "hora")
+    readonly_fields = ("fecha_creacion", "fecha_actualizacion")
+
+
+@admin.register(SolicitudEspecial)
+class SolicitudEspecialAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "restaurante",
+        "nombre",
+        "apellido",
+        "telefono_contacto",
+        "email_contacto",
+        "fecha_evento",
+        "estado",
+        "fecha_creacion",
+    )
+    list_filter = ("estado", "fecha_evento", "restaurante")
+    search_fields = (
+        "nombre",
+        "apellido",
+        "telefono_contacto",
+        "email_contacto",
+        "descripcion_solicitud",
+        "restaurante__nombre_empresa",
+        "restaurante__slug",
+    )
+    ordering = ("-fecha_creacion",)
     readonly_fields = ("fecha_creacion", "fecha_actualizacion")
 
 

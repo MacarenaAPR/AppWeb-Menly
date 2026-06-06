@@ -4,16 +4,16 @@ from django.views.decorators.cache import cache_control
 import logging
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
-from .serializers import CustomTokenObtainPairSerializer,ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer
+from .serializers import CustomTokenObtainPairSerializer,ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva
+from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva, SolicitudEspecial
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from django.db.models import Count, Q, F, Prefetch
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -28,7 +28,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
 from menu.permissions import CanManageConfiguracion, CanManageUsuarios,CanViewBitacora,CanManageProductos,CanManageReservas,CanManageMesas,CanManageHorarios,CanManageMetodosPago,CanManageRespaldos
 from menu.permissions import MENSAJE_CUENTA_INACTIVA
-from menu.utils import validar_horario_reserva, notificar_nueva_reserva
+from menu.utils import validar_horario_reserva, notificar_nueva_reserva, notificar_nueva_solicitud_especial
 from menu.cache_utils import get_cached_menu, invalidate_menu_cache, set_cached_menu
 
 
@@ -53,6 +53,10 @@ class PasswordResetRateThrottle(AnonRateThrottle):
 
 class PublicReservaRateThrottle(AnonRateThrottle):
     scope = "public_reservas"
+
+
+class PublicSolicitudEspecialRateThrottle(AnonRateThrottle):
+    scope = "public_solicitudes_especiales"
 
 
 class ProductoClickRateThrottle(AnonRateThrottle):
@@ -1169,6 +1173,159 @@ class CrearReservaPublicaView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class CrearSolicitudEspecialPublicaView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [PublicSolicitudEspecialRateThrottle]
+
+    def post(self, request, slug):
+        restaurante = get_object_or_404(Restaurante, slug=slug)
+
+        if not restaurante.activo:
+            logger.info("Solicitud especial rechazada por restaurante inactivo", extra={"slug": slug})
+            return Response(
+                respuesta_publica_restaurante_inactivo(),
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if not restaurante.solicitudes_especiales_activas:
+            logger.info("Solicitud especial rechazada por modulo inactivo", extra={"slug": slug})
+            return Response(
+                {"error": "Las solicitudes especiales no están disponibles para este restaurante."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        restaurante_id = request.data.get("restaurante_id")
+        if restaurante_id not in (None, "") and str(restaurante_id) != str(restaurante.id):
+            logger.warning(
+                "Solicitud especial rechazada por restaurante_id inconsistente",
+                extra={"slug": slug, "restaurante_id": restaurante_id}
+            )
+            return Response(
+                {"error": "El restaurante de la solicitud no coincide con la landing actual."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = SolicitudEspecialPublicaSerializer(data=request.data)
+
+        if serializer.is_valid():
+            solicitud = serializer.save(restaurante=restaurante, estado="pendiente")
+            logger.info(
+                "Solicitud especial publica creada",
+                extra={"slug": slug, "solicitud_id": solicitud.id}
+            )
+            try:
+                notificar_nueva_solicitud_especial(solicitud)
+            except Exception:
+                logger.error(
+                    "Error en notificacion de solicitud especial publica",
+                    extra={"slug": slug},
+                    exc_info=True
+                )
+                raise
+
+            return Response(
+                {
+                    "message": "Solicitud enviada. El restaurante se pondrá en contacto contigo.",
+                    "solicitud": SolicitudEspecialPublicaSerializer(solicitud).data,
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        logger.info("Solicitud especial publica invalida", extra={"slug": slug})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def get_perfil_solicitudes_especiales(request):
+    perfil = get_object_or_404(
+        UsuarioRestaurante,
+        user=request.user,
+        activo=True
+    )
+
+    if not perfil.restaurante.solicitudes_especiales_activas:
+        raise PermissionDenied("El módulo de solicitudes especiales no está activo para este restaurante.")
+
+    return perfil
+
+
+class SolicitudesEspecialesDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_solicitudes_especiales(request)
+        solicitudes = SolicitudEspecial.objects.filter(
+            restaurante=perfil.restaurante
+        ).order_by("-fecha_creacion")
+
+        return paginated_response(
+            request,
+            solicitudes,
+            lambda page: SolicitudEspecialDashboardSerializer(page, many=True).data,
+            DefaultListPagination
+        )
+
+    def post(self, request):
+        perfil = get_perfil_solicitudes_especiales(request)
+        serializer = SolicitudEspecialDashboardSerializer(data=request.data)
+
+        if serializer.is_valid():
+            solicitud = serializer.save(
+                restaurante=perfil.restaurante,
+                estado=request.data.get("estado") or "pendiente"
+            )
+            return Response(
+                {
+                    "message": "Solicitud especial creada correctamente.",
+                    "solicitud": SolicitudEspecialDashboardSerializer(solicitud).data,
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SolicitudEspecialDetalleDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get_solicitud(self, request, solicitud_id):
+        perfil = get_perfil_solicitudes_especiales(request)
+        return get_object_or_404(
+            SolicitudEspecial,
+            id=solicitud_id,
+            restaurante=perfil.restaurante
+        )
+
+    def get(self, request, solicitud_id):
+        solicitud = self.get_solicitud(request, solicitud_id)
+        return Response(SolicitudEspecialDashboardSerializer(solicitud).data)
+
+    def patch(self, request, solicitud_id):
+        solicitud = self.get_solicitud(request, solicitud_id)
+        serializer = SolicitudEspecialDashboardSerializer(
+            solicitud,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            solicitud = serializer.save()
+            return Response({
+                "message": "Solicitud especial actualizada correctamente.",
+                "solicitud": SolicitudEspecialDashboardSerializer(solicitud).data,
+            })
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, solicitud_id):
+        solicitud = self.get_solicitud(request, solicitud_id)
+        solicitud.estado = "rechazada"
+        solicitud.save(update_fields=["estado", "fecha_actualizacion"])
+        return Response({
+            "message": "Solicitud especial rechazada correctamente.",
+            "solicitud": SolicitudEspecialDashboardSerializer(solicitud).data,
+        })
+
+
 class ReservasDashboardView(APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
@@ -2054,7 +2211,11 @@ def menu_api(request, slug):
         })
 
     data = {
-        "restaurante": serializar_flags_restaurante(restaurante),
+        "restaurante": {
+            "id": restaurante.id,
+            "slug": restaurante.slug,
+            **serializar_flags_restaurante(restaurante),
+        },
         "categorias": categorias_data,
     }
 

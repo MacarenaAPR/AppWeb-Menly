@@ -22,7 +22,7 @@ from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, MiRestauranteView,ProductoListView,ProductoUpdateView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView
-from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView
+from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
 from menu.views import CategoriasView, CategoriaDetalleView
 from menu.views import MesasView, MesaDetalleView,IconosView
 from menu.views import HorariosView, HorarioDetalleView
@@ -59,6 +59,7 @@ urlpatterns = [
     path("api/restaurantes/<slug:slug>/", RestaurantePublicoDetalleView.as_view(), name="restaurante-publico-detalle"),
     # 🌐 reserva público
     path("api/reservas/<slug:slug>/", CrearReservaPublicaView.as_view(), name="crear-reserva-publica"),
+    path("api/solicitudes-especiales/<slug:slug>/", CrearSolicitudEspecialPublicaView.as_view(), name="crear-solicitud-especial-publica"),
     #logoyt
      path("api/logout/", LogoutView.as_view(), name="logout"),
     
@@ -129,6 +130,18 @@ urlpatterns = [
         "api/mi-restaurante/reservas/<int:reserva_id>/",
         ActualizarReservaView.as_view(),
         name="actualizar-reserva"
+    ),
+
+    path(
+        "api/mi-restaurante/solicitudes-especiales/",
+        SolicitudesEspecialesDashboardView.as_view(),
+        name="solicitudes-especiales-dashboard"
+    ),
+
+    path(
+        "api/mi-restaurante/solicitudes-especiales/<int:solicitud_id>/",
+        SolicitudEspecialDetalleDashboardView.as_view(),
+        name="solicitud-especial-dashboard-detalle"
     ),
 
     #SUBIR FOTO

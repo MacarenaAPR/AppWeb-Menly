@@ -235,6 +235,7 @@ REST_FRAMEWORK = {
         "login": "5/min",
         "password_reset": "3/hour",
         "public_reservas": "20/hour",
+        "public_solicitudes_especiales": "20/hour",
         "producto_click": "30/min",
     },
 }
