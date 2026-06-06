@@ -27,7 +27,8 @@
     color: #F06B0C;
 }
 .bienvenidos h1{
-    color:whitesmoke
+    color:whitesmoke;
+    margin: 0;
 }
 .fecha{
     color: #F06B0C;
@@ -50,6 +51,9 @@
     width: 100%;
     flex: 0 0 auto;
     margin: 10px 0;
+}
+.body-metric-notific h1{
+    margin: 0;
 }
 /*CARD-METRICS*/
 .metric{
@@ -365,7 +369,7 @@
     .bienvenidos h1 {
         font-size: clamp(26px, 8vw, 38px);
         line-height: 1.05;
-        margin: 0 important;
+        margin: 0;
         text-align: left;
     }
 
