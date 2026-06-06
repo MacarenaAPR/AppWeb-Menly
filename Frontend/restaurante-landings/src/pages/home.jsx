@@ -1,5 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import Menu from "../components/Menu";
+import { useParams } from "react-router-dom";
 import ReservaForm from "../components/ReservaForm";
 import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
 import { apiFetch, BASE_URL } from "../Services/api";
@@ -83,9 +84,16 @@ const setCachedMenu = (slug, data) => {
   );
 };
 
+const getCategoriasFromMenuResponse = (menuResponse) =>
+  Array.isArray(menuResponse) ? menuResponse : menuResponse?.categorias || [];
+
+const getRestauranteFlagsFromMenuResponse = (menuResponse) =>
+  Array.isArray(menuResponse) ? {} : menuResponse?.restaurante || {};
+
 export default function Home() {
-  
-  const slug = getSlugFromHostname();
+  const { slug: routeSlug } = useParams();
+  const hostnameSlug = getSlugFromHostname();
+  const slug = hostnameSlug || routeSlug || "demo-menly";
   
   const [restaurante, setRestaurante] = useState(null);
   const [categorias, setCategorias] = useState([]);
@@ -109,7 +117,7 @@ export default function Home() {
       try {
         const cachedMenu = getCachedMenu(slug);
         if (cachedMenu) {
-          setCategorias(cachedMenu);
+          setCategorias(getCategoriasFromMenuResponse(cachedMenu));
         }
 
         const [dataRestaurante, dataMenu] = await Promise.all([
@@ -126,8 +134,12 @@ export default function Home() {
           return;
         }
 
-        setRestaurante(dataRestaurante);
-        setCategorias(dataMenu);
+        const categoriasMenu = getCategoriasFromMenuResponse(dataMenu);
+        setRestaurante({
+          ...dataRestaurante,
+          ...getRestauranteFlagsFromMenuResponse(dataMenu),
+        });
+        setCategorias(categoriasMenu);
         setCachedMenu(slug, dataMenu);
       } catch (error) {
         const payload = error?.payload;
@@ -487,7 +499,11 @@ export default function Home() {
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
     ? restaurante.theme_color
     : "theme_1";
-
+  const reservasActivas = restaurante?.reservas_activas !== false;
+  console.log("routeSlug:", routeSlug);
+  console.log("hostnameSlug:", hostnameSlug);
+  console.log("slug final:", slug);
+  console.log("URL API:", `${BASE_URL}/menu/${slug}/`);
   return (
     <div
       className={`page-shell ${themeClass}`}
@@ -541,7 +557,9 @@ export default function Home() {
           <a href="#menu" onClick={() => setMobileNavOpen(false)}>Menú</a>
           <a href="#promociones" onClick={() => setMobileNavOpen(false)}>Promociones</a>
           <a href="#nosotros" onClick={() => setMobileNavOpen(false)}>Nosotros</a>
-          <a href="#reserva" onClick={() => setMobileNavOpen(false)}>Reserva</a>
+          {reservasActivas && (
+            <a href="#reserva" onClick={() => setMobileNavOpen(false)}>Reserva</a>
+          )}
         </nav>
 
         {mobileNavOpen && (
@@ -553,9 +571,11 @@ export default function Home() {
           ></button>
         )}
 
-        <a className="button-primary header-cta" href="#reserva">
-          Escríbenos
-        </a>
+        {reservasActivas && (
+          <a className="button-primary header-cta" href="#reserva">
+            Escríbenos
+          </a>
+        )}
       </header>
 
       <main className="page-content">
@@ -571,9 +591,11 @@ export default function Home() {
               <a className="button-primary" href="#menu">
                 Ver menú
               </a>
-              <a className="button-secondary" href="#reserva">
-                Reservar mesa
-              </a>
+              {reservasActivas && (
+                <a className="button-secondary" href="#reserva">
+                  Reservar mesa
+                </a>
+              )}
             </div>
 
             {restaurante?.link_delivery && (
@@ -769,9 +791,11 @@ export default function Home() {
             <p>
               {restaurante?.sobre_nosotros || "Somos apasionados por la buena comida. Combinamos recetas tradicionales con ingredientes frescos para ofrecerte una experiencia única."}
             </p>
-            <a className="link-button" href="#reserva">
-              Conócenos más
-            </a>
+            {reservasActivas && (
+              <a className="link-button" href="#reserva">
+                Conócenos más
+              </a>
+            )}
           </article>
 
           <div className="info-grid">
@@ -825,14 +849,16 @@ export default function Home() {
           />
         </section>
 
-        <section className="reserve-wrapper" id="reserva">
-          <ReservaForm
-            onSubmit={handleReserva}
-            enviando={enviando}
-            mensaje={mensaje}
-            error={error}
-          />
-        </section>
+        {reservasActivas && (
+          <section className="reserve-wrapper" id="reserva">
+            <ReservaForm
+              onSubmit={handleReserva}
+              enviando={enviando}
+              mensaje={mensaje}
+              error={error}
+            />
+          </section>
+        )}
 
         <section className="gallery-panel" aria-label="Un vistazo a nuestro espacio">
           <h2>Un vistazo a nuestro espacio</h2>

@@ -202,6 +202,19 @@ def normalizar_email(email):
 
 
 ESTADOS_RESERVA_ACTIVA = ["pendiente", "confirmada"]
+RESTAURANTE_FEATURE_FLAGS = [
+    "reservas_activas",
+    "solicitudes_especiales_activas",
+    "carrito_whatsapp_activo",
+    "metricas_activas",
+]
+
+
+def serializar_flags_restaurante(restaurante):
+    return {
+        campo: getattr(restaurante, campo)
+        for campo in RESTAURANTE_FEATURE_FLAGS
+    }
 
 
 def existe_reserva_duplicada(restaurante, fecha, hora, email, telefono, reserva_id=None):
@@ -1943,7 +1956,8 @@ class MiRestauranteView(APIView):
                     "telefono": restaurante.telefono,
                     "slug": restaurante.slug,
                     "activo": restaurante.activo,
-                    "imgen_principal": request.build_absolute_uri(restaurante.imgen_principal.url) if restaurante.imgen_principal else None
+                    "imgen_principal": request.build_absolute_uri(restaurante.imgen_principal.url) if restaurante.imgen_principal else None,
+                    **serializar_flags_restaurante(restaurante),
                 },
                 "cuenta_inactiva": not restaurante.activo,
                 "mensaje_cuenta": (
@@ -2011,10 +2025,10 @@ def menu_api(request, slug):
         Prefetch("productos", queryset=productos_disponibles)
     )
 
-    data = []
+    categorias_data = []
 
     for categoria in categorias:
-        data.append({
+        categorias_data.append({
             "id": categoria.id,
             "nombre": categoria.nombre,
             "icono": categoria.icono.clase_css if categoria.icono else None,
@@ -2032,10 +2046,15 @@ def menu_api(request, slug):
             ]
         })
 
+    data = {
+        "restaurante": serializar_flags_restaurante(restaurante),
+        "categorias": categorias_data,
+    }
+
     set_cached_menu(slug, data)
     logger.info("Menu publico cacheado", extra={"slug": slug})
 
-    return JsonResponse(data, safe=False)
+    return JsonResponse(data)
 
 class RestaurantePublicoDetalleView(APIView):
     permission_classes = [AllowAny]

@@ -8,16 +8,102 @@ from django.contrib import admin, messages
 from django.urls import path
 from django.shortcuts import render, redirect
 from django.utils.html import format_html
+from menu.cache_utils import invalidate_menu_cache
 
 
 
 @admin.register(Restaurante)
 class RestauranteAdmin(admin.ModelAdmin):
-    list_display = ("id", "nombre_empresa", "slug", "telefono", "ciudad", "activo", "fecha_creacion", "imgen_principal","imgen_form")
-    list_filter = ("activo", "ciudad")
+    list_display = (
+        "id",
+        "nombre_empresa",
+        "slug",
+        "telefono",
+        "ciudad",
+        "activo",
+        "reservas_activas",
+        "solicitudes_especiales_activas",
+        "carrito_whatsapp_activo",
+        "metricas_activas",
+        "fecha_creacion",
+        "imgen_principal",
+        "imgen_form",
+    )
+    list_filter = (
+        "activo",
+        "reservas_activas",
+        "solicitudes_especiales_activas",
+        "carrito_whatsapp_activo",
+        "metricas_activas",
+        "ciudad",
+    )
     search_fields = ("nombre_empresa", "rut", "telefono", "email_contacto", "slug")
     prepopulated_fields = {"slug": ("nombre_empresa",)}
     ordering = ("nombre_empresa",)
+    fieldsets = (
+        (None, {
+            "fields": (
+                "nombre_empresa",
+                "rut",
+                "slug",
+                "activo",
+                "fecha_creacion",
+            )
+        }),
+        ("Contacto y presencia", {
+            "fields": (
+                "telefono",
+                "email_contacto",
+                "direccion",
+                "ciudad",
+                "whatsapp",
+                "instagram",
+                "facebook",
+                "google_maps",
+                "sitio_web",
+                "link_delivery",
+            )
+        }),
+        ("Contenido", {
+            "fields": (
+                "descripcion",
+                "slogan",
+                "mensaje_bienvenida",
+                "theme_color",
+                "imgen_principal",
+                "imgen_form",
+                "logo",
+            )
+        }),
+        ("Notificaciones", {
+            "fields": (
+                "notificar_reservas",
+                "email_notificacion",
+            )
+        }),
+        ("Modulos SaaS", {
+            "fields": (
+                "reservas_activas",
+                "solicitudes_especiales_activas",
+                "carrito_whatsapp_activo",
+                "metricas_activas",
+            )
+        }),
+    )
+    readonly_fields = ("fecha_creacion",)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if any(
+            field in form.changed_data
+            for field in [
+                "reservas_activas",
+                "solicitudes_especiales_activas",
+                "carrito_whatsapp_activo",
+                "metricas_activas",
+            ]
+        ):
+            invalidate_menu_cache(obj)
 
 @admin.register(ImagenRestaurante)
 class ImagenRestauranteAdmin(admin.ModelAdmin):

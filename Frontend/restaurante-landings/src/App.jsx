@@ -6,7 +6,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/menu/:slug" element={<Home />} />
+        <Route path="/restaurantes/:slug" element={<Home />} />
       </Routes>
     </BrowserRouter>
   );

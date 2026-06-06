@@ -53,7 +53,12 @@ class Restaurante(models.Model):
 
     slogan = models.CharField(max_length=255, blank=True)
     mensaje_bienvenida = models.TextField(blank=True)
-    theme_color = models.CharField(max_length=7, blank=True, null=True)  # Ejemplo: #RRGGBB
+    theme_color = models.CharField(max_length=7, blank=True, null=True)  
+
+    reservas_activas = models.BooleanField(default=True)
+    solicitudes_especiales_activas = models.BooleanField(default=False)
+    carrito_whatsapp_activo = models.BooleanField(default=False)
+    metricas_activas = models.BooleanField(default=True)
 
     class Meta:
         indexes = [

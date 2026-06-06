@@ -194,6 +194,16 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "descripcion",
             "logo",
             "logo_url",
+            "reservas_activas",
+            "solicitudes_especiales_activas",
+            "carrito_whatsapp_activo",
+            "metricas_activas",
+        ]
+        read_only_fields = [
+            "reservas_activas",
+            "solicitudes_especiales_activas",
+            "carrito_whatsapp_activo",
+            "metricas_activas",
         ]
 
     def get_logo_url(self, obj):
@@ -247,6 +257,10 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
             "mensaje_bienvenida",
             "theme_color",
             "imgen_form",
+            "reservas_activas",
+            "solicitudes_especiales_activas",
+            "carrito_whatsapp_activo",
+            "metricas_activas",
         ]
 
     def get_logo_url(self, obj):

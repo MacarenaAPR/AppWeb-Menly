@@ -1529,7 +1529,7 @@ class MultiTenantIsolationTests(BaseTestCase):
         response = self.client.get("/api/menu/restaurante-test/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        categorias = response.json()
+        categorias = response.json()["categorias"]
         productos = [
             producto["nombre"]
             for categoria in categorias
@@ -1593,19 +1593,25 @@ class MenuPublicoTests(BaseTestCase):
     def test_menu_publico_usa_cache_por_slug(self):
         cache.set(
             menu_cache_key("restaurante-test"),
-            [{"id": 999, "nombre": "Cacheado", "icono": None, "productos": []}],
+            {
+                "restaurante": {"reservas_activas": True},
+                "categorias": [{"id": 999, "nombre": "Cacheado", "icono": None, "productos": []}],
+            },
             timeout=300,
         )
 
         response = self.client.get("/api/menu/restaurante-test/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.json()[0]["nombre"], "Cacheado")
+        self.assertEqual(response.json()["categorias"][0]["nombre"], "Cacheado")
 
     def test_cambio_producto_invalida_cache_menu_publico(self):
         cache.set(
             menu_cache_key("restaurante-test"),
-            [{"id": 999, "nombre": "Cache viejo", "icono": None, "productos": []}],
+            {
+                "restaurante": {"reservas_activas": True},
+                "categorias": [{"id": 999, "nombre": "Cache viejo", "icono": None, "productos": []}],
+            },
             timeout=300,
         )
 
@@ -1615,13 +1621,33 @@ class MenuPublicoTests(BaseTestCase):
         response = self.client.get("/api/menu/restaurante-test/")
         nombres = [
             producto["nombre"]
-            for categoria in response.json()
+            for categoria in response.json()["categorias"]
             for producto in categoria["productos"]
         ]
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("Producto cache actualizado", nombres)
-        self.assertNotEqual(response.json()[0]["nombre"], "Cache viejo")
+        self.assertNotEqual(response.json()["categorias"][0]["nombre"], "Cache viejo")
+
+    def test_menu_publico_devuelve_flags_del_restaurante(self):
+        self.restaurante.reservas_activas = False
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.metricas_activas = False
+        self.restaurante.save(update_fields=[
+            "reservas_activas",
+            "solicitudes_especiales_activas",
+            "carrito_whatsapp_activo",
+            "metricas_activas",
+        ])
+
+        response = self.client.get("/api/menu/restaurante-test/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.json()["restaurante"]["reservas_activas"])
+        self.assertTrue(response.json()["restaurante"]["solicitudes_especiales_activas"])
+        self.assertTrue(response.json()["restaurante"]["carrito_whatsapp_activo"])
+        self.assertFalse(response.json()["restaurante"]["metricas_activas"])
 
 
 class RestaurantePublicoDetalleTests(BaseTestCase):
@@ -1658,6 +1684,10 @@ class RestaurantePublicoDetalleTests(BaseTestCase):
         )
         self.assertNotIn("notificar_reservas", response.data)
         self.assertNotIn("email_notificacion", response.data)
+        self.assertIn("reservas_activas", response.data)
+        self.assertIn("solicitudes_especiales_activas", response.data)
+        self.assertIn("carrito_whatsapp_activo", response.data)
+        self.assertIn("metricas_activas", response.data)
 
     def test_detalle_publico_no_requiere_login(self):
         self.client.force_authenticate(user=None)
@@ -1674,6 +1704,69 @@ class RestaurantePublicoDetalleTests(BaseTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.data["estado"], "inactivo")
+
+
+class RestauranteFeatureFlagsTests(BaseTestCase):
+
+    def test_restaurante_feature_flags_tienen_defaults_correctos(self):
+        restaurante = Restaurante.objects.get(id=self.restaurante.id)
+
+        self.assertTrue(restaurante.reservas_activas)
+        self.assertFalse(restaurante.solicitudes_especiales_activas)
+        self.assertFalse(restaurante.carrito_whatsapp_activo)
+        self.assertTrue(restaurante.metricas_activas)
+
+    def test_mi_restaurante_devuelve_flags_para_lectura(self):
+        self.client.force_authenticate(user=self.dueno)
+        self.restaurante.reservas_activas = False
+        self.restaurante.save(update_fields=["reservas_activas"])
+
+        response = self.client.get("/api/mi-restaurante/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["restaurante"]["reservas_activas"])
+        self.assertIn("metricas_activas", response.data["restaurante"])
+
+    def test_configuracion_devuelve_flags_pero_patch_no_los_modifica(self):
+        self.client.force_authenticate(user=self.dueno)
+
+        get_response = self.client.get("/api/mi-restaurante/configuracion/")
+        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
+        self.assertIn("reservas_activas", get_response.data["restaurante"])
+
+        patch_response = self.client.patch(
+            "/api/mi-restaurante/configuracion/",
+            {
+                "nombre_empresa": "Nombre editado",
+                "reservas_activas": False,
+                "solicitudes_especiales_activas": True,
+                "carrito_whatsapp_activo": True,
+                "metricas_activas": False,
+            },
+            format="json",
+        )
+
+        self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
+        self.restaurante.refresh_from_db()
+        self.assertEqual(self.restaurante.nombre_empresa, "Nombre editado")
+        self.assertTrue(self.restaurante.reservas_activas)
+        self.assertFalse(self.restaurante.solicitudes_especiales_activas)
+        self.assertFalse(self.restaurante.carrito_whatsapp_activo)
+        self.assertTrue(self.restaurante.metricas_activas)
+
+    def test_admin_puede_ver_configuracion_pero_no_modificar_flags_por_api(self):
+        self.client.force_authenticate(user=self.admin)
+
+        get_response = self.client.get("/api/mi-restaurante/configuracion/")
+        patch_response = self.client.patch(
+            "/api/mi-restaurante/configuracion/",
+            {"reservas_activas": False},
+            format="json",
+        )
+
+        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
+        self.assertIn("reservas_activas", get_response.data["restaurante"])
+        self.assertEqual(patch_response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 class SeguridadCriticaTests(BaseTestCase):

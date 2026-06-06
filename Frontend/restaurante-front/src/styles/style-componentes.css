@@ -460,13 +460,13 @@
     .div-text-metric h1 {
         font-size: 28px;
         line-height: 1;
-        margin: 0 0 4px;
+        margin: 0 0 4px !important;
     }
 
     .div-text-metric p {
         font-size: 12px;
         line-height: 1.25;
-        margin: 0;
+        margin: 10px 0 0 !important;
     }
 
     .Button-detalles {
