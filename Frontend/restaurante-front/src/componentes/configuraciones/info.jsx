@@ -30,7 +30,6 @@ export default function InfoRestaurante({ restaurante, onUpdate, readOnly = fals
     email_contacto: "",
     direccion: "",
     sitio_web: "",
-    
   });
 
   const [logoFile, setLogoFile] = useState(null);
@@ -47,7 +46,6 @@ export default function InfoRestaurante({ restaurante, onUpdate, readOnly = fals
         email_contacto: restaurante.email_contacto || "",
         direccion: restaurante.direccion || "",
         sitio_web: restaurante.sitio_web || "",
-
       });
     }
   }, [restaurante]);
