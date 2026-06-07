@@ -130,10 +130,10 @@ export default function Home() {
 
     const fetchData = async () => {
       try {
-        const cachedMenu = getCachedMenu(slug);
-        if (cachedMenu) {
-          setCategorias(getCategoriasFromMenuResponse(cachedMenu));
-        }
+        //const cachedMenu = getCachedMenu(slug);
+        //if (cachedMenu) {
+        //  setCategorias(getCategoriasFromMenuResponse(cachedMenu));
+        //}
 
         const [dataRestaurante, dataMenu] = await Promise.all([
           apiFetch(`/restaurantes/${slug}/`),
@@ -155,7 +155,7 @@ export default function Home() {
           ...getRestauranteFlagsFromMenuResponse(dataMenu),
         });
         setCategorias(categoriasMenu);
-        setCachedMenu(slug, dataMenu);
+        //setCachedMenu(slug, dataMenu);
       } catch (error) {
         const payload = error?.payload;
         if (error?.status === 403 && payload?.estado === "inactivo") {

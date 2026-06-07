@@ -619,7 +619,6 @@ export default function MetricasDashboard() {
         <section className="metricas-page">
           <header className="metricas-header">
             <div>
-              <span>Menly</span>
               <h1>Métricas</h1>
               <p>Plan actual: <strong>{plan.nombre || "Básico"}</strong></p>
             </div>
