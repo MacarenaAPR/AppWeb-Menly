@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { authFetch } from "../api";
 import { permisosPorRol } from "../utils/permisos";
+import { LuShoppingCart } from "react-icons/lu";
+import { TbMessage2Star } from "react-icons/tb";
 
 export default function MainMenu(){
     const [data, setData] = useState(null);
@@ -88,6 +90,13 @@ export default function MainMenu(){
       isActive: location.pathname === `/dashboard/${restaurante.slug}`,
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}`),
     },
+    (restaurante.carrito_whatsapp_activo === true || restaurante.solicitudes_especiales_activas === true) && permisos.canManageReservas && {
+      key: "pedidos",
+      icon: <LuShoppingCart />,
+      name: "Pedidos",
+      isActive: location.pathname === `/dashboard/${restaurante.slug}/pedidos`,
+      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/pedidos`),
+    },
     {
       key: "productos",
       icon: <i className="bi bi-book-half"></i>,
@@ -97,12 +106,12 @@ export default function MainMenu(){
         location.pathname === `/carta-add/${restaurante.slug}`,
       onClick: () => navigateAndClose(`/carta-productos/${restaurante.slug}`),
     },
-    permisos.canViewBitacora && {
-      key: "bitacora",
-      icon: <i className="bi bi-clock-history"></i>,
-      name: "Bitácora",
-      isActive: location.pathname === "/historial",
-      onClick: () => navigateAndClose("/historial"),
+    restaurante.solicitudes_especiales_activas === true && permisos.canManageSolicitudesEspeciales && {
+      key: "solicitudes-especiales",
+      icon: <TbMessage2Star />,
+      name: "Solicitudes especiales",
+      isActive: location.pathname === `/dashboard/${restaurante.slug}/solicitudes-especiales`,
+      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/solicitudes-especiales`),
     },
     restaurante.reservas_activas === true && {
       key: "reservas",
@@ -111,26 +120,20 @@ export default function MainMenu(){
       isActive: location.pathname === `/dashboard/${restaurante.slug}/reservas`,
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/reservas`),
     },
-    restaurante.solicitudes_especiales_activas === true && permisos.canManageSolicitudesEspeciales && {
-      key: "solicitudes-especiales",
-      icon: <i className="bi bi-chat-square-text"></i>,
-      name: "Solicitudes especiales",
-      isActive: location.pathname === `/dashboard/${restaurante.slug}/solicitudes-especiales`,
-      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/solicitudes-especiales`),
-    },
-    (restaurante.carrito_whatsapp_activo === true || restaurante.solicitudes_especiales_activas === true) && permisos.canManageReservas && {
-      key: "pedidos",
-      icon: <i className="bi bi-receipt-cutoff"></i>,
-      name: "Pedidos",
-      isActive: location.pathname === `/dashboard/${restaurante.slug}/pedidos`,
-      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/pedidos`),
-    },
+    
     restaurante.metricas_activas === true && {
       key: "metricas",
       icon: <i className="bi bi-bar-chart-line"></i>,
       name: "Métricas",
       isActive: location.pathname === `/dashboard/${restaurante.slug}/metricas`,
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/metricas`),
+    },
+    permisos.canViewBitacora && {
+      key: "bitacora",
+      icon: <i className="bi bi-clock-history"></i>,
+      name: "Bitácora",
+      isActive: location.pathname === "/historial",
+      onClick: () => navigateAndClose("/historial"),
     },
     restauranteSlug && {
       key: "web",

@@ -301,7 +301,7 @@
 }
 
 .modal-reserva-bg {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
   display: grid;
@@ -1009,7 +1009,7 @@
   padding: 0;
   background: #09131d;
   border: 1px solid #1e2d3d;
-  color: #cbd5e1;
+  color: #cbd5e1 ;
   border-radius: 8px;
 }
 
@@ -1033,8 +1033,10 @@
 }
 
 .pedido-icon-danger {
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  background: transparent !important;
+  justify-self: center;
 }
 
 .pedido-agregar-producto {

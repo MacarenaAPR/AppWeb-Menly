@@ -180,12 +180,11 @@
     place-items: center;
     background: rgba(240, 107, 12, 0.16);
     border: 1px solid rgba(240, 107, 12, 0.28);
-}
-
-.ultimo-pedido-icon i {
     color: #F06B0C;
     font-size: 19px;
 }
+
+
 
 .ultimo-pedido-info {
     min-width: 0;

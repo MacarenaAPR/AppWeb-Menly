@@ -1051,7 +1051,7 @@ main{
   display: grid;
   grid-template-columns: 1.6fr 1fr;
   gap: 24px;
-  max-height: 450px;
+
 }
 
 .promo-card {

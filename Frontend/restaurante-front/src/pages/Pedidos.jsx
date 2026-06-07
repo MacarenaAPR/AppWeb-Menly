@@ -164,9 +164,11 @@ export default function PedidosDashboard() {
   const actualizarPedido = async (tipo, id, datos) => {
     setError("");
     setMensaje("");
-    const endpoint = tipo === "whatsapp"
-      ? `/mi-restaurante/pedidos/whatsapp/${id}/`
-      : `/mi-restaurante/pedidos/especiales/${id}/`;
+
+    const endpoint =
+      tipo === "whatsapp"
+        ? `/mi-restaurante/pedidos/whatsapp/${id}/`
+        : `/mi-restaurante/pedidos/especiales/${id}/`;
 
     try {
       const response = await authFetch(endpoint, {
@@ -176,31 +178,35 @@ export default function PedidosDashboard() {
       });
 
       if (!response.ok) {
-        throw new Error(await obtenerMensajeError(response, "No se pudo actualizar el pedido."));
+        throw new Error(
+          await obtenerMensajeError(response, "No se pudo actualizar el pedido.")
+        );
       }
 
       const data = await response.json();
       const pedidoActualizado = data.pedido;
 
       if (tipo === "whatsapp") {
-        setPedidosWhatsapp((actuales) => actuales.map((pedido) => (
-          pedido.id === id ? pedidoActualizado : pedido
-        )));
+        setPedidosWhatsapp((actuales) =>
+          actuales.map((pedido) =>
+            pedido.id === id ? pedidoActualizado : pedido
+          )
+        );
       } else {
-        setPedidosEspeciales((actuales) => actuales.map((pedido) => (
-          pedido.id === id ? pedidoActualizado : pedido
-        )));
+        setPedidosEspeciales((actuales) =>
+          actuales.map((pedido) =>
+            pedido.id === id ? pedidoActualizado : pedido
+          )
+        );
       }
 
-      setDetalle((actual) => (
-        actual?.tipo === tipo && actual?.pedido?.id === id
-          ? { tipo, pedido: pedidoActualizado }
-          : actual
-      ));
       setMensaje("Pedido actualizado correctamente.");
       await cargarPedidos(restaurante);
+
+      return true;
     } catch (requestError) {
       setError(requestError.message || "No se pudo actualizar el pedido.");
+      return false;
     }
   };
 
@@ -284,22 +290,28 @@ export default function PedidosDashboard() {
 
   const guardarProductosWhatsapp = async () => {
     if (!detalle || detalle.tipo !== "whatsapp") return;
+
     if (detalleItems.length === 0) {
       setError("El pedido debe tener al menos un producto.");
       return;
     }
+
     if (detalle.pedido.tipo_entrega === "delivery" && !direccionDetalle.trim()) {
       setError("Debe ingresar una direccion para delivery.");
       return;
     }
 
-    await actualizarPedido("whatsapp", detalle.pedido.id, {
+    const actualizado = await actualizarPedido("whatsapp", detalle.pedido.id, {
       direccion_entrega: direccionDetalle.trim(),
       productos: detalleItems.map((item) => ({
         producto_id: Number(item.producto_id),
         cantidad: Number(item.cantidad),
       })),
     });
+
+    if (actualizado) {
+      setDetalle(null);
+    }
   };
 
   const abrirCrearEspecial = () => {

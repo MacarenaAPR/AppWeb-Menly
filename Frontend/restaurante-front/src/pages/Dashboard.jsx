@@ -6,6 +6,9 @@ import Card from "../componentes/card-metric";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../api";
+import { FaMotorcycle } from "react-icons/fa6";
+import { AiOutlineShop } from "react-icons/ai";
+import { TbShoppingBag } from "react-icons/tb";
 
 export default function Dashboard() {
     
@@ -226,9 +229,9 @@ export default function Dashboard() {
   const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
 
   const iconoPedido = (tipoEntrega) => {
-    if (tipoEntrega === "delivery") return "bi bi-scooter";
-    if (tipoEntrega === "retiro_local") return "bi bi-shop";
-    if (tipoEntrega === "para_llevar") return "bi bi-bag";
+    if (tipoEntrega === "delivery") return <FaMotorcycle/>;
+    if (tipoEntrega === "retiro_local") return <AiOutlineShop/>;
+    if (tipoEntrega === "para_llevar") return <TbShoppingBag/>;
     return "bi bi-receipt";
   };
 
@@ -346,7 +349,7 @@ export default function Dashboard() {
                                       ultimosPedidos.map((pedido) => (
                                         <article key={pedido.id} className="ultimo-pedido-item">
                                           <div className="ultimo-pedido-icon">
-                                            <i className={iconoPedido(pedido.tipo_entrega)}></i>
+                                            {iconoPedido(pedido.tipo_entrega)}
                                           </div>
                                           <div className="ultimo-pedido-info">
                                             <strong>Pedido #{pedido.numero_pedido}</strong>
