@@ -136,8 +136,8 @@ export default function Home() {
         //}
 
         const [dataRestaurante, dataMenu] = await Promise.all([
-          apiFetch(`/restaurantes/${slug}/`),
-          apiFetch(`/menu/${slug}/`),
+          apiFetch(`/restaurantes/${slug}/?t=${Date.now()}`),
+          apiFetch(`/menu/${slug}/?t=${Date.now()}`),
         ]);
 
         if (
