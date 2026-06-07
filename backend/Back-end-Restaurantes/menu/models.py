@@ -555,6 +555,62 @@ class Notificacion(models.Model):
         return f"{self.titulo} - {self.restaurante.nombre_empresa} ({estado})"
 
 
+class ReporteMetrica(models.Model):
+    TIPO_MENSUAL = "mensual"
+    TIPO_ANUAL = "anual"
+
+    TIPOS = [
+        (TIPO_MENSUAL, "Mensual"),
+        (TIPO_ANUAL, "Anual"),
+    ]
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="reportes_metricas"
+    )
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    periodo_mes = models.CharField(max_length=7, blank=True, null=True)
+    periodo_anio = models.CharField(max_length=4, blank=True, null=True)
+    titulo = models.CharField(max_length=180)
+    resumen = models.JSONField(default=dict)
+    datos = models.JSONField(default=dict)
+    fecha_generacion = models.DateTimeField(auto_now_add=True)
+    generado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reportes_metricas_generados"
+    )
+    archivo_pdf = models.FileField(upload_to="reportes_metricas/", blank=True, null=True)
+    activo = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-fecha_generacion"]
+        indexes = [
+            models.Index(fields=["restaurante", "tipo", "-fecha_generacion"], name="repmet_rest_tipo_fecha_idx"),
+            models.Index(fields=["restaurante", "periodo_mes"], name="repmet_rest_mes_idx"),
+            models.Index(fields=["restaurante", "periodo_anio"], name="repmet_rest_anio_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["restaurante", "tipo", "periodo_mes"],
+                condition=models.Q(tipo="mensual", activo=True),
+                name="unique_reporte_mensual_rest_periodo"
+            ),
+            models.UniqueConstraint(
+                fields=["restaurante", "tipo", "periodo_anio"],
+                condition=models.Q(tipo="anual", activo=True),
+                name="unique_reporte_anual_rest_periodo"
+            ),
+        ]
+
+    def __str__(self):
+        periodo = self.periodo_mes if self.tipo == self.TIPO_MENSUAL else self.periodo_anio
+        return f"{self.get_tipo_display()} {periodo} - {self.restaurante.nombre_empresa}"
+
+
 class HorarioAtencion(models.Model):
     DIAS_SEMANA = [
         (1, "Lunes"),

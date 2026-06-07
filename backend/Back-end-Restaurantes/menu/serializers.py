@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial
+from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, ReporteMetrica
 from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
@@ -920,6 +920,44 @@ class NotificacionDetalleSerializer(NotificacionSerializer):
             return SolicitudEspecialDashboardSerializer(solicitud).data if solicitud else None
 
         return None
+
+
+class ReporteMetricaSerializer(serializers.ModelSerializer):
+    tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
+    generado_por_nombre = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReporteMetrica
+        fields = [
+            "id",
+            "tipo",
+            "tipo_display",
+            "periodo_mes",
+            "periodo_anio",
+            "titulo",
+            "resumen",
+            "datos",
+            "fecha_generacion",
+            "generado_por",
+            "generado_por_nombre",
+            "archivo_pdf",
+            "activo",
+        ]
+        read_only_fields = [
+            "id",
+            "tipo_display",
+            "fecha_generacion",
+            "generado_por",
+            "generado_por_nombre",
+            "archivo_pdf",
+            "activo",
+        ]
+
+    def get_generado_por_nombre(self, obj):
+        if not obj.generado_por:
+            return None
+        return obj.generado_por.get_full_name() or obj.generado_por.username
+
 
 class ProductoCreateSerializer(serializers.ModelSerializer):
     categoria = serializers.PrimaryKeyRelatedField(

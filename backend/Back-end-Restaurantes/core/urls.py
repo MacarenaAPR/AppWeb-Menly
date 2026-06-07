@@ -24,7 +24,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, MiRestauranteView,ProductoListView,ProductoUpdateView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView
 from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
 from menu.views import NotificacionesDashboardView, NotificacionesContadorView, NotificacionDetalleView, NotificacionMarcarLeidaView
-from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosMetricasDashboardView, ReporteMensualMetricasView, DashboardUltimosPedidosView
+from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosMetricasDashboardView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
 from menu.views import CategoriasView, CategoriaDetalleView
 from menu.views import MesasView, MesaDetalleView,IconosView
 from menu.views import HorariosView, HorarioDetalleView
@@ -56,6 +56,10 @@ urlpatterns = [
     path("api/mi-restaurante/", MiRestauranteView.as_view(), name="mi-restaurante"),
     path("api/dashboard/ultimos-pedidos/", DashboardUltimosPedidosView.as_view(), name="dashboard-ultimos-pedidos"),
     path("api/metricas/reporte-mensual/", ReporteMensualMetricasView.as_view(), name="metricas-reporte-mensual"),
+    path("api/metricas/reporte-anual/", ReporteAnualMetricasView.as_view(), name="metricas-reporte-anual"),
+    path("api/metricas/reportes/", ReportesMetricasView.as_view(), name="metricas-reportes"),
+    path("api/metricas/reportes/guardar/", ReporteMetricaGuardarView.as_view(), name="metricas-reportes-guardar"),
+    path("api/metricas/reportes/<int:reporte_id>/", ReporteMetricaDetalleView.as_view(), name="metricas-reporte-detalle"),
 
     # 🌐 menu público
     path("api/menu/<slug:slug>/", menu_api),

@@ -1,4 +1,4 @@
-from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial
+from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,ReporteMetrica
 from .forms import ProductoCSVImportForm
 
 import csv
@@ -426,6 +426,37 @@ class PedidoEspecialAdmin(admin.ModelAdmin):
         "fecha_creacion",
         "fecha_actualizacion",
         "total",
+    )
+
+
+@admin.register(ReporteMetrica)
+class ReporteMetricaAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "restaurante",
+        "tipo",
+        "periodo_mes",
+        "periodo_anio",
+        "titulo",
+        "fecha_generacion",
+        "generado_por",
+        "activo",
+    )
+    list_filter = ("tipo", "activo", "restaurante", "fecha_generacion")
+    search_fields = (
+        "titulo",
+        "periodo_mes",
+        "periodo_anio",
+        "restaurante__nombre_empresa",
+        "restaurante__slug",
+        "generado_por__username",
+        "generado_por__email",
+    )
+    ordering = ("-fecha_generacion",)
+    readonly_fields = (
+        "fecha_generacion",
+        "resumen",
+        "datos",
     )
 
 

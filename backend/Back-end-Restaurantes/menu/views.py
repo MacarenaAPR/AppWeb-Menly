@@ -10,13 +10,14 @@ from django.core.validators import validate_email
 from .serializers import CustomTokenObtainPairSerializer,ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer
 from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
 from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoEspecialSerializer
+from .serializers import ReporteMetricaSerializer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from .serializers import serializar_plan_restaurante
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial
+from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, ReporteMetrica
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from django.db.models import Count, Q, F, Prefetch, Sum
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -1551,16 +1552,156 @@ def productos_vendidos_desde_snapshots(pedidos):
     for pedido in pedidos:
         for item in pedido.productos_snapshot or []:
             nombre = item.get("nombre") or "Producto"
-            actual = acumulados.setdefault(nombre, {"nombre": nombre, "cantidad": 0})
-            actual["cantidad"] += int(item.get("cantidad") or 0)
+            cantidad = int(item.get("cantidad") or 0)
+            subtotal = item.get("subtotal")
+            if subtotal is None:
+                subtotal = int(item.get("precio_unitario") or 0) * cantidad
+
+            actual = acumulados.setdefault(
+                nombre,
+                {"nombre": nombre, "cantidad": 0, "total_vendido": 0}
+            )
+            actual["cantidad"] += cantidad
+            actual["total_vendido"] += int(subtotal or 0)
 
     vendidos = [item for item in acumulados.values() if item["cantidad"] > 0]
     if not vendidos:
-        return None, None
+        return None, None, []
 
     producto_mas = max(vendidos, key=lambda item: item["cantidad"])
     producto_menos = min(vendidos, key=lambda item: item["cantidad"])
-    return producto_mas, producto_menos
+    return producto_mas, producto_menos, sorted(
+        vendidos,
+        key=lambda item: (-item["cantidad"], item["nombre"])
+    )
+
+
+def validar_plan_reportes(restaurante, nombre_reporte):
+    if plan_slug_restaurante(restaurante) in ["pro", "full_pro"]:
+        return None
+
+    return Response(
+        {"error": f"El {nombre_reporte} estÃ¡ disponible solo para planes Pro y Full Pro."},
+        status=status.HTTP_403_FORBIDDEN
+    )
+
+
+def calcular_reporte_mensual(restaurante):
+    hoy = now().date()
+    inicio_mes = hoy.replace(day=1)
+    dias_mes = monthrange(hoy.year, hoy.month)[1]
+    mes = hoy.strftime("%Y-%m")
+
+    pedidos_mes = list(PedidoWhatsApp.objects.filter(
+        restaurante=restaurante,
+        fecha_creacion__date__gte=inicio_mes,
+        fecha_creacion__date__lte=hoy.replace(day=dias_mes),
+    ).order_by("fecha_creacion", "id"))
+
+    pedidos_activos = [
+        pedido for pedido in pedidos_mes
+        if pedido.estado != PedidoWhatsApp.ESTADO_CANCELADO
+    ]
+
+    ventas_por_dia = {dia: 0 for dia in range(1, dias_mes + 1)}
+    for pedido in pedidos_activos:
+        dia = localtime(pedido.fecha_creacion).day
+        ventas_por_dia[dia] += int(pedido.total or 0)
+
+    venta_diaria = [
+        {"dia": dia, "total": total}
+        for dia, total in ventas_por_dia.items()
+    ]
+    dia_mayor = max(venta_diaria, key=lambda item: item["total"])
+    dia_menor = min(venta_diaria, key=lambda item: item["total"])
+    producto_mas, producto_menos, productos_vendidos = productos_vendidos_desde_snapshots(pedidos_activos)
+
+    return {
+        "mes": mes,
+        "venta_total": int(sum(pedido.total for pedido in pedidos_activos)),
+        "pedidos_total": len(pedidos_mes),
+        "pedidos_cancelados": len([
+            pedido for pedido in pedidos_mes
+            if pedido.estado == PedidoWhatsApp.ESTADO_CANCELADO
+        ]),
+        "venta_diaria": venta_diaria,
+        "dia_mayor_venta": dia_mayor,
+        "dia_menor_venta": dia_menor,
+        "producto_mas_vendido": producto_mas,
+        "producto_menos_vendido": producto_menos,
+        "productos_vendidos": productos_vendidos,
+    }
+
+
+def calcular_reporte_anual(restaurante):
+    hoy = now().date()
+    anio = hoy.year
+    inicio_anio = hoy.replace(month=1, day=1)
+    fin_anio = hoy.replace(month=12, day=31)
+    nombres_meses = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+    ]
+
+    pedidos_anio = list(PedidoWhatsApp.objects.filter(
+        restaurante=restaurante,
+        fecha_creacion__date__gte=inicio_anio,
+        fecha_creacion__date__lte=fin_anio,
+    ).order_by("fecha_creacion", "id"))
+    pedidos_activos = [
+        pedido for pedido in pedidos_anio
+        if pedido.estado != PedidoWhatsApp.ESTADO_CANCELADO
+    ]
+
+    ventas_por_mes = {
+        mes: {
+            "mes": mes,
+            "nombre_mes": nombres_meses[mes - 1],
+            "total": 0,
+            "pedidos": 0,
+            "cancelados": 0,
+        }
+        for mes in range(1, 13)
+    }
+
+    for pedido in pedidos_anio:
+        mes_pedido = localtime(pedido.fecha_creacion).month
+        ventas_por_mes[mes_pedido]["pedidos"] += 1
+        if pedido.estado == PedidoWhatsApp.ESTADO_CANCELADO:
+            ventas_por_mes[mes_pedido]["cancelados"] += 1
+        else:
+            ventas_por_mes[mes_pedido]["total"] += int(pedido.total or 0)
+
+    ventas_por_mes_lista = list(ventas_por_mes.values())
+    mes_mayor = max(ventas_por_mes_lista, key=lambda item: item["total"])
+    mes_menor = min(ventas_por_mes_lista, key=lambda item: item["total"])
+    producto_mas, producto_menos, productos_vendidos = productos_vendidos_desde_snapshots(pedidos_activos)
+
+    return {
+        "anio": str(anio),
+        "venta_total_anual": int(sum(pedido.total for pedido in pedidos_activos)),
+        "pedidos_total_anual": len(pedidos_anio),
+        "pedidos_cancelados_anual": len([
+            pedido for pedido in pedidos_anio
+            if pedido.estado == PedidoWhatsApp.ESTADO_CANCELADO
+        ]),
+        "mes_mayor_venta": mes_mayor,
+        "mes_menor_venta": mes_menor,
+        "producto_mas_vendido_anual": producto_mas,
+        "producto_menos_vendido_anual": producto_menos,
+        "productos_vendidos": productos_vendidos,
+        "ventas_por_mes": ventas_por_mes_lista,
+    }
 
 
 class PedidosWhatsAppDashboardView(APIView):
@@ -1712,55 +1853,134 @@ class ReporteMensualMetricasView(APIView):
         perfil = get_perfil_activo(request)
         restaurante = perfil.restaurante
 
-        if plan_slug_restaurante(restaurante) not in ["pro", "full_pro"]:
+        bloqueo = validar_plan_reportes(restaurante, "reporte mensual")
+        if bloqueo:
+            return bloqueo
+
+        return Response(calcular_reporte_mensual(restaurante))
+
+
+class ReporteAnualMetricasView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        restaurante = perfil.restaurante
+
+        bloqueo = validar_plan_reportes(restaurante, "reporte anual")
+        if bloqueo:
+            return bloqueo
+
+        return Response(calcular_reporte_anual(restaurante))
+
+
+class ReportesMetricasView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        reportes = ReporteMetrica.objects.filter(
+            restaurante=perfil.restaurante,
+            activo=True
+        )
+
+        tipo = request.query_params.get("tipo")
+        anio = request.query_params.get("anio")
+        mes = request.query_params.get("mes")
+
+        if tipo in dict(ReporteMetrica.TIPOS):
+            reportes = reportes.filter(tipo=tipo)
+        if anio:
+            reportes = reportes.filter(periodo_anio=str(anio))
+        if mes:
+            reportes = reportes.filter(periodo_mes=str(mes))
+
+        return Response(ReporteMetricaSerializer(reportes, many=True).data)
+
+
+class ReporteMetricaDetalleView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request, reporte_id):
+        perfil = get_perfil_activo(request)
+        reporte = get_object_or_404(
+            ReporteMetrica,
+            id=reporte_id,
+            restaurante=perfil.restaurante,
+            activo=True
+        )
+
+        return Response(ReporteMetricaSerializer(reporte).data)
+
+
+class ReporteMetricaGuardarView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def post(self, request):
+        perfil = get_perfil_activo(request)
+        restaurante = perfil.restaurante
+
+        bloqueo = validar_plan_reportes(restaurante, "guardado de reportes")
+        if bloqueo:
+            return bloqueo
+
+        tipo = request.data.get("tipo")
+        periodo_mes = request.data.get("periodo_mes")
+        periodo_anio = request.data.get("periodo_anio")
+        titulo = (request.data.get("titulo") or "").strip()
+        resumen = request.data.get("resumen") or {}
+        datos = request.data.get("datos") or {}
+
+        if tipo not in dict(ReporteMetrica.TIPOS):
             return Response(
-                {"error": "El reporte mensual estÃ¡ disponible solo para planes Pro y Full Pro."},
-                status=status.HTTP_403_FORBIDDEN
+                {"tipo": "Tipo de reporte invalido."},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        hoy = now().date()
-        inicio_mes = hoy.replace(day=1)
-        dias_mes = monthrange(hoy.year, hoy.month)[1]
-        mes = hoy.strftime("%Y-%m")
+        if tipo == ReporteMetrica.TIPO_MENSUAL and not periodo_mes:
+            return Response(
+                {"periodo_mes": "El periodo mensual es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        pedidos_mes = list(PedidoWhatsApp.objects.filter(
-            restaurante=restaurante,
-            fecha_creacion__date__gte=inicio_mes,
-            fecha_creacion__date__lte=hoy.replace(day=dias_mes),
-        ).order_by("fecha_creacion", "id"))
+        if tipo == ReporteMetrica.TIPO_ANUAL and not periodo_anio:
+            return Response(
+                {"periodo_anio": "El periodo anual es obligatorio."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        pedidos_activos = [
-            pedido for pedido in pedidos_mes
-            if pedido.estado != PedidoWhatsApp.ESTADO_CANCELADO
-        ]
+        filtros = {
+            "restaurante": restaurante,
+            "tipo": tipo,
+            "activo": True,
+        }
+        if tipo == ReporteMetrica.TIPO_MENSUAL:
+            filtros["periodo_mes"] = periodo_mes
+            periodo_anio = str(periodo_mes).split("-")[0] if periodo_mes else periodo_anio
+        else:
+            filtros["periodo_anio"] = str(periodo_anio)
+            periodo_mes = None
 
-        ventas_por_dia = {dia: 0 for dia in range(1, dias_mes + 1)}
-        for pedido in pedidos_activos:
-            dia = localtime(pedido.fecha_creacion).day
-            ventas_por_dia[dia] += int(pedido.total or 0)
+        reporte, creado = ReporteMetrica.objects.update_or_create(
+            **filtros,
+            defaults={
+                "periodo_mes": periodo_mes,
+                "periodo_anio": str(periodo_anio) if periodo_anio else None,
+                "titulo": titulo or ("Reporte mensual Menly" if tipo == ReporteMetrica.TIPO_MENSUAL else "Reporte anual Menly"),
+                "resumen": resumen,
+                "datos": datos,
+                "generado_por": request.user,
+            }
+        )
 
-        venta_diaria = [
-            {"dia": dia, "total": total}
-            for dia, total in ventas_por_dia.items()
-        ]
-        dia_mayor = max(venta_diaria, key=lambda item: item["total"])
-        dia_menor = min(venta_diaria, key=lambda item: item["total"])
-        producto_mas, producto_menos = productos_vendidos_desde_snapshots(pedidos_activos)
-
-        return Response({
-            "mes": mes,
-            "venta_total": int(sum(pedido.total for pedido in pedidos_activos)),
-            "pedidos_total": len(pedidos_mes),
-            "pedidos_cancelados": len([
-                pedido for pedido in pedidos_mes
-                if pedido.estado == PedidoWhatsApp.ESTADO_CANCELADO
-            ]),
-            "venta_diaria": venta_diaria,
-            "dia_mayor_venta": dia_mayor,
-            "dia_menor_venta": dia_menor,
-            "producto_mas_vendido": producto_mas,
-            "producto_menos_vendido": producto_menos,
-        })
+        return Response(
+            {
+                "message": "Reporte guardado correctamente." if creado else "Reporte actualizado correctamente.",
+                "reporte": ReporteMetricaSerializer(reporte).data,
+                "created": creado,
+            },
+            status=status.HTTP_201_CREATED if creado else status.HTTP_200_OK
+        )
 
 
 class DashboardUltimosPedidosView(APIView):

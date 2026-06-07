@@ -292,6 +292,13 @@
   font-size: 24px;
 }
 
+.metricas-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .metricas-reporte-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -364,6 +371,99 @@
   overflow-wrap: anywhere;
 }
 
+.metricas-report-table,
+.metricas-reportes-list {
+  display: grid;
+  gap: 10px;
+}
+
+.metricas-report-table div,
+.metricas-reportes-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #172535;
+  border-radius: 10px;
+  background: #09131d;
+}
+
+.metricas-report-table strong,
+.metricas-reportes-list strong {
+  color: #fff;
+}
+
+.metricas-report-table span,
+.metricas-reportes-list span {
+  color: #f8761d;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metricas-report-table small,
+.metricas-reportes-list small {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.metricas-filtros-reportes {
+  display: grid;
+  grid-template-columns: 160px 140px minmax(160px, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.metricas-filtros-reportes select,
+.metricas-filtros-reportes input {
+  min-height: 40px;
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  background: #09131d;
+  color: #fff;
+  padding: 8px 10px;
+}
+
+.metricas-reportes-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.metricas-reportes-actions button {
+  min-height: 36px;
+  border: 1px solid #c05000;
+  border-radius: 8px;
+  background: rgba(248, 118, 29, 0.14);
+  color: #fff;
+  padding: 7px 10px;
+  font-weight: 800;
+}
+
+.metricas-reportes-actions button:hover {
+  background: #f8761d;
+}
+
+.metricas-modal-compact {
+  width: min(760px, 100%);
+}
+
+.metricas-json-preview {
+  max-height: 420px;
+  overflow: auto;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #172535;
+  border-radius: 10px;
+  background: #09131d;
+  color: #cbd5e1;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
 .metricas-error {
   margin: 0;
   padding: 14px;
@@ -426,6 +526,23 @@
 
   .metricas-modal-header {
     flex-direction: column;
+  }
+
+  .metricas-modal-actions,
+  .metricas-reportes-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .metricas-modal-actions .metricas-report-btn,
+  .metricas-reportes-actions button {
+    width: 100%;
+  }
+
+  .metricas-report-table div,
+  .metricas-reportes-list article,
+  .metricas-filtros-reportes {
+    grid-template-columns: 1fr;
   }
 
   .metricas-bar-row strong {

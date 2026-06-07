@@ -8,6 +8,7 @@ import { apiFetch, BASE_URL } from "../Services/api";
 import { getSlugFromHostname } from "../utils/getSlugFromHostname";
 import { getOptimizedImageUrl } from "../utils/images";
 import "../themes/themes.css";
+import { GiFireBowl } from "react-icons/gi";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 const MENU_CACHE_TTL = 60 * 5 * 1000;
@@ -119,6 +120,10 @@ export default function Home() {
   const [mostrarCarritoFlotante, setMostrarCarritoFlotante] = useState(false);
   const [cantidadPromocion, setCantidadPromocion] = useState(1);
   const [toastCarrito, setToastCarrito] = useState("");
+  const [modalActivo, setModalActivo] = useState(null);
+  const [destacadosIndex, setDestacadosIndex] = useState(0);
+  const [destacadosPorVista, setDestacadosPorVista] = useState(3);
+  const [destacadosOffset, setDestacadosOffset] = useState(0);
   const promocionesCarouselRef = useRef(null);
   const destacadosCarouselRef = useRef(null);
 
@@ -191,6 +196,9 @@ export default function Home() {
     producto?.restricciones ||
     producto?.detalle_promocion ||
     "";
+
+  const hasProductImage = (producto) =>
+    Boolean(producto?.imagen_url || producto?.imagen || producto?.foto_url || producto?.foto);
 
   const getProductImage = (producto, size = {}) => {
     const image =
@@ -527,6 +535,9 @@ export default function Home() {
           categoriaNombre: getCategoryName(cat) || "Sin categoría",
         }))
     );
+  const destacadosVisibles = Math.min(Math.max(productosDestacados.length, 1), destacadosPorVista);
+  const destacadosConCarrusel = productosDestacados.length > 3;
+  const destacadosMaxIndex = Math.max(0, productosDestacados.length - destacadosVisibles);
 
   const imagenesRestaurante = (restaurante?.imagenes || [])
     .filter((imagen) => Boolean(imagen?.url))
@@ -668,16 +679,75 @@ export default function Home() {
         ? startAutoScroll(promocionesCarouselRef.current, 10000)
         : null;
 
-    const destacadosTimer =
-      productosDestacados.length > 1
-        ? startAutoScroll(destacadosCarouselRef.current, 8000)
-        : null;
-
     return () => {
       if (promocionesTimer) clearInterval(promocionesTimer);
-      if (destacadosTimer) clearInterval(destacadosTimer);
     };
-  }, [promociones.length, productosDestacados.length]);
+  }, [promociones.length]);
+
+  useEffect(() => {
+    const actualizarDestacadosPorVista = () => {
+      if (window.innerWidth <= 640) {
+        setDestacadosPorVista(1);
+        return;
+      }
+
+      if (window.innerWidth <= 900) {
+        setDestacadosPorVista(2);
+        return;
+      }
+
+      setDestacadosPorVista(3);
+    };
+
+    actualizarDestacadosPorVista();
+    window.addEventListener("resize", actualizarDestacadosPorVista);
+
+    return () => {
+      window.removeEventListener("resize", actualizarDestacadosPorVista);
+    };
+  }, []);
+
+  useEffect(() => {
+    setDestacadosIndex((actual) => Math.min(actual, destacadosMaxIndex));
+  }, [destacadosMaxIndex]);
+
+  useEffect(() => {
+    const actualizarOffsetDestacados = () => {
+      const carousel = destacadosCarouselRef.current;
+      const track = carousel?.querySelector(".featured-track");
+      const slide = carousel?.querySelector(".featured-slide");
+
+      if (!track || !slide) {
+        setDestacadosOffset(0);
+        return;
+      }
+
+      const gap = Number.parseFloat(window.getComputedStyle(track).gap) || 0;
+      const slideWidth = slide.getBoundingClientRect().width;
+      setDestacadosOffset(destacadosIndex * (slideWidth + gap));
+    };
+
+    actualizarOffsetDestacados();
+    window.addEventListener("resize", actualizarOffsetDestacados);
+
+    return () => {
+      window.removeEventListener("resize", actualizarOffsetDestacados);
+    };
+  }, [destacadosIndex, destacadosVisibles, productosDestacados.length]);
+
+  useEffect(() => {
+    if (!destacadosConCarrusel) return undefined;
+
+    const destacadosTimer = setInterval(() => {
+      setDestacadosIndex((actual) => (
+        actual >= destacadosMaxIndex
+          ? 0
+          : Math.min(actual + destacadosVisibles, destacadosMaxIndex)
+      ));
+    }, 8000);
+
+    return () => clearInterval(destacadosTimer);
+  }, [destacadosConCarrusel, destacadosMaxIndex, destacadosVisibles]);
 
   useEffect(() => {
     if (!selectedPromotion) return undefined;
@@ -727,6 +797,24 @@ export default function Home() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [carritoAbierto]);
+
+  useEffect(() => {
+    if (!modalActivo) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setModalActivo(null);
+      }
+    };
+
+    document.body.classList.add("modal-open");
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.classList.remove("modal-open");
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [modalActivo]);
 
   useEffect(() => {
     document.body.classList.toggle("mobile-nav-open", mobileNavOpen);
@@ -780,6 +868,26 @@ export default function Home() {
   const reservasActivas = restaurante?.reservas_activas === true;
   const solicitudesEspecialesActivas = restaurante?.solicitudes_especiales_activas === true;
   const carritoWhatsappActivo = restaurante?.carrito_whatsapp_activo === true;
+  const destacadosClase = [
+    "featured-carousel",
+    destacadosConCarrusel ? "is-carousel" : "is-static",
+    `featured-count-${destacadosVisibles}`,
+  ].join(" ");
+
+  const abrirModalAccion = (tipo) => {
+    setMobileNavOpen(false);
+    setModalActivo(tipo);
+  };
+
+  const moverDestacados = (direccion) => {
+    setDestacadosIndex((actual) => {
+      const siguiente = actual + direccion * destacadosVisibles;
+
+      if (siguiente < 0) return destacadosMaxIndex;
+      if (siguiente > destacadosMaxIndex) return 0;
+      return siguiente;
+    });
+  };
   console.log("routeSlug:", routeSlug);
   console.log("hostnameSlug:", hostnameSlug);
   console.log("slug final:", slug);
@@ -840,7 +948,15 @@ export default function Home() {
           <a href="#promociones" onClick={() => setMobileNavOpen(false)}>Promociones</a>
           <a href="#nosotros" onClick={() => setMobileNavOpen(false)}>Nosotros</a>
           {reservasActivas && (
-            <a href="#reserva" onClick={() => setMobileNavOpen(false)}>Reserva</a>
+            <a
+              href="#reserva"
+              onClick={(event) => {
+                event.preventDefault();
+                abrirModalAccion("reserva");
+              }}
+            >
+              Reserva
+            </a>
           )}
         </nav>
 
@@ -855,7 +971,14 @@ export default function Home() {
 
         <div className="header-actions">
           {reservasActivas && (
-            <a className="button-primary header-cta" href="#reserva">
+            <a
+              className="button-primary header-cta"
+              href="#reserva"
+              onClick={(event) => {
+                event.preventDefault();
+                abrirModalAccion("reserva");
+              }}
+            >
               Escríbenos
             </a>
           )}
@@ -873,11 +996,28 @@ export default function Home() {
             </p>
 
             <div className="hero-actions">
-              <a className="button-primary" href="#menu">
+              {carritoWhatsappActivo && (
+                <button
+                  type="button"
+                  className="button-primary"
+                  onClick={() => setCarritoAbierto(true)}
+                >
+                  <i className="bi bi-basket2-fill" aria-hidden="true"></i>
+                  Pedir ahora
+                </button>
+              )}
+              <a className="button-secondary" href="#menu">
                 Ver menú
               </a>
               {reservasActivas && (
-                <a className="button-secondary" href="#reserva">
+                <a
+                  className="button-secondary"
+                  href="#reserva"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    abrirModalAccion("reserva");
+                  }}
+                >
                   Reservar mesa
                 </a>
               )}
@@ -925,10 +1065,32 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="quick-benefits" aria-label="Beneficios">
+          <article>
+            <i className="bi bi-flower1" aria-hidden="true"></i>
+            <span>Ingredientes frescos</span>
+          </article>
+          <article>
+            <i className="bi bi-egg-fried" aria-hidden="true"></i>
+            <span>Preparado al momento</span>
+          </article>
+          <article>
+            <i className="bi bi-whatsapp" aria-hidden="true"></i>
+            <span>Pedido por WhatsApp</span>
+          </article>
+          <article>
+            <i className="bi bi-clock" aria-hidden="true"></i>
+            <span>Atención rápida</span>
+          </article>
+        </section>
+
         <section className="promo-panel" id="promociones">
           <article className="promo-card promo-card-large">
             <div className="promo-card-header">
-              <span className="promo-label">Promociones</span>
+              <span className="promo-label">
+                <GiFireBowl />
+                 Promociones
+              </span>
             </div>
 
             {promociones.length > 0 ? (
@@ -939,7 +1101,7 @@ export default function Home() {
               >
                 {promociones.map((producto) => (
                   <div key={producto.id} className="promo-slide">
-                    <div className="promo-slide-image">
+                    <div className={`promo-slide-image ${hasProductImage(producto) ? "has-product-image" : "uses-fallback-image"}`}>
                       <img
                         src={getProductImage(producto, { width: 720, height: 460 })}
                         alt={producto.nombre}
@@ -952,7 +1114,11 @@ export default function Home() {
                     <div className="promo-slide-content">
                       <div className="promo-item">
                         <h2>{producto.nombre}</h2>
-                        <p>{producto.descripcion}</p>
+                        {getProductConditions(producto) && (
+                          <p className="promo-conditions">
+                            <small>{getProductConditions(producto)}</small>
+                          </p>
+                        )}
                         <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
                       </div>
 
@@ -974,11 +1140,7 @@ export default function Home() {
                       )}
                     </div>
 
-                    {getProductConditions(producto) && (
-                      <p className="promo-conditions">
-                        <small>{getProductConditions(producto)}</small>
-                      </p>
-                    )}
+                    
                   </div>
                 ))}
               </div>
@@ -990,43 +1152,68 @@ export default function Home() {
           <article className="promo-card promo-card-small">
             <div className="promo-card-header">
               <span className="promo-tag">Destacados</span>
+              {destacadosConCarrusel && (
+                <div className="featured-controls" aria-label="Controles de destacados">
+                  <button
+                    type="button"
+                    aria-label="Ver destacados anteriores"
+                    onClick={() => moverDestacados(-1)}
+                  >
+                    <i className="bi bi-chevron-left" aria-hidden="true"></i>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Ver más destacados"
+                    onClick={() => moverDestacados(1)}
+                  >
+                    <i className="bi bi-chevron-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              )}
             </div>
 
             {productosDestacados.length > 0 ? (
               <div
                 ref={destacadosCarouselRef}
-                className="featured-carousel"
-                aria-label="Carrusel de productos destacados"
+                className={destacadosClase}
+                aria-label={destacadosConCarrusel ? "Carrusel de productos destacados" : "Productos destacados"}
+                style={{
+                  "--featured-visible": destacadosVisibles,
+                }}
               >
-                {productosDestacados.map((producto) => (
-                  <div key={producto.id} className="featured-slide">
-                    <div className="featured-slide-image">
-                      <img
-                        src={getProductImage(producto, { width: 420, height: 320 })}
-                        alt={producto.nombre}
-                        loading="lazy"
-                        width="420"
-                        height="320"
-                      />
-                    </div>
+                <div
+                  className="featured-track"
+                  style={{ transform: `translateX(-${destacadosOffset}px)` }}
+                >
+                  {productosDestacados.map((producto) => (
+                    <div key={producto.id} className="featured-slide">
+                      <div className="featured-slide-image">
+                        <img
+                          src={getProductImage(producto, { width: 420, height: 320 })}
+                          alt={producto.nombre}
+                          loading="lazy"
+                          width="420"
+                          height="320"
+                        />
+                      </div>
 
-                    <div className="promo-item-small">
-                      <p>{producto.categoriaNombre}</p>
-                      <h3>{producto.nombre}</h3>
-                      <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
-                      {carritoWhatsappActivo && (
-                        <button
-                          type="button"
-                          className="producto-add-cart featured-add-cart"
-                          onClick={() => agregarAlCarrito(producto)}
-                        >
-                          Agregar al carrito
-                        </button>
-                      )}
+                      <div className="promo-item-small">
+                        <p>{producto.categoriaNombre}</p>
+                        <h3>{producto.nombre}</h3>
+                        <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                        {carritoWhatsappActivo && (
+                          <button
+                            type="button"
+                            className="producto-add-cart featured-add-cart"
+                            onClick={() => agregarAlCarrito(producto)}
+                          >
+                            Agregar al carrito
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
-                }
+                  ))}
+                </div>
               </div>
             ) : (
               <p>No hay productos destacados.</p>
@@ -1109,8 +1296,51 @@ export default function Home() {
           </div>
         )}
 
+        {carritoWhatsappActivo && (
+          <section className="order-modes" aria-label="Pide como quieras">
+            <div>
+              <span>Pide como quieras</span>
+              <h2>Elige tu forma favorita</h2>
+            </div>
+            <article>
+              <i className="bi bi-whatsapp" aria-hidden="true"></i>
+              <strong>Por WhatsApp</strong>
+              <small>Rápido y directo</small>
+            </article>
+            <article>
+              <i className="bi bi-truck" aria-hidden="true"></i>
+              <strong>Delivery</strong>
+              <small>Hasta tu puerta</small>
+            </article>
+            <article>
+              <i className="bi bi-shop" aria-hidden="true"></i>
+              <strong>Retiro en local</strong>
+              <small>Pide y retira</small>
+            </article>
+            <article>
+              <i className="bi bi-bag-check" aria-hidden="true"></i>
+              <strong>Para llevar</strong>
+              <small>Listo para salir</small>
+            </article>
+          </section>
+        )}
+
+        <section className="menu-wrapper" id="menu">
+          <Menu
+            categorias={categorias}
+            onProductClick={handleClickProducto}
+            fallbackImage={restaurante?.logo_url}
+            carritoActivo={carritoWhatsappActivo}
+            onAddToCart={agregarAlCarrito}
+            maxCantidad={MAX_UNIDADES_POR_PRODUCTO}
+          />
+        </section>
+
+        <span id="reserva" className="landing-action-anchor" aria-hidden="true"></span>
+        <span id="solicitudes-especiales" className="landing-action-anchor" aria-hidden="true"></span>
+
         <section
-          className="highlights-grid"
+          className="highlights-grid restaurant-info-section"
           id="nosotros"
           style={{
             "--about-bg": `url(${
@@ -1118,22 +1348,47 @@ export default function Home() {
             })`,
           }}
         >
-          <article className="about-card">
+          <article className="about-card about-summary">
             <h2>Sobre nosotros</h2>
             <p>
               {restaurante?.sobre_nosotros || "Somos apasionados por la buena comida. Combinamos recetas tradicionales con ingredientes frescos para ofrecerte una experiencia única."}
             </p>
-            {reservasActivas && (
-              <a className="link-button" href="#reserva">
-                Conócenos más
-              </a>
+
+            {(solicitudesEspecialesActivas || reservasActivas) && (
+              <div className="action-cards" aria-label="Acciones del restaurante">
+                {solicitudesEspecialesActivas && (
+                  <button
+                    type="button"
+                    className="action-card"
+                    onClick={() => abrirModalAccion("solicitud")}
+                  >
+                    <i className="bi bi-stars" aria-hidden="true"></i>
+                    <span>
+                      <strong>Solicitudes especiales</strong>
+                      <small>Cotiza eventos, pedidos grandes o preparaciones a medida.</small>
+                    </span>
+                  </button>
+                )}
+
+                {reservasActivas && (
+                  <button
+                    type="button"
+                    className="action-card"
+                    onClick={() => abrirModalAccion("reserva")}
+                  >
+                    <i className="bi bi-calendar2-check" aria-hidden="true"></i>
+                    <span>
+                      <strong>Reserva tu mesa</strong>
+                      <small>Elige fecha, hora y cantidad de personas.</small>
+                    </span>
+                  </button>
+                )}
+              </div>
             )}
           </article>
 
-          <div className="info-grid">
+          <aside className="location-card">
             <article className="info-box">
-
-              <div>
               <h3>Ubicación</h3>
               <p>{restaurante?.direccion}, {restaurante?.ciudad}</p>
               {restaurante?.google_maps && (
@@ -1141,19 +1396,15 @@ export default function Home() {
                   Ver en Google Maps
                 </a>
               )}
-              </div>
             </article>
             <article className="info-box">
-              <div>
               <h3>Contacto</h3>
               <p>Teléfono: {restaurante?.telefono}</p>
               {restaurante?.whatsapp && (
                 <p>WhatsApp: {restaurante?.whatsapp}</p>
               )}
-              </div>
             </article>
             <article className="info-box">
-              <div>
               <h3>Síguenos</h3>
               <div className="social-links">
                 {restaurante?.instagram && (
@@ -1168,44 +1419,9 @@ export default function Home() {
                 )}
 
               </div>
-              </div>
             </article>
-          </div>
+          </aside>
         </section>
-
-        <section className="menu-wrapper" id="menu">
-          <Menu
-            categorias={categorias}
-            onProductClick={handleClickProducto}
-            fallbackImage={restaurante?.logo_url}
-            carritoActivo={carritoWhatsappActivo}
-            onAddToCart={agregarAlCarrito}
-            maxCantidad={MAX_UNIDADES_POR_PRODUCTO}
-          />
-        </section>
-
-        {reservasActivas && (
-          <section className="reserve-wrapper" id="reserva">
-            <ReservaForm
-              onSubmit={handleReserva}
-              enviando={enviando}
-              mensaje={mensaje}
-              error={error}
-            />
-          </section>
-        )}
-
-        {solicitudesEspecialesActivas && (
-          <section className="reserve-wrapper" id="solicitudes-especiales">
-            <SolicitudEspecialForm
-              restauranteId={restaurante?.id}
-              onSubmit={handleSolicitudEspecial}
-              enviando={solicitudEnviando}
-              mensaje={solicitudMensaje}
-              error={solicitudError}
-            />
-          </section>
-        )}
 
         <section className="gallery-panel" aria-label="Un vistazo a nuestro espacio">
           <h2>Un vistazo a nuestro espacio</h2>
@@ -1232,9 +1448,85 @@ export default function Home() {
             )}
           </div>
         </section>
+
+        <footer className="landing-footer">
+          <div className="footer-brand">
+            {logoOptimizado && (
+              <img src={logoOptimizado} alt={restaurante.nombre_empresa} loading="lazy" width="56" height="56" />
+            )}
+            <div>
+              <strong>{restaurante?.nombre_empresa}</strong>
+              <span>Sitio creado con Menly</span>
+            </div>
+          </div>
+          <div className="footer-social">
+            {restaurante?.instagram && (
+              <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                <i className="bi bi-instagram"></i>
+              </a>
+            )}
+            {restaurante?.facebook && (
+              <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                <i className="bi bi-facebook"></i>
+              </a>
+            )}
+            {restaurante?.whatsapp && (
+              <a href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
+                <i className="bi bi-whatsapp"></i>
+              </a>
+            )}
+          </div>
+          <div className="footer-contact">
+            <span>{restaurante?.telefono || restaurante?.whatsapp}</span>
+            <small>{restaurante?.direccion}, {restaurante?.ciudad}</small>
+          </div>
+        </footer>
       </main>
       {carritoWhatsappActivo && mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-floating")}
       {toastCarrito && <div className="cart-toast">{toastCarrito}</div>}
+      {modalActivo && (
+        <div
+          className="landing-modal-backdrop"
+          role="presentation"
+          onClick={() => setModalActivo(null)}
+        >
+          <section
+            className="landing-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={modalActivo === "reserva" ? "Reserva tu mesa" : "Solicitudes especiales"}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="landing-modal-close"
+              aria-label="Cerrar"
+              onClick={() => setModalActivo(null)}
+            >
+              <i className="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+
+            {modalActivo === "reserva" && reservasActivas && (
+              <ReservaForm
+                onSubmit={handleReserva}
+                enviando={enviando}
+                mensaje={mensaje}
+                error={error}
+              />
+            )}
+
+            {modalActivo === "solicitud" && solicitudesEspecialesActivas && (
+              <SolicitudEspecialForm
+                restauranteId={restaurante?.id}
+                onSubmit={handleSolicitudEspecial}
+                enviando={solicitudEnviando}
+                mensaje={solicitudMensaje}
+                error={solicitudError}
+              />
+            )}
+          </section>
+        </div>
+      )}
       {carritoWhatsappActivo && carritoAbierto && (
         <div
           className="cart-modal-backdrop"

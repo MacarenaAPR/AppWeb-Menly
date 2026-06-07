@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
 import { authFetch } from "../api";
 
 const ESTADOS_PEDIDO = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
+const PEDIDOS_POLLING_MS = 30000;
 
 const estadoLabels = {
   pendiente: "Pendiente",
@@ -51,6 +52,19 @@ const formatearFecha = (valor) => {
 const resumenItems = (items = []) =>
   items.map((item) => `${item.cantidad} x ${item.nombre}`).join(", ");
 
+const normalizarListaPedidos = (data) => {
+  const lista = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
+  const pedidosPorId = new Map();
+
+  lista.forEach((pedido) => {
+    if (pedido?.id !== undefined && pedido?.id !== null) {
+      pedidosPorId.set(pedido.id, pedido);
+    }
+  });
+
+  return Array.from(pedidosPorId.values());
+};
+
 export default function PedidosDashboard() {
   const [restaurante, setRestaurante] = useState(null);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
@@ -70,6 +84,8 @@ export default function PedidosDashboard() {
   const [productoSeleccionado, setProductoSeleccionado] = useState("");
   const [cantidadProductoNuevo, setCantidadProductoNuevo] = useState(1);
   const [direccionDetalle, setDireccionDetalle] = useState("");
+  const detalleAbiertoRef = useRef(false);
+  const formularioEspecialAbiertoRef = useRef(false);
 
   const whatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   const especialesActivo = restaurante?.solicitudes_especiales_activas === true;
@@ -121,7 +137,7 @@ export default function PedidosDashboard() {
         throw new Error(await obtenerMensajeError(whatsappResponse, "No se pudieron cargar los pedidos WhatsApp."));
       }
       const data = await whatsappResponse.json();
-      setPedidosWhatsapp(data.results || data);
+      setPedidosWhatsapp(normalizarListaPedidos(data));
       indice += 1;
     } else {
       setPedidosWhatsapp([]);
@@ -133,7 +149,7 @@ export default function PedidosDashboard() {
         throw new Error(await obtenerMensajeError(response, "No se pudieron cargar los pedidos especiales."));
       }
       const data = await response.json();
-      setPedidosEspeciales(data.results || data);
+      setPedidosEspeciales(normalizarListaPedidos(data));
     } else {
       setPedidosEspeciales([]);
     }
@@ -160,6 +176,28 @@ export default function PedidosDashboard() {
 
     cargar();
   }, [cargarPedidos, cargarRestaurante]);
+
+  useEffect(() => {
+    detalleAbiertoRef.current = Boolean(detalle);
+  }, [detalle]);
+
+  useEffect(() => {
+    formularioEspecialAbiertoRef.current = mostrarFormularioEspecial;
+  }, [mostrarFormularioEspecial]);
+
+  useEffect(() => {
+    if (!restaurante) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      if (detalleAbiertoRef.current || formularioEspecialAbiertoRef.current) return;
+
+      cargarPedidos(restaurante).catch(() => {
+        // El polling es silencioso: conserva la vista actual si un refresco falla.
+      });
+    }, PEDIDOS_POLLING_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [cargarPedidos, restaurante]);
 
   const actualizarPedido = async (tipo, id, datos) => {
     setError("");
