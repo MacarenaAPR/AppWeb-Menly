@@ -838,6 +838,12 @@ main{
   font-size: 0.95rem;
 }
 
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .mobile-menu-toggle,
 .mobile-nav-close,
 .mobile-nav-backdrop {
@@ -1548,6 +1554,17 @@ main{
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: inherit;
+}
+
+.producto-card-main {
+  width: 100%;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -1586,6 +1603,32 @@ main{
 .producto-head span {
   color: var(--color-secondary);
   font-weight: 800;
+}
+
+.producto-add-cart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: 14px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-secondary);
+  border-radius: 999px;
+  background: var(--color-secondary);
+  color: #1b1410;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.producto-add-cart:hover {
+  filter: brightness(1.06);
+}
+
+.promo-add-cart,
+.featured-add-cart {
+  width: fit-content;
 }
 
 
@@ -1689,6 +1732,42 @@ main{
   line-height: 1.7;
 }
 
+.product-modal-add {
+  width: fit-content;
+  margin-top: 4px;
+}
+
+.product-modal-cart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.cart-modal-qty {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-primary);
+  font-weight: 800;
+}
+
+.cart-modal-qty span {
+  font-size: 0.82rem;
+}
+
+.cart-modal-qty input {
+  width: 92px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 800;
+}
+
 .product-modal-conditions {
   display: grid;
   gap: 8px;
@@ -1779,13 +1858,19 @@ main{
 }
 
 .reserva-form input,
-.reserva-form textarea {
+.reserva-form textarea,
+.cart-form input,
+.cart-form select {
   width: 100%;
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-primary);
+}
+
+.cart-form select {
+  appearance: auto;
 }
 
 .reserva-form textarea {
@@ -1796,7 +1881,14 @@ main{
 .reserva-form input:focus-visible,
 .reserva-form textarea:focus-visible,
 .reserva-form button:focus-visible,
+.cart-form input:focus-visible,
+.cart-form select:focus-visible,
+.cart-form button:focus-visible,
+.cart-trigger:focus-visible,
+.cart-modal-qty input:focus-visible,
 .menu-tab:focus-visible,
+.producto-card-main:focus-visible,
+.producto-add-cart:focus-visible,
 .producto-card:focus-visible,
 .promo-button:focus-visible,
 .button-primary:focus-visible,
@@ -1826,6 +1918,254 @@ main{
 .reserve-wrapper {
   display: grid;
   gap: 24px;
+}
+
+.cart-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.cart-trigger i {
+  color: var(--color-primary);
+  font-size: 1.15rem;
+}
+
+.cart-trigger strong {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--color-secondary);
+  color: #1b1410;
+  font-size: 0.78rem;
+}
+
+.cart-trigger-floating {
+  position: fixed;
+  right: 20px;
+  bottom: 92px;
+  z-index: 9998;
+  min-width: 58px;
+  height: 58px;
+  padding-inline: 18px;
+}
+
+.cart-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.cart-whatsapp-panel {
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+}
+
+.cart-whatsapp-modal {
+  position: relative;
+  width: min(920px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow-y: auto;
+}
+
+.cart-whatsapp-header {
+  display: grid;
+  gap: 8px;
+}
+
+.cart-whatsapp-header span {
+  color: var(--color-primary);
+  font-family: var(--font-family-precios-destacados);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.cart-whatsapp-header h2 {
+  margin: 0;
+}
+
+.cart-whatsapp-header p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.cart-whatsapp-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.cart-items {
+  display: grid;
+  gap: 12px;
+}
+
+.cart-empty {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+  color: var(--color-text-secondary);
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.cart-item h3,
+.cart-item p {
+  margin: 0;
+}
+
+.cart-item h3 {
+  font-size: 1rem;
+}
+
+.cart-item p {
+  color: var(--color-text-secondary);
+  font-size: 0.86rem;
+}
+
+.cart-item strong,
+.cart-total strong {
+  color: var(--color-secondary);
+  font-size: 1.05rem;
+}
+
+.cart-quantity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-quantity button,
+.cart-remove {
+  min-height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cart-quantity button {
+  width: 34px;
+  padding: 0;
+}
+
+.cart-quantity span {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.cart-remove {
+  padding: 7px 12px;
+  color: var(--color-primary);
+}
+
+.cart-form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.cart-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.cart-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.cart-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.cart-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  z-index: 10001;
+  transform: translateX(-50%);
+  width: min(360px, calc(100% - 32px));
+  padding: 12px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(10, 20, 14, 0.94);
+  color: #bbf7d0;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.form-success,
+.form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.form-success {
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.form-error {
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
 }
 
 
@@ -2058,6 +2398,7 @@ main{
   .promo-card,
   .menu-wrapper,
   .menu-section,
+  .cart-whatsapp-panel,
   .menu-bubble,
   .reserve-wrapper,
   .gallery-panel,
@@ -2112,6 +2453,7 @@ main{
   .brand-name,
   .brand-tag,
   .header-cta,
+  .cart-trigger-header span,
   .producto-card h3,
   .producto-category,
   .producto-head span:not(.producto-category) {
@@ -2136,6 +2478,32 @@ main{
     min-height: 40px;
     padding: 0 10px;
     font-size: clamp(0.72rem, 2.8vw, 0.82rem);
+  }
+
+  .header-actions {
+    flex: 0 0 auto;
+    gap: 6px;
+  }
+
+  .cart-trigger-header {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    padding: 0;
+    gap: 0;
+  }
+
+  .cart-trigger-header span {
+    display: none;
+  }
+
+  .cart-trigger-header strong {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 21px;
+    height: 21px;
+    padding: 0 6px;
   }
 
   /* Menú lateral móvil */
@@ -2580,16 +2948,24 @@ main{
   }
 
   .producto-card {
+    display: grid;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .producto-card-main {
     display: flex;
     align-items: stretch;
     gap: 12px;
     width: 100%;
-    max-width: 100%;
-    min-width: 0;
     min-height: 104px;
-    padding: 10px;
-    border-radius: 16px;
-    overflow: hidden;
   }
 
   .producto-card:hover {
@@ -2674,6 +3050,21 @@ main{
     font-weight: 900;
   }
 
+  .producto-add-cart {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .product-modal-cart-actions {
+    align-items: stretch;
+  }
+
+  .cart-modal-qty,
+  .cart-modal-qty input,
+  .product-modal-add {
+    width: 100%;
+  }
+
   /* Modal producto */
   .product-modal-backdrop {
     padding: 10px;
@@ -2706,6 +3097,39 @@ main{
     padding: 18px 14px;
     border-radius: 18px;
     overflow: hidden;
+  }
+
+  .cart-whatsapp-panel {
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+
+  .cart-modal-backdrop {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .cart-whatsapp-modal {
+    width: 100%;
+    max-height: calc(100svh - 20px);
+  }
+
+  .cart-whatsapp-body {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-item {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .cart-quantity {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .cart-remove {
+    width: 100%;
   }
 
   .reserva-header {
@@ -2786,6 +3210,19 @@ main{
   }
 
   .whatsapp-floating-btn span {
+    display: none;
+  }
+
+  .cart-trigger-floating {
+    right: 12px;
+    bottom: 76px;
+    width: 52px;
+    min-width: 52px;
+    height: 52px;
+    padding: 0;
+  }
+
+  .cart-trigger-floating span {
     display: none;
   }
 }

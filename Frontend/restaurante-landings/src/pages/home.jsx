@@ -91,6 +91,8 @@ const getCategoriasFromMenuResponse = (menuResponse) =>
 const getRestauranteFlagsFromMenuResponse = (menuResponse) =>
   Array.isArray(menuResponse) ? {} : menuResponse?.restaurante || {};
 
+const MAX_UNIDADES_POR_PRODUCTO = 5;
+
 export default function Home() {
   const { slug: routeSlug } = useParams();
   const hostnameSlug = getSlugFromHostname();
@@ -108,6 +110,15 @@ export default function Home() {
   const [solicitudError, setSolicitudError] = useState("");
   const [solicitudEnviando, setSolicitudEnviando] = useState(false);
   const [restauranteInactivo, setRestauranteInactivo] = useState(null);
+  const [carrito, setCarrito] = useState([]);
+  const [pedidoMensaje, setPedidoMensaje] = useState("");
+  const [pedidoError, setPedidoError] = useState("");
+  const [pedidoEnviando, setPedidoEnviando] = useState(false);
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
+  const [tipoEntregaPedido, setTipoEntregaPedido] = useState("");
+  const [mostrarCarritoFlotante, setMostrarCarritoFlotante] = useState(false);
+  const [cantidadPromocion, setCantidadPromocion] = useState(1);
+  const [toastCarrito, setToastCarrito] = useState("");
   const promocionesCarouselRef = useRef(null);
   const destacadosCarouselRef = useRef(null);
 
@@ -208,8 +219,170 @@ export default function Home() {
 
   const handlePromotionClick = (producto) => {
     handleClickProducto(producto.id);
+    setCantidadPromocion(1);
     setSelectedPromotion(producto);
   };
+
+  const mostrarToastCarrito = (mensaje) => {
+    setToastCarrito(mensaje);
+    window.clearTimeout(window.menlyCartToastTimer);
+    window.menlyCartToastTimer = window.setTimeout(() => {
+      setToastCarrito("");
+    }, 2600);
+  };
+
+  const agregarAlCarrito = (producto, cantidad = 1) => {
+    let agregado = false;
+    let maximoAlcanzado = false;
+
+    setPedidoMensaje("");
+    setPedidoError("");
+    setCarrito((items) => {
+      const existente = items.find((item) => item.producto_id === producto.id);
+      const cantidadSegura = Math.min(
+        MAX_UNIDADES_POR_PRODUCTO,
+        Math.max(1, Number(cantidad) || 1)
+      );
+
+      if (existente) {
+        const nuevaCantidad = Math.min(
+          MAX_UNIDADES_POR_PRODUCTO,
+          existente.cantidad + cantidadSegura
+        );
+        maximoAlcanzado = nuevaCantidad === existente.cantidad;
+        agregado = nuevaCantidad > existente.cantidad;
+
+        return items.map((item) =>
+          item.producto_id === producto.id
+            ? { ...item, cantidad: nuevaCantidad }
+            : item
+        );
+      }
+
+      agregado = true;
+      return [
+        ...items,
+        {
+          producto_id: producto.id,
+          nombre: producto.nombre,
+          precio: Number(producto.precio),
+          cantidad: cantidadSegura,
+        },
+      ];
+    });
+
+    mostrarToastCarrito(
+      agregado ? "Producto agregado al carrito" : "Máximo 5 unidades por producto"
+    );
+  };
+
+  const cambiarCantidadCarrito = (productoId, delta) => {
+    setCarrito((items) =>
+      items
+        .map((item) =>
+          item.producto_id === productoId
+            ? {
+                ...item,
+                cantidad: Math.min(
+                  MAX_UNIDADES_POR_PRODUCTO,
+                  item.cantidad + delta
+                ),
+              }
+            : item
+        )
+        .filter((item) => item.cantidad > 0)
+    );
+  };
+
+  const eliminarDelCarrito = (productoId) => {
+    setCarrito((items) => items.filter((item) => item.producto_id !== productoId));
+  };
+
+  const totalCarrito = carrito.reduce(
+    (total, item) => total + item.precio * item.cantidad,
+    0
+  );
+  const totalUnidadesCarrito = carrito.reduce((total, item) => total + item.cantidad, 0);
+
+  const handlePedidoWhatsApp = async (e) => {
+    e.preventDefault();
+    if (pedidoEnviando) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const data = {
+      nombre_cliente: String(formData.get("nombre_cliente") || "").trim(),
+      telefono_cliente: String(formData.get("telefono_cliente") || "").trim(),
+      tipo_entrega: formData.get("tipo_entrega"),
+      direccion_entrega: String(formData.get("direccion_entrega") || "").trim(),
+      productos: carrito.map((item) => ({
+        producto_id: item.producto_id,
+        cantidad: item.cantidad,
+      })),
+    };
+
+    setPedidoMensaje("");
+    setPedidoError("");
+
+    if (carrito.length === 0) {
+      setPedidoError("Agrega al menos un producto para enviar el pedido.");
+      return;
+    }
+
+    if (!data.nombre_cliente || !data.telefono_cliente || !data.tipo_entrega) {
+      setPedidoError("Completa tu nombre, teléfono y tipo de entrega.");
+      return;
+    }
+
+    if (data.tipo_entrega === "delivery" && !data.direccion_entrega) {
+      setPedidoError("Debe ingresar una dirección para delivery.");
+      return;
+    }
+
+    setPedidoEnviando(true);
+
+    try {
+      const pedido = await apiFetch(`/pedidos-whatsapp/${slug}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        retries: 0,
+      });
+
+      setPedidoMensaje("Pedido guardado correctamente. Se abrirá WhatsApp para enviarlo.");
+      setCarrito([]);
+      setCarritoAbierto(false);
+      setTipoEntregaPedido("");
+      form.reset();
+      window.open(pedido.whatsapp_url, "_blank", "noopener,noreferrer");
+    } catch (requestError) {
+      const apiMessage =
+        requestError?.payload?.error ||
+        requestError?.payload?.detail ||
+        requestError?.payload?.carrito ||
+        requestError?.payload?.productos ||
+        requestError?.payload?.non_field_errors?.[0] ||
+        "No se pudo guardar el pedido. Intenta nuevamente.";
+      setPedidoError(Array.isArray(apiMessage) ? apiMessage[0] : apiMessage);
+    } finally {
+      setPedidoEnviando(false);
+    }
+  };
+
+  const renderBotonCarrito = (className = "") => (
+    <button
+      type="button"
+      className={`cart-trigger ${className}`.trim()}
+      onClick={() => setCarritoAbierto(true)}
+      aria-label={`Abrir carrito, ${totalUnidadesCarrito} productos`}
+    >
+      <i className="bi bi-basket2-fill" aria-hidden="true"></i>
+      <span>Carrito</span>
+      <strong>{totalUnidadesCarrito}</strong>
+    </button>
+  );
 
   const handleReserva = async (e) => {
     e.preventDefault();
@@ -525,6 +698,37 @@ export default function Home() {
   }, [selectedPromotion]);
 
   useEffect(() => {
+    const handleScroll = () => {
+      setMostrarCarritoFlotante(window.scrollY > 96);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!carritoAbierto) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setCarritoAbierto(false);
+      }
+    };
+
+    document.body.classList.add("modal-open");
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.classList.remove("modal-open");
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [carritoAbierto]);
+
+  useEffect(() => {
     document.body.classList.toggle("mobile-nav-open", mobileNavOpen);
 
     return () => {
@@ -575,10 +779,13 @@ export default function Home() {
     : "theme_1";
   const reservasActivas = restaurante?.reservas_activas === true;
   const solicitudesEspecialesActivas = restaurante?.solicitudes_especiales_activas === true;
+  const carritoWhatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   console.log("routeSlug:", routeSlug);
   console.log("hostnameSlug:", hostnameSlug);
   console.log("slug final:", slug);
   console.log("URL API:", `${BASE_URL}/menu/${slug}/`);
+  console.log("restaurante", restaurante);
+  console.log("carrito_whatsapp_activo", restaurante?.carrito_whatsapp_activo);
   return (
     <div
       className={`page-shell ${themeClass}`}
@@ -646,11 +853,14 @@ export default function Home() {
           ></button>
         )}
 
-        {reservasActivas && (
-          <a className="button-primary header-cta" href="#reserva">
-            Escríbenos
-          </a>
-        )}
+        <div className="header-actions">
+          {reservasActivas && (
+            <a className="button-primary header-cta" href="#reserva">
+              Escríbenos
+            </a>
+          )}
+          {carritoWhatsappActivo && !mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-header")}
+        </div>
       </header>
 
       <main className="page-content">
@@ -753,6 +963,15 @@ export default function Home() {
                       >
                         Ver promoción
                       </button>
+                      {carritoWhatsappActivo && (
+                        <button
+                          type="button"
+                          className="producto-add-cart promo-add-cart"
+                          onClick={() => agregarAlCarrito(producto)}
+                        >
+                          Agregar al carrito
+                        </button>
+                      )}
                     </div>
 
                     {getProductConditions(producto) && (
@@ -795,6 +1014,15 @@ export default function Home() {
                       <p>{producto.categoriaNombre}</p>
                       <h3>{producto.nombre}</h3>
                       <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                      {carritoWhatsappActivo && (
+                        <button
+                          type="button"
+                          className="producto-add-cart featured-add-cart"
+                          onClick={() => agregarAlCarrito(producto)}
+                        >
+                          Agregar al carrito
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -846,6 +1074,35 @@ export default function Home() {
                 <p>{selectedPromotion.descripcion || "Sin descripción disponible."}</p>
                 {getProductConditions(selectedPromotion) && (
                   <p><small>{getProductConditions(selectedPromotion)}</small></p>
+                )}
+                {carritoWhatsappActivo && (
+                  <div className="product-modal-cart-actions">
+                    <label className="cart-modal-qty">
+                      <span>Cantidad</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={MAX_UNIDADES_POR_PRODUCTO}
+                        value={cantidadPromocion}
+                        onChange={(event) => {
+                          const value = Number(event.target.value);
+                          setCantidadPromocion(
+                            Math.min(
+                              MAX_UNIDADES_POR_PRODUCTO,
+                              Math.max(1, value || 1)
+                            )
+                          );
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="producto-add-cart product-modal-add"
+                      onClick={() => agregarAlCarrito(selectedPromotion, cantidadPromocion)}
+                    >
+                      Agregar al carrito
+                    </button>
+                  </div>
                 )}
               </div>
             </article>
@@ -921,6 +1178,9 @@ export default function Home() {
             categorias={categorias}
             onProductClick={handleClickProducto}
             fallbackImage={restaurante?.logo_url}
+            carritoActivo={carritoWhatsappActivo}
+            onAddToCart={agregarAlCarrito}
+            maxCantidad={MAX_UNIDADES_POR_PRODUCTO}
           />
         </section>
 
@@ -973,6 +1233,139 @@ export default function Home() {
           </div>
         </section>
       </main>
+      {carritoWhatsappActivo && mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-floating")}
+      {toastCarrito && <div className="cart-toast">{toastCarrito}</div>}
+      {carritoWhatsappActivo && carritoAbierto && (
+        <div
+          className="cart-modal-backdrop"
+          role="presentation"
+          onClick={() => setCarritoAbierto(false)}
+        >
+          <section
+            className="cart-whatsapp-panel cart-whatsapp-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cart-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="product-modal-close"
+              aria-label="Cerrar carrito"
+              onClick={() => setCarritoAbierto(false)}
+            >
+              <i className="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+
+            <div className="cart-whatsapp-header">
+              <span>Pedido por WhatsApp</span>
+              <h2 id="cart-modal-title">Tu carrito</h2>
+              <p>Revisa tu pedido, completa tus datos y envíalo al restaurante.</p>
+            </div>
+
+            <div className="cart-whatsapp-body">
+              <div className="cart-items">
+                {carrito.length === 0 ? (
+                  <p className="cart-empty">Tu carrito está vacío</p>
+                ) : (
+                  carrito.map((item) => (
+                    <article key={item.producto_id} className="cart-item">
+                      <div>
+                        <h3>{item.nombre}</h3>
+                        <p>${item.precio.toLocaleString("es-CL")} c/u</p>
+                      </div>
+                      <div className="cart-quantity">
+                        <button
+                          type="button"
+                          aria-label={`Disminuir ${item.nombre}`}
+                          onClick={() => cambiarCantidadCarrito(item.producto_id, -1)}
+                        >
+                          -
+                        </button>
+                        <span>{item.cantidad}</span>
+                        <button
+                          type="button"
+                          aria-label={`Aumentar ${item.nombre}`}
+                          onClick={() => {
+                            if (item.cantidad >= MAX_UNIDADES_POR_PRODUCTO) {
+                              mostrarToastCarrito("Máximo 5 unidades por producto");
+                              return;
+                            }
+                            cambiarCantidadCarrito(item.producto_id, 1);
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <strong>${(item.precio * item.cantidad).toLocaleString("es-CL")}</strong>
+                      <button
+                        type="button"
+                        className="cart-remove"
+                        onClick={() => eliminarDelCarrito(item.producto_id)}
+                      >
+                        Eliminar
+                      </button>
+                    </article>
+                  ))
+                )}
+              </div>
+
+              <form className="cart-form" onSubmit={handlePedidoWhatsApp}>
+                <label>
+                  <span>Nombre</span>
+                  <input name="nombre_cliente" type="text" autoComplete="name" required />
+                </label>
+                <label>
+                  <span>Teléfono</span>
+                  <input name="telefono_cliente" type="tel" autoComplete="tel" required />
+                </label>
+                <label>
+                  <span>Tipo de entrega</span>
+                  <select
+                    name="tipo_entrega"
+                    required
+                    value={tipoEntregaPedido}
+                    onChange={(e) => setTipoEntregaPedido(e.target.value)}
+                  >
+                    <option value="" disabled>Selecciona una opción</option>
+                    <option value="delivery">Delivery</option>
+                    <option value="retiro_local">Retiro en local</option>
+                    <option value="para_llevar">Para llevar</option>
+                  </select>
+                </label>
+                {tipoEntregaPedido === "delivery" && (
+                  <label>
+                    <span>Dirección de entrega</span>
+                    <input
+                      name="direccion_entrega"
+                      type="text"
+                      autoComplete="street-address"
+                      required
+                      placeholder="Ej: Av. Pedro Aguirre Cerda 1234"
+                    />
+                  </label>
+                )}
+
+                <div className="cart-total">
+                  <span>Total</span>
+                  <strong>${totalCarrito.toLocaleString("es-CL")}</strong>
+                </div>
+
+                {pedidoMensaje && <p className="form-success">{pedidoMensaje}</p>}
+                {pedidoError && <p className="form-error">{pedidoError}</p>}
+
+                <button
+                  type="submit"
+                  className="button-primary cart-submit"
+                  disabled={pedidoEnviando || carrito.length === 0}
+                >
+                  {pedidoEnviando ? "Enviando pedido..." : "Enviar pedido por WhatsApp"}
+                </button>
+              </form>
+            </div>
+          </section>
+        </div>
+      )}
       <WhatsAppFloatingButton telefono={restaurante?.whatsapp || restaurante?.telefono} />
     </div>
   );

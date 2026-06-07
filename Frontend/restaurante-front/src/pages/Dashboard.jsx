@@ -3,7 +3,6 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import "../styles/dashboard.css";
 import MainMenu from "../componentes/Main-menu";
 import Card from "../componentes/card-metric";
-import CardReports from "../componentes/card-reportes";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch } from "../api";
@@ -25,6 +24,100 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   
   const [productosClickeados, setProductosClickeados] = useState([]);
+  const [ultimosPedidos, setUltimosPedidos] = useState([]);
+  const [ultimosPedidosLoading, setUltimosPedidosLoading] = useState(false);
+  const [ultimosPedidosError, setUltimosPedidosError] = useState("");
+  const [modalNotificacionesAbierto, setModalNotificacionesAbierto] = useState(false);
+  const [notificaciones, setNotificaciones] = useState([]);
+  const [notificacionesLoading, setNotificacionesLoading] = useState(false);
+  const [notificacionesError, setNotificacionesError] = useState("");
+  const [notificacionDetalle, setNotificacionDetalle] = useState(null);
+  const [detalleLoading, setDetalleLoading] = useState(false);
+
+  const actualizarContadorNotificaciones = (pendientes) => {
+    setData((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        resumen: {
+          ...prev.resumen,
+          notificaciones_pendientes: pendientes,
+        },
+      };
+    });
+  };
+
+  const fetchNotificaciones = async () => {
+    setNotificacionesLoading(true);
+    setNotificacionesError("");
+
+    try {
+      const response = await authFetch("/mi-restaurante/notificaciones/?leida=false", {
+        cache: "no-store",
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || "No se pudieron cargar las notificaciones");
+      }
+
+      setNotificaciones(result.results || []);
+      actualizarContadorNotificaciones(result.pendientes ?? 0);
+    } catch (err) {
+      setNotificaciones([]);
+      setNotificacionesError(err.message || "No se pudieron cargar las notificaciones");
+    } finally {
+      setNotificacionesLoading(false);
+    }
+  };
+
+  const abrirNotificaciones = () => {
+    setModalNotificacionesAbierto(true);
+    setNotificacionDetalle(null);
+    fetchNotificaciones();
+  };
+
+  const cerrarNotificaciones = () => {
+    setModalNotificacionesAbierto(false);
+    setNotificacionDetalle(null);
+    setNotificacionesError("");
+  };
+
+  const verDetalleNotificacion = async (notificacionId) => {
+    setDetalleLoading(true);
+    setNotificacionesError("");
+
+    try {
+      const detalleResponse = await authFetch(`/mi-restaurante/notificaciones/${notificacionId}/`, {
+        cache: "no-store",
+      });
+      const detalleData = await detalleResponse.json();
+
+      if (!detalleResponse.ok) {
+        throw new Error(detalleData?.error || "No se pudo cargar el detalle");
+      }
+
+      const marcarResponse = await authFetch(
+        `/mi-restaurante/notificaciones/${notificacionId}/marcar-leida/`,
+        { method: "PATCH" }
+      );
+      const marcarData = await marcarResponse.json();
+
+      if (!marcarResponse.ok) {
+        throw new Error(marcarData?.error || "No se pudo marcar como leída");
+      }
+
+      setNotificacionDetalle(marcarData.notificacion || detalleData);
+      setNotificaciones((prev) => prev.filter((item) => item.id !== notificacionId));
+      actualizarContadorNotificaciones(marcarData.pendientes ?? 0);
+    } catch (err) {
+      setNotificacionesError(err.message || "No se pudo cargar el detalle");
+    } finally {
+      setDetalleLoading(false);
+    }
+  };
+
   const fetchClicks = async () => {
     try {
       const response = await authFetch("/mi-restaurante/productos-mas-clickeados/");
@@ -37,6 +130,30 @@ export default function Dashboard() {
       setProductosClickeados([]);
     }
   };
+
+  const fetchUltimosPedidos = async () => {
+    setUltimosPedidosLoading(true);
+    setUltimosPedidosError("");
+
+    try {
+      const response = await authFetch("/dashboard/ultimos-pedidos/", {
+        cache: "no-store",
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || "No se pudieron cargar los ultimos pedidos");
+      }
+
+      setUltimosPedidos(result || []);
+    } catch (err) {
+      setUltimosPedidos([]);
+      setUltimosPedidosError(err.message || "No se pudieron cargar los ultimos pedidos");
+    } finally {
+      setUltimosPedidosLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchRestaurante = async () => {
       try {
@@ -71,6 +188,7 @@ export default function Dashboard() {
           })
         );
         fetchClicks();
+        fetchUltimosPedidos();
       } catch {
         setError("No se pudieron cargar los datos");
       } finally {
@@ -93,14 +211,10 @@ export default function Dashboard() {
     return <p>No hay datos disponibles</p>;
   }
 
-  const { usuario, restaurante, ultimas_actualizaciones } = data;
+  const { usuario, restaurante } = data;
   const cuentaInactiva = data?.cuenta_inactiva || restaurante?.activo === false;
   const mensajeCuentaInactiva =
     data?.mensaje_cuenta || "Cuenta inactiva. Contacta al soporte de Menly para reactivar tu cuenta.";
-  const cambiosVisibles =
-    usuario?.rol === "admin"
-      ? ultimas_actualizaciones?.slice(0, 5)
-      : ultimas_actualizaciones;
   const suscripcion = data?.suscripcion;
   const mostrarAlertaSuscripcion =
     restaurante?.activo === true && suscripcion?.por_vencer === true;
@@ -109,6 +223,55 @@ export default function Dashboard() {
       ? "hoy"
       : `en ${suscripcion?.dias_restantes} días`
   }. Recuerda regularizar tu pago para mantener activo el servicio. Si ya realizaste el pago, ignora este mensaje.`;
+  const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
+
+  const iconoPedido = (tipoEntrega) => {
+    if (tipoEntrega === "delivery") return "bi bi-scooter";
+    if (tipoEntrega === "retiro_local") return "bi bi-shop";
+    if (tipoEntrega === "para_llevar") return "bi bi-bag";
+    return "bi bi-receipt";
+  };
+
+  const formatearFecha = (fecha) =>
+    fecha
+      ? new Date(fecha).toLocaleString("es-CL", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "Sin fecha";
+
+  const renderDetalleNotificacion = () => {
+    const detalle = notificacionDetalle?.detalle;
+
+    if (!detalle) {
+      return <p className="notificaciones-empty">No se encontró el detalle asociado.</p>;
+    }
+
+    if (notificacionDetalle.tipo === "reserva") {
+      return (
+        <div className="notificacion-detalle-grid">
+          <span>Cliente</span><strong>{detalle.nombre_cliente}</strong>
+          <span>Fecha</span><strong>{detalle.fecha} {detalle.hora}</strong>
+          <span>Personas</span><strong>{detalle.cantidad_personas}</strong>
+          <span>Teléfono</span><strong>{detalle.telefono}</strong>
+          <span>Email</span><strong>{detalle.email || "No informado"}</strong>
+          <span>Mensaje</span><strong>{detalle.mensaje || "Sin mensaje"}</strong>
+          <span>Estado</span><strong>{detalle.estado}</strong>
+        </div>
+      );
+    }
+
+    return (
+      <div className="notificacion-detalle-grid">
+        <span>Cliente</span><strong>{detalle.nombre} {detalle.apellido}</strong>
+        <span>Fecha evento</span><strong>{detalle.fecha_evento}</strong>
+        <span>Teléfono</span><strong>{detalle.telefono_contacto}</strong>
+        <span>Email</span><strong>{detalle.email_contacto}</strong>
+        <span>Descripción</span><strong>{detalle.descripcion_solicitud}</strong>
+        <span>Estado</span><strong>{detalle.estado}</strong>
+      </div>
+    );
+  };
 
   return (
         <div className="body">
@@ -156,45 +319,48 @@ export default function Dashboard() {
                             </div>
                             <div className="notific">
                                 <i className="bi bi-envelope-fill"></i>
-                                <h5>{data?.resumen?.reservas_pendientes ?? 0}</h5>
+                                <h5>{contadorNotificaciones}</h5>
                                 <p>Notificaciones pendientes</p>
                                 <button
                                   className="btn-ver-notificaciones"
                                   disabled={cuentaInactiva}
                                   title={cuentaInactiva ? "Cuenta inactiva" : undefined}
-                                  onClick={() => navigate(`/dashboard/${restaurante.slug}/reservas?estado=pendiente`)}
+                                  onClick={abrirNotificaciones}
                                 >
-                                  Ver reservas <span><i className="bi bi-arrow-right-short"></i></span>
+                                  Ver notificaciones <span><i className="bi bi-arrow-right-short"></i></span>
                                 </button>
                             </div>
                             
                         </div>
                         <div className="body-ultimos-cliks">
                             <div className="div-ultimos-cambios">
-                                <p><i className="bi bi-clock-history"></i> Últimos cambios</p>
+                                <p><i className="bi bi-receipt-cutoff"></i> Últimos pedidos</p>
                                 <div className="reports-cambios">
-                                    {cambiosVisibles?.length === 0 ? (
-                                      <p className="empty-text">No hay cambios recientes.</p>
+                                    {ultimosPedidosLoading ? (
+                                      <p className="empty-text">Cargando últimos pedidos...</p>
+                                    ) : ultimosPedidosError ? (
+                                      <p className="empty-text">{ultimosPedidosError}</p>
+                                    ) : ultimosPedidos.length === 0 ? (
+                                      <p className="empty-text">Aún no hay pedidos recientes.</p>
                                     ) : (
-                                    cambiosVisibles?.slice(0,10).map((p) => (
-                                        <CardReports
-                                        key={p.id}
-                                        fecha_cambio={new Date(p.fecha).toLocaleDateString("es-CL")}
-                                        Estado={p.accion}
-                                        Producto={p.producto}
-                                        descripcion={p.descripcion}
-                                        usuario={p.usuario}
-                                       
-                                        />
-                                    ))
+                                      ultimosPedidos.map((pedido) => (
+                                        <article key={pedido.id} className="ultimo-pedido-item">
+                                          <div className="ultimo-pedido-icon">
+                                            <i className={iconoPedido(pedido.tipo_entrega)}></i>
+                                          </div>
+                                          <div className="ultimo-pedido-info">
+                                            <strong>Pedido #{pedido.numero_pedido}</strong>
+                                            <span>{pedido.nombre_cliente}</span>
+                                          </div>
+                                          <time>{pedido.hora_formateada}</time>
+                                        </article>
+                                      ))
                                     )}
                                 </div>
-                                {usuario?.rol === "dueno" && (
-                                <button className="btn-ver-historial" onClick={() => navigate("/historial")}>
-                                    <p>Ver historial completo</p>
+                                <button className="btn-ver-historial" onClick={() => navigate(`/dashboard/${restaurante.slug}/pedidos`)}>
+                                    <p>Ver todos los pedidos</p>
                                     <i className="bi bi-arrow-right-short"></i>
                                 </button>
-                                )}
                             </div>
                             <div className="clicks">
                               <p>
@@ -252,6 +418,77 @@ export default function Dashboard() {
               <div className="dashboard-subscription-alert is-warning">
                 <i className="bi bi-info-circle"></i>
                 <span>{mensajeSuscripcion}</span>
+              </div>
+            )}
+            {modalNotificacionesAbierto && (
+              <div className="notificaciones-modal-backdrop" role="dialog" aria-modal="true">
+                <div className="notificaciones-modal">
+                  <div className="notificaciones-modal-header">
+                    <div>
+                      <p>Centro de notificaciones</p>
+                      <h2>
+                        {notificacionDetalle ? "Detalle" : `${contadorNotificaciones} pendientes`}
+                      </h2>
+                    </div>
+                    <button
+                      type="button"
+                      className="notificaciones-icon-btn"
+                      onClick={cerrarNotificaciones}
+                      aria-label="Cerrar"
+                    >
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+
+                  {notificacionesError && (
+                    <div className="notificaciones-error">{notificacionesError}</div>
+                  )}
+
+                  {notificacionDetalle ? (
+                    <div className="notificacion-detalle">
+                      <button
+                        type="button"
+                        className="notificaciones-volver"
+                        onClick={() => setNotificacionDetalle(null)}
+                      >
+                        <i className="bi bi-arrow-left-short"></i>
+                        Volver al listado
+                      </button>
+                      <span className="notificacion-tipo">{notificacionDetalle.tipo_display}</span>
+                      <h3>{notificacionDetalle.titulo}</h3>
+                      <p>{notificacionDetalle.mensaje}</p>
+                      <small>{formatearFecha(notificacionDetalle.fecha_creacion)}</small>
+                      {renderDetalleNotificacion()}
+                    </div>
+                  ) : (
+                    <div className="notificaciones-lista">
+                      {notificacionesLoading ? (
+                        <p className="notificaciones-empty">Cargando notificaciones...</p>
+                      ) : notificaciones.length === 0 ? (
+                        <p className="notificaciones-empty">No hay notificaciones pendientes.</p>
+                      ) : (
+                        notificaciones.map((notificacion) => (
+                          <article key={notificacion.id} className="notificacion-item">
+                            <div>
+                              <span className="notificacion-tipo">{notificacion.tipo_display}</span>
+                              <h3>{notificacion.titulo}</h3>
+                              <p>{notificacion.mensaje}</p>
+                              <small>{formatearFecha(notificacion.fecha_creacion)}</small>
+                            </div>
+                            <button
+                              type="button"
+                              className="notificacion-ver-mas"
+                              disabled={detalleLoading}
+                              onClick={() => verDetalleNotificacion(notificacion.id)}
+                            >
+                              Ver más
+                            </button>
+                          </article>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
     </div>

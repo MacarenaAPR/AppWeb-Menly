@@ -22,9 +22,17 @@ const getProductImage = (producto, fallbackImage, size = {}) => {
   });
 };
 
-export default function Menu({ categorias, onProductClick, fallbackImage }) {
+export default function Menu({
+  categorias,
+  onProductClick,
+  fallbackImage,
+  carritoActivo = false,
+  onAddToCart,
+  maxCantidad = 5,
+}) {
   const [openCategory, setOpenCategory] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [cantidadProducto, setCantidadProducto] = useState(1);
 
   useEffect(() => {
     if (!selectedProduct) return undefined;
@@ -46,6 +54,7 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
 
   const handleProductClick = (producto) => {
     onProductClick(producto.id);
+    setCantidadProducto(1);
     setSelectedProduct(producto);
   };
 
@@ -105,34 +114,47 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
 
           <div className="productos-list">
             {(selectedCategory.productos || []).map((producto) => (
-              <button
+              <article
                 key={producto.id}
-                type="button"
                 className="producto-card"
-                onClick={() => handleProductClick(producto)}
               >
-                <div className="producto-card-image">
-                  <img
-                    src={getProductImage(producto, fallbackImage, { width: 220, height: 220 })}
-                    alt={producto.nombre}
-                    loading="lazy"
-                    width="220"
-                    height="220"
-                  />
-                </div>
-
-                <div className="producto-card-content">
-                  <div className="producto-head">
-                    <div>
-                      <h3>{producto.nombre}</h3>
-                      <span className="producto-category">{selectedCategoryName}</span>
-                    </div>
-                    <span>${Number(producto.precio).toLocaleString("es-CL")}</span>
+                <button
+                  type="button"
+                  className="producto-card-main"
+                  onClick={() => handleProductClick(producto)}
+                >
+                  <div className="producto-card-image">
+                    <img
+                      src={getProductImage(producto, fallbackImage, { width: 220, height: 220 })}
+                      alt={producto.nombre}
+                      loading="lazy"
+                      width="220"
+                      height="220"
+                    />
                   </div>
-                  <p>{producto.descripcion}</p>
-                  <span className="producto-action">Ver detalle</span>
-                </div>
-              </button>
+
+                  <div className="producto-card-content">
+                    <div className="producto-head">
+                      <div>
+                        <h3>{producto.nombre}</h3>
+                        <span className="producto-category">{selectedCategoryName}</span>
+                      </div>
+                      <span>${Number(producto.precio).toLocaleString("es-CL")}</span>
+                    </div>
+                    <p>{producto.descripcion}</p>
+                    <span className="producto-action">Ver detalle</span>
+                  </div>
+                </button>
+                {carritoActivo && (
+                  <button
+                    type="button"
+                    className="producto-add-cart"
+                    onClick={() => onAddToCart?.(producto)}
+                  >
+                    Agregar al carrito
+                  </button>
+                )}
+              </article>
             ))}
           </div>
         </div>
@@ -178,6 +200,32 @@ export default function Menu({ categorias, onProductClick, fallbackImage }) {
                 <p className="promo-conditions">
                   <small>{selectedProduct.condiciones}</small>
                 </p>
+              )}
+              {carritoActivo && (
+                <div className="product-modal-cart-actions">
+                  <label className="cart-modal-qty">
+                    <span>Cantidad</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={maxCantidad}
+                      value={cantidadProducto}
+                      onChange={(event) => {
+                        const value = Number(event.target.value);
+                        setCantidadProducto(
+                          Math.min(maxCantidad, Math.max(1, value || 1))
+                        );
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="producto-add-cart product-modal-add"
+                    onClick={() => onAddToCart?.(selectedProduct, cantidadProducto)}
+                  >
+                    Agregar al carrito
+                  </button>
+                </div>
               )}
             </div>
           </article>

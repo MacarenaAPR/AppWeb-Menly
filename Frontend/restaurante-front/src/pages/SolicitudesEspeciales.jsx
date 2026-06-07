@@ -23,6 +23,11 @@ const formularioInicial = {
   estado: "pendiente",
 };
 
+const pedidoEspecialInicial = {
+  fecha_entrega: "",
+  items: [{ nombre: "", descripcion: "", cantidad: 1, precio_unitario: 0 }],
+};
+
 const obtenerMensajeError = async (response, fallback) => {
   try {
     const data = await response.json();
@@ -48,6 +53,8 @@ export default function SolicitudesEspecialesDashboard() {
   const [modoModal, setModoModal] = useState("crear");
   const [solicitudEditando, setSolicitudEditando] = useState(null);
   const [formSolicitud, setFormSolicitud] = useState(formularioInicial);
+  const [solicitudPedido, setSolicitudPedido] = useState(null);
+  const [formPedidoEspecial, setFormPedidoEspecial] = useState(pedidoEspecialInicial);
 
   const cargarSolicitudes = useCallback(async (page = paginaActual) => {
     setLoading(true);
@@ -254,6 +261,93 @@ export default function SolicitudesEspecialesDashboard() {
     }
   };
 
+  const abrirConvertirPedido = (solicitud) => {
+    setSolicitudPedido(solicitud);
+    setFormPedidoEspecial({
+      fecha_entrega: solicitud.fecha_evento || "",
+      items: [{
+        nombre: "Pedido especial",
+        descripcion: solicitud.descripcion_solicitud || "",
+        cantidad: 1,
+        precio_unitario: 0,
+      }],
+    });
+    setError("");
+    setMensaje("");
+  };
+
+  const actualizarItemPedido = (index, campo, valor) => {
+    setFormPedidoEspecial((actual) => ({
+      ...actual,
+      items: actual.items.map((item, itemIndex) => (
+        itemIndex === index ? { ...item, [campo]: valor } : item
+      )),
+    }));
+  };
+
+  const agregarItemPedido = () => {
+    setFormPedidoEspecial((actual) => ({
+      ...actual,
+      items: [...actual.items, { nombre: "", descripcion: "", cantidad: 1, precio_unitario: 0 }],
+    }));
+  };
+
+  const quitarItemPedido = (index) => {
+    setFormPedidoEspecial((actual) => ({
+      ...actual,
+      items: actual.items.length === 1
+        ? actual.items
+        : actual.items.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  };
+
+  const convertirEnPedidoEspecial = async (e) => {
+    e.preventDefault();
+    setError("");
+    setMensaje("");
+
+    const itemsValidos = formPedidoEspecial.items.every((item) =>
+      String(item.nombre || "").trim() &&
+      Number(item.cantidad) > 0 &&
+      Number(item.precio_unitario) >= 0
+    );
+
+    if (!solicitudPedido || !formPedidoEspecial.fecha_entrega || !itemsValidos) {
+      setError("Completa fecha de entrega e items del pedido.");
+      return;
+    }
+
+    try {
+      const response = await authFetch("/mi-restaurante/pedidos/especiales/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          solicitud_especial_id: solicitudPedido.id,
+          fecha_entrega: formPedidoEspecial.fecha_entrega,
+          items: formPedidoEspecial.items.map((item) => ({
+            ...item,
+            cantidad: Number(item.cantidad),
+            precio_unitario: Number(item.precio_unitario),
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          await obtenerMensajeError(response, "No se pudo convertir la solicitud en pedido.")
+        );
+      }
+
+      setSolicitudPedido(null);
+      setFormPedidoEspecial(pedidoEspecialInicial);
+      setMensaje("Pedido especial creado correctamente.");
+    } catch (requestError) {
+      setError(requestError.message || "No se pudo convertir la solicitud en pedido.");
+    }
+  };
+
   const exportarCSV = () => {
     const encabezados = [
       "Nombre",
@@ -457,6 +551,11 @@ export default function SolicitudesEspecialesDashboard() {
                         <button title="Completar" onClick={() => actualizarSolicitud(solicitud.id, { estado: "completada" })}>
                           <i className="bi bi-check2-circle"></i>
                         </button>
+                        {solicitud.estado === "aceptada" && (
+                          <button title="Convertir en pedido especial" onClick={() => abrirConvertirPedido(solicitud)}>
+                            <i className="bi bi-receipt-cutoff"></i>
+                          </button>
+                        )}
                         <button className="delete" title="Rechazar" onClick={() => rechazarSolicitud(solicitud.id)}>
                           <i className="bi bi-x-lg"></i>
                         </button>
@@ -565,6 +664,65 @@ export default function SolicitudesEspecialesDashboard() {
                 <button type="submit" disabled={guardando}>
                   {guardando ? "Guardando..." : "Guardar solicitud"}
                 </button>
+              </div>
+            </form>
+          </div>
+          )}
+          {solicitudPedido && (
+          <div className="modal-reserva-bg">
+            <form className="modal-reserva pedido-form-modal" onSubmit={convertirEnPedidoEspecial}>
+              <h2>Convertir en pedido especial</h2>
+              <p className="pedido-detalle-subtitle">
+                {solicitudPedido.nombre} {solicitudPedido.apellido}
+              </p>
+
+              <input
+                type="date"
+                value={formPedidoEspecial.fecha_entrega}
+                onChange={(e) => setFormPedidoEspecial({ ...formPedidoEspecial, fecha_entrega: e.target.value })}
+                required
+              />
+
+              <div className="pedido-items-form">
+                {formPedidoEspecial.items.map((item, index) => (
+                  <div className="pedido-item-row" key={index}>
+                    <input
+                      type="text"
+                      placeholder="Item"
+                      value={item.nombre}
+                      onChange={(e) => actualizarItemPedido(index, "nombre", e.target.value)}
+                      required
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.cantidad}
+                      onChange={(e) => actualizarItemPedido(index, "cantidad", e.target.value)}
+                      required
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      value={item.precio_unitario}
+                      onChange={(e) => actualizarItemPedido(index, "precio_unitario", e.target.value)}
+                      required
+                    />
+                    <button type="button" className="delete" onClick={() => quitarItemPedido(index)}>
+                      <i className="bi bi-trash"></i>
+                    </button>
+                  </div>
+                ))}
+                <button type="button" className="export-btn" onClick={agregarItemPedido}>
+                  <i className="bi bi-plus-lg"></i>
+                  Agregar item
+                </button>
+              </div>
+
+              <div className="modal-actions">
+                <button className="button-cancelar" type="button" onClick={() => setSolicitudPedido(null)}>
+                  Cancelar
+                </button>
+                <button type="submit">Crear pedido</button>
               </div>
             </form>
           </div>

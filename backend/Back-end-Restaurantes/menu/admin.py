@@ -1,4 +1,4 @@
-from menu.models import Restaurante,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial
+from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial
 from .forms import ProductoCSVImportForm
 
 import csv
@@ -12,12 +12,23 @@ from menu.cache_utils import invalidate_menu_cache
 
 
 
+@admin.register(Plan)
+class PlanAdmin(admin.ModelAdmin):
+    list_display = ("id", "nombre", "slug", "activo", "fecha_creacion", "fecha_actualizacion")
+    list_filter = ("activo",)
+    search_fields = ("nombre", "slug", "descripcion")
+    prepopulated_fields = {"slug": ("nombre",)}
+    ordering = ("id",)
+    readonly_fields = ("fecha_creacion", "fecha_actualizacion")
+
+
 @admin.register(Restaurante)
 class RestauranteAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "nombre_empresa",
         "slug",
+        "plan",
         "telefono",
         "ciudad",
         "activo",
@@ -35,6 +46,7 @@ class RestauranteAdmin(admin.ModelAdmin):
         "solicitudes_especiales_activas",
         "carrito_whatsapp_activo",
         "metricas_activas",
+        "plan",
         "ciudad",
     )
     search_fields = ("nombre_empresa", "rut", "telefono", "email_contacto", "slug")
@@ -46,6 +58,7 @@ class RestauranteAdmin(admin.ModelAdmin):
                 "nombre_empresa",
                 "rut",
                 "slug",
+                "plan",
                 "activo",
                 "fecha_creacion",
             )
@@ -326,6 +339,94 @@ class SolicitudEspecialAdmin(admin.ModelAdmin):
     )
     ordering = ("-fecha_creacion",)
     readonly_fields = ("fecha_creacion", "fecha_actualizacion")
+
+
+@admin.register(Notificacion)
+class NotificacionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "restaurante",
+        "tipo",
+        "titulo",
+        "leida",
+        "fecha_creacion",
+        "fecha_lectura",
+        "referencia_modelo",
+        "referencia_id",
+    )
+    list_filter = ("tipo", "leida", "restaurante", "fecha_creacion")
+    search_fields = (
+        "titulo",
+        "mensaje",
+        "restaurante__nombre_empresa",
+        "restaurante__slug",
+        "referencia_modelo",
+    )
+    ordering = ("-fecha_creacion",)
+    readonly_fields = ("fecha_creacion", "fecha_lectura")
+
+
+@admin.register(PedidoWhatsApp)
+class PedidoWhatsAppAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "numero_pedido",
+        "restaurante",
+        "nombre_cliente",
+        "telefono_cliente",
+        "tipo_entrega",
+        "total",
+        "estado",
+        "fecha_creacion",
+    )
+    list_filter = ("estado", "tipo_entrega", "restaurante", "fecha_creacion")
+    search_fields = (
+        "nombre_cliente",
+        "telefono_cliente",
+        "restaurante__nombre_empresa",
+        "restaurante__slug",
+        "whatsapp_destino",
+    )
+    ordering = ("-fecha_creacion",)
+    readonly_fields = (
+        "numero_pedido",
+        "fecha_creacion",
+        "productos_snapshot",
+        "mensaje_whatsapp_generado",
+        "whatsapp_destino",
+        "total",
+    )
+
+
+@admin.register(PedidoEspecial)
+class PedidoEspecialAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "numero_pedido",
+        "restaurante",
+        "nombre_cliente",
+        "telefono_cliente",
+        "fecha_entrega",
+        "total",
+        "estado",
+        "fecha_creacion",
+    )
+    list_filter = ("estado", "fecha_entrega", "restaurante", "fecha_creacion")
+    search_fields = (
+        "nombre_cliente",
+        "telefono_cliente",
+        "email_cliente",
+        "descripcion_original",
+        "restaurante__nombre_empresa",
+        "restaurante__slug",
+    )
+    ordering = ("-fecha_creacion",)
+    readonly_fields = (
+        "numero_pedido",
+        "fecha_creacion",
+        "fecha_actualizacion",
+        "total",
+    )
 
 
 @admin.register(HorarioAtencion)

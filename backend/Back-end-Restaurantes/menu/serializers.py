@@ -2,8 +2,11 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, Categoria, Reserva, Restaurante, Icono, SolicitudEspecial
+from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial
 from django.contrib.auth.models import User
+from urllib.parse import quote
+from django.db import transaction
+from django.db.models import Max
 
 class MetodoPagoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -171,8 +174,35 @@ class CategoriaSerializer(serializers.ModelSerializer):
             "icono",
         ]
 
+
+def serializar_plan_restaurante(restaurante):
+    plan = getattr(restaurante, "plan", None)
+
+    if plan:
+        return {
+            "id": plan.id,
+            "nombre": plan.nombre,
+            "slug": plan.slug,
+        }
+
+    plan_basico = Plan.objects.filter(slug="basico", activo=True).first()
+    if plan_basico:
+        return {
+            "id": plan_basico.id,
+            "nombre": plan_basico.nombre,
+            "slug": plan_basico.slug,
+        }
+
+    return {
+        "id": None,
+        "nombre": "Básico",
+        "slug": "basico",
+    }
+
+
 class RestauranteConfigSerializer(serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField()
+    plan = serializers.SerializerMethodField()
 
     class Meta:
         model = Restaurante
@@ -194,6 +224,7 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "descripcion",
             "logo",
             "logo_url",
+            "plan",
             "reservas_activas",
             "solicitudes_especiales_activas",
             "carrito_whatsapp_activo",
@@ -204,6 +235,7 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "solicitudes_especiales_activas",
             "carrito_whatsapp_activo",
             "metricas_activas",
+            "plan",
         ]
 
     def get_logo_url(self, obj):
@@ -214,6 +246,9 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             return obj.logo.url
         except Exception:
             return None
+
+    def get_plan(self, obj):
+        return serializar_plan_restaurante(obj)
 
 
 class ImagenRestaurantePublicaSerializer(serializers.ModelSerializer):
@@ -340,6 +375,407 @@ class SolicitudEspecialPublicaSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class PedidoWhatsAppProductoInputSerializer(serializers.Serializer):
+    producto_id = serializers.IntegerField(min_value=1)
+    cantidad = serializers.IntegerField(min_value=1, max_value=99)
+
+
+class PedidoWhatsAppCreateSerializer(serializers.Serializer):
+    nombre_cliente = serializers.CharField(max_length=120, trim_whitespace=True)
+    telefono_cliente = serializers.CharField(max_length=30, trim_whitespace=True)
+    tipo_entrega = serializers.ChoiceField(choices=PedidoWhatsApp.TIPOS_ENTREGA)
+    direccion_entrega = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    productos = PedidoWhatsAppProductoInputSerializer(many=True)
+
+    def validate(self, data):
+        restaurante = self.context["restaurante"]
+        tipo_entrega = data.get("tipo_entrega")
+        direccion_entrega = (data.get("direccion_entrega") or "").strip()
+
+        if tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and not direccion_entrega:
+            raise serializers.ValidationError({
+                "direccion_entrega": "Debe ingresar una direccion para delivery."
+            })
+
+        data["direccion_entrega"] = direccion_entrega or None
+
+        if not restaurante.carrito_whatsapp_activo:
+            raise serializers.ValidationError({
+                "carrito": "El carrito por WhatsApp no está activo para este restaurante."
+            })
+
+        whatsapp_destino = (restaurante.whatsapp or restaurante.telefono or "").strip()
+        if not whatsapp_destino:
+            raise serializers.ValidationError({
+                "whatsapp": "El restaurante no tiene un número de WhatsApp configurado."
+            })
+        if not any(ch.isdigit() for ch in whatsapp_destino):
+            raise serializers.ValidationError({
+                "whatsapp": "El número de WhatsApp del restaurante no es válido."
+            })
+
+        productos_solicitados = data.get("productos") or []
+        if not productos_solicitados:
+            raise serializers.ValidationError({
+                "productos": "Agrega al menos un producto al pedido."
+            })
+
+        cantidades_por_producto = {}
+        for item in productos_solicitados:
+            producto_id = item["producto_id"]
+            cantidades_por_producto[producto_id] = (
+                cantidades_por_producto.get(producto_id, 0) + item["cantidad"]
+            )
+
+        productos = Producto.objects.filter(
+            restaurante=restaurante,
+            disponible=True,
+            id__in=cantidades_por_producto.keys()
+        ).in_bulk()
+
+        if len(productos) != len(cantidades_por_producto):
+            raise serializers.ValidationError({
+                "productos": "Uno o más productos no pertenecen a este restaurante o no están disponibles."
+            })
+
+        snapshot = []
+        total = 0
+
+        for producto_id, cantidad in cantidades_por_producto.items():
+            producto = productos[producto_id]
+            precio_unitario = producto.precio
+            subtotal = precio_unitario * cantidad
+            total += subtotal
+            snapshot.append({
+                "producto_id": producto.id,
+                "nombre": producto.nombre,
+                "precio_unitario": int(precio_unitario),
+                "cantidad": cantidad,
+                "subtotal": int(subtotal),
+            })
+
+        data["productos_snapshot"] = snapshot
+        data["total"] = total
+        data["whatsapp_destino"] = whatsapp_destino
+        return data
+
+    def create(self, validated_data):
+        productos_snapshot = validated_data.pop("productos_snapshot")
+        total = validated_data.pop("total")
+        whatsapp_destino = validated_data.pop("whatsapp_destino")
+        validated_data.pop("productos", None)
+        restaurante = self.context["restaurante"]
+
+        with transaction.atomic():
+            Restaurante.objects.select_for_update().get(id=restaurante.id)
+            ultimo_numero = PedidoWhatsApp.objects.filter(
+                restaurante=restaurante
+            ).aggregate(maximo=Max("numero_pedido"))["maximo"] or 0
+            numero_pedido = ultimo_numero + 1
+
+            pedido = PedidoWhatsApp.objects.create(
+                restaurante=restaurante,
+                numero_pedido=numero_pedido,
+                productos_snapshot=productos_snapshot,
+                total=total,
+                whatsapp_destino=whatsapp_destino,
+                mensaje_whatsapp_generado="",
+                **validated_data
+            )
+            mensaje = self.generar_mensaje(pedido)
+            pedido.mensaje_whatsapp_generado = mensaje
+            pedido.save(update_fields=["mensaje_whatsapp_generado"])
+
+        pedido.whatsapp_url = self.generar_whatsapp_url(pedido.whatsapp_destino, mensaje)
+        return pedido
+
+    def generar_mensaje(self, pedido):
+        tipo_entrega = pedido.get_tipo_entrega_display()
+        direccion = ""
+        if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and pedido.direccion_entrega:
+            direccion = f"Direccion:\n{pedido.direccion_entrega}\n\n"
+
+        productos = "\n".join(
+            f"* {item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
+            for item in pedido.productos_snapshot
+        )
+
+        return (
+            "Hola, quiero hacer un pedido desde Menly.\n\n"
+            f"Cliente: {pedido.nombre_cliente}\n"
+            f"Teléfono: {pedido.telefono_cliente}\n"
+            f"Tipo de entrega: {tipo_entrega}\n\n"
+            f"{direccion}"
+            "Productos:\n\n"
+            f"{productos}\n\n"
+            f"Total: ${int(pedido.total)}\n\n"
+            f"Pedido N°: {pedido.numero_pedido}"
+        )
+
+    def generar_whatsapp_url(self, telefono, mensaje):
+        numero = "".join(ch for ch in str(telefono) if ch.isdigit())
+        return f"https://wa.me/{numero}?text={quote(mensaje)}"
+
+    def to_representation(self, pedido):
+        return {
+            "pedido_id": pedido.id,
+            "numero_pedido": pedido.numero_pedido,
+            "total": int(pedido.total),
+            "mensaje_whatsapp": pedido.mensaje_whatsapp_generado,
+            "whatsapp_url": getattr(
+                pedido,
+                "whatsapp_url",
+                self.generar_whatsapp_url(pedido.whatsapp_destino, pedido.mensaje_whatsapp_generado)
+            ),
+        }
+
+
+class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
+    tipo_entrega_display = serializers.CharField(source="get_tipo_entrega_display", read_only=True)
+    estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    productos = PedidoWhatsAppProductoInputSerializer(many=True, required=False, write_only=True)
+
+    class Meta:
+        model = PedidoWhatsApp
+        fields = [
+            "id",
+            "numero_pedido",
+            "nombre_cliente",
+            "telefono_cliente",
+            "tipo_entrega",
+            "tipo_entrega_display",
+            "direccion_entrega",
+            "productos_snapshot",
+            "productos",
+            "total",
+            "estado",
+            "estado_display",
+            "fecha_creacion",
+            "mensaje_whatsapp_generado",
+            "whatsapp_destino",
+        ]
+        read_only_fields = [
+            "id",
+            "numero_pedido",
+            "nombre_cliente",
+            "telefono_cliente",
+            "tipo_entrega",
+            "tipo_entrega_display",
+            "productos_snapshot",
+            "total",
+            "estado_display",
+            "fecha_creacion",
+            "mensaje_whatsapp_generado",
+            "whatsapp_destino",
+        ]
+
+    def validate_estado(self, value):
+        if value not in dict(PedidoWhatsApp.ESTADOS):
+            raise serializers.ValidationError("Estado inválido.")
+        return value
+
+
+    def validate(self, data):
+        if "direccion_entrega" in data:
+            direccion_entrega = (data.get("direccion_entrega") or "").strip()
+            if self.instance and self.instance.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and not direccion_entrega:
+                raise serializers.ValidationError({
+                    "direccion_entrega": "Debe ingresar una direccion para delivery."
+                })
+            data["direccion_entrega"] = direccion_entrega or None
+
+        productos_solicitados = data.pop("productos", None)
+        if productos_solicitados is None:
+            return data
+
+        restaurante = self.context.get("restaurante") or getattr(self.instance, "restaurante", None)
+        if not restaurante:
+            raise serializers.ValidationError({"productos": "No se pudo validar el restaurante del pedido."})
+
+        cantidades_por_producto = {}
+        for item in productos_solicitados:
+            producto_id = item["producto_id"]
+            cantidades_por_producto[producto_id] = (
+                cantidades_por_producto.get(producto_id, 0) + item["cantidad"]
+            )
+
+        if not cantidades_por_producto:
+            raise serializers.ValidationError({"productos": "Agrega al menos un producto."})
+
+        productos = Producto.objects.filter(
+            restaurante=restaurante,
+            disponible=True,
+            id__in=cantidades_por_producto.keys()
+        ).in_bulk()
+
+        if len(productos) != len(cantidades_por_producto):
+            raise serializers.ValidationError({
+                "productos": "Uno o mas productos no pertenecen a este restaurante o no estan disponibles."
+            })
+
+        snapshot = []
+        total = 0
+        for producto_id, cantidad in cantidades_por_producto.items():
+            producto = productos[producto_id]
+            precio_unitario = producto.precio
+            subtotal = precio_unitario * cantidad
+            total += subtotal
+            snapshot.append({
+                "producto_id": producto.id,
+                "nombre": producto.nombre,
+                "precio_unitario": int(precio_unitario),
+                "cantidad": cantidad,
+                "subtotal": int(subtotal),
+            })
+
+        data["productos_snapshot"] = snapshot
+        data["total"] = total
+        return data
+
+    def update(self, instance, validated_data):
+        productos_editados = "productos_snapshot" in validated_data
+
+        for attr in ["estado", "direccion_entrega", "productos_snapshot", "total"]:
+            if attr in validated_data:
+                setattr(instance, attr, validated_data[attr])
+
+        if productos_editados:
+            instance.mensaje_whatsapp_generado = PedidoWhatsAppCreateSerializer().generar_mensaje(instance)
+
+        instance.save()
+        return instance
+
+
+class PedidoEspecialItemSerializer(serializers.Serializer):
+    nombre = serializers.CharField(max_length=160, trim_whitespace=True)
+    descripcion = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    cantidad = serializers.IntegerField(min_value=1, max_value=999)
+    precio_unitario = serializers.DecimalField(max_digits=10, decimal_places=0, min_value=0)
+
+
+class PedidoEspecialSerializer(serializers.ModelSerializer):
+    estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    items = PedidoEspecialItemSerializer(many=True)
+    solicitud_especial_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+
+    class Meta:
+        model = PedidoEspecial
+        fields = [
+            "id",
+            "numero_pedido",
+            "solicitud_especial",
+            "solicitud_especial_id",
+            "nombre_cliente",
+            "telefono_cliente",
+            "email_cliente",
+            "descripcion_original",
+            "items",
+            "total",
+            "fecha_entrega",
+            "estado",
+            "estado_display",
+            "fecha_creacion",
+            "fecha_actualizacion",
+        ]
+        read_only_fields = [
+            "id",
+            "numero_pedido",
+            "solicitud_especial",
+            "total",
+            "estado_display",
+            "fecha_creacion",
+            "fecha_actualizacion",
+        ]
+        extra_kwargs = {
+            "nombre_cliente": {"required": False, "allow_blank": True},
+            "telefono_cliente": {"required": False, "allow_blank": True},
+            "email_cliente": {"required": False, "allow_blank": True},
+            "descripcion_original": {"required": False, "allow_blank": True},
+        }
+
+    def _normalizar_items(self, items):
+        normalizados = []
+        total = 0
+
+        for item in items:
+            precio = item["precio_unitario"]
+            cantidad = item["cantidad"]
+            subtotal = precio * cantidad
+            total += subtotal
+            normalizados.append({
+                "nombre": item["nombre"],
+                "descripcion": item.get("descripcion", ""),
+                "cantidad": cantidad,
+                "precio_unitario": int(precio),
+                "subtotal": int(subtotal),
+            })
+
+        return normalizados, total
+
+    def validate(self, data):
+        restaurante = self.context["restaurante"]
+        solicitud_id = data.pop("solicitud_especial_id", None)
+
+        if solicitud_id:
+            solicitud = SolicitudEspecial.objects.filter(
+                id=solicitud_id,
+                restaurante=restaurante
+            ).first()
+            if not solicitud:
+                raise serializers.ValidationError({
+                    "solicitud_especial_id": "La solicitud no pertenece a este restaurante."
+                })
+            if solicitud.estado != "aceptada":
+                raise serializers.ValidationError({
+                    "solicitud_especial_id": "Solo se pueden convertir solicitudes aceptadas."
+                })
+            data["solicitud_especial"] = solicitud
+
+            data.setdefault("nombre_cliente", solicitud.nombre)
+            data.setdefault("telefono_cliente", solicitud.telefono_contacto)
+            data.setdefault("email_cliente", solicitud.email_contacto)
+            data.setdefault("descripcion_original", solicitud.descripcion_solicitud)
+
+        if self.partial and "items" not in data:
+            return data
+
+        items = data.get("items") or []
+        if not items:
+            raise serializers.ValidationError({"items": "Agrega al menos un ítem."})
+
+        items_normalizados, total = self._normalizar_items(items)
+        data["items"] = items_normalizados
+        data["total"] = total
+
+        for field in ["nombre_cliente", "telefono_cliente", "fecha_entrega"]:
+            if not data.get(field):
+                raise serializers.ValidationError({field: "Este campo es obligatorio."})
+
+        return data
+
+    def create(self, validated_data):
+        restaurante = self.context["restaurante"]
+
+        with transaction.atomic():
+            Restaurante.objects.select_for_update().get(id=restaurante.id)
+            ultimo_numero = PedidoEspecial.objects.filter(
+                restaurante=restaurante
+            ).aggregate(maximo=Max("numero_pedido"))["maximo"] or 0
+
+            return PedidoEspecial.objects.create(
+                restaurante=restaurante,
+                numero_pedido=ultimo_numero + 1,
+                **validated_data
+            )
+
+    def update(self, instance, validated_data):
+        validated_data.pop("solicitud_especial", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
 class SolicitudEspecialDashboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = SolicitudEspecial
@@ -440,6 +876,50 @@ class ReservaDashboardSerializer(serializers.ModelSerializer):
 
     def get_gestionada_por_email(self, obj):
         return obj.gestionada_por.user.email if obj.gestionada_por else None
+
+
+class NotificacionSerializer(serializers.ModelSerializer):
+    tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
+
+    class Meta:
+        model = Notificacion
+        fields = [
+            "id",
+            "tipo",
+            "tipo_display",
+            "titulo",
+            "mensaje",
+            "fecha_creacion",
+            "leida",
+            "fecha_lectura",
+            "referencia_id",
+            "referencia_modelo",
+        ]
+        read_only_fields = fields
+
+
+class NotificacionDetalleSerializer(NotificacionSerializer):
+    detalle = serializers.SerializerMethodField()
+
+    class Meta(NotificacionSerializer.Meta):
+        fields = NotificacionSerializer.Meta.fields + ["detalle"]
+
+    def get_detalle(self, obj):
+        if obj.referencia_modelo == Notificacion.MODELO_RESERVA:
+            reserva = Reserva.objects.filter(
+                id=obj.referencia_id,
+                restaurante=obj.restaurante
+            ).select_related("creada_por__user", "gestionada_por__user").first()
+            return ReservaDashboardSerializer(reserva).data if reserva else None
+
+        if obj.referencia_modelo == Notificacion.MODELO_SOLICITUD_ESPECIAL:
+            solicitud = SolicitudEspecial.objects.filter(
+                id=obj.referencia_id,
+                restaurante=obj.restaurante
+            ).first()
+            return SolicitudEspecialDashboardSerializer(solicitud).data if solicitud else None
+
+        return None
 
 class ProductoCreateSerializer(serializers.ModelSerializer):
     categoria = serializers.PrimaryKeyRelatedField(

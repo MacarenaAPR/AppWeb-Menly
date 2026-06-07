@@ -10,6 +10,8 @@ import EditProductos from './componentes/body-carta-upload';
 import Historial from './pages/Historial'
 import ReservasDashboard from './pages/Reserva'
 import SolicitudesEspecialesDashboard from './pages/SolicitudesEspeciales'
+import PedidosDashboard from './pages/Pedidos'
+import MetricasDashboard from './pages/Metricas'
 import ConfiguracionRestaurante from './pages/Configuracion'
 import RequireRole from './componentes/RequireRole'
 import Footer from './componentes/Footer'
@@ -43,7 +45,8 @@ function App() {
           }/>
           <Route path="/dashboard/:slug/reservas" element={<ReservasDashboard />} />
           <Route path="/dashboard/:slug/solicitudes-especiales" element={<SolicitudesEspecialesDashboard />} />
-          <Route path="/dashboard/:slug/metricas" element={<MetricasPlaceholder />} />
+          <Route path="/dashboard/:slug/pedidos" element={<PedidosDashboard />} />
+          <Route path="/dashboard/:slug/metricas" element={<MetricasDashboard />} />
           <Route path="/carta-add/:slug" element={
             <RequireRole roles={["dueno", "admin"]}>
               <AddProductos />

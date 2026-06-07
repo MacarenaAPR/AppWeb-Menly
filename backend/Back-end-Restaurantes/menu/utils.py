@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 
-from .models import HorarioAtencion
+from .models import HorarioAtencion, Notificacion
 
 
 logger = logging.getLogger(__name__)
@@ -126,6 +126,21 @@ def notificar_nueva_reserva(reserva):
     return None
 
 
+def crear_notificacion_reserva(reserva):
+    return Notificacion.objects.create(
+        restaurante=reserva.restaurante,
+        tipo=Notificacion.TIPO_RESERVA,
+        titulo="Nueva reserva recibida",
+        mensaje=(
+            f"{reserva.nombre_cliente} solicito una reserva para "
+            f"{reserva.cantidad_personas} persona(s) el "
+            f"{reserva.fecha.strftime('%d-%m-%Y')} a las {reserva.hora.strftime('%H:%M')}."
+        ),
+        referencia_id=reserva.id,
+        referencia_modelo=Notificacion.MODELO_RESERVA,
+    )
+
+
 def notificar_nueva_solicitud_especial(solicitud):
     restaurante = solicitud.restaurante
 
@@ -169,3 +184,17 @@ def notificar_nueva_solicitud_especial(solicitud):
         )
 
     return None
+
+
+def crear_notificacion_solicitud_especial(solicitud):
+    return Notificacion.objects.create(
+        restaurante=solicitud.restaurante,
+        tipo=Notificacion.TIPO_SOLICITUD_ESPECIAL,
+        titulo="Nueva solicitud especial recibida",
+        mensaje=(
+            f"{solicitud.nombre} {solicitud.apellido} envio una solicitud especial "
+            f"para el {solicitud.fecha_evento.strftime('%d-%m-%Y')}."
+        ),
+        referencia_id=solicitud.id,
+        referencia_modelo=Notificacion.MODELO_SOLICITUD_ESPECIAL,
+    )

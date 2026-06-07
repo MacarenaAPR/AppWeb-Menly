@@ -22,7 +22,9 @@ from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, MiRestauranteView,ProductoListView,ProductoUpdateView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView
-from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
+from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
+from menu.views import NotificacionesDashboardView, NotificacionesContadorView, NotificacionDetalleView, NotificacionMarcarLeidaView
+from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosMetricasDashboardView, ReporteMensualMetricasView, DashboardUltimosPedidosView
 from menu.views import CategoriasView, CategoriaDetalleView
 from menu.views import MesasView, MesaDetalleView,IconosView
 from menu.views import HorariosView, HorarioDetalleView
@@ -52,6 +54,8 @@ urlpatterns = [
 
     # 🏪 dashboard privado
     path("api/mi-restaurante/", MiRestauranteView.as_view(), name="mi-restaurante"),
+    path("api/dashboard/ultimos-pedidos/", DashboardUltimosPedidosView.as_view(), name="dashboard-ultimos-pedidos"),
+    path("api/metricas/reporte-mensual/", ReporteMensualMetricasView.as_view(), name="metricas-reporte-mensual"),
 
     # 🌐 menu público
     path("api/menu/<slug:slug>/", menu_api),
@@ -60,6 +64,7 @@ urlpatterns = [
     # 🌐 reserva público
     path("api/reservas/<slug:slug>/", CrearReservaPublicaView.as_view(), name="crear-reserva-publica"),
     path("api/solicitudes-especiales/<slug:slug>/", CrearSolicitudEspecialPublicaView.as_view(), name="crear-solicitud-especial-publica"),
+    path("api/pedidos-whatsapp/<slug:slug>/", CrearPedidoWhatsAppPublicoView.as_view(), name="crear-pedido-whatsapp-publico"),
     #logoyt
      path("api/logout/", LogoutView.as_view(), name="logout"),
     
@@ -142,6 +147,60 @@ urlpatterns = [
         "api/mi-restaurante/solicitudes-especiales/<int:solicitud_id>/",
         SolicitudEspecialDetalleDashboardView.as_view(),
         name="solicitud-especial-dashboard-detalle"
+    ),
+
+    path(
+        "api/mi-restaurante/notificaciones/",
+        NotificacionesDashboardView.as_view(),
+        name="notificaciones-dashboard"
+    ),
+
+    path(
+        "api/mi-restaurante/notificaciones/contador/",
+        NotificacionesContadorView.as_view(),
+        name="notificaciones-contador"
+    ),
+
+    path(
+        "api/mi-restaurante/notificaciones/<int:notificacion_id>/",
+        NotificacionDetalleView.as_view(),
+        name="notificacion-detalle"
+    ),
+
+    path(
+        "api/mi-restaurante/notificaciones/<int:notificacion_id>/marcar-leida/",
+        NotificacionMarcarLeidaView.as_view(),
+        name="notificacion-marcar-leida"
+    ),
+
+    path(
+        "api/mi-restaurante/pedidos/whatsapp/",
+        PedidosWhatsAppDashboardView.as_view(),
+        name="pedidos-whatsapp-dashboard"
+    ),
+
+    path(
+        "api/mi-restaurante/pedidos/whatsapp/<int:pedido_id>/",
+        PedidoWhatsAppDetalleDashboardView.as_view(),
+        name="pedido-whatsapp-dashboard-detalle"
+    ),
+
+    path(
+        "api/mi-restaurante/pedidos/especiales/",
+        PedidosEspecialesDashboardView.as_view(),
+        name="pedidos-especiales-dashboard"
+    ),
+
+    path(
+        "api/mi-restaurante/pedidos/especiales/<int:pedido_id>/",
+        PedidoEspecialDetalleDashboardView.as_view(),
+        name="pedido-especial-dashboard-detalle"
+    ),
+
+    path(
+        "api/mi-restaurante/pedidos/metricas/",
+        PedidosMetricasDashboardView.as_view(),
+        name="pedidos-metricas-dashboard"
     ),
 
     #SUBIR FOTO

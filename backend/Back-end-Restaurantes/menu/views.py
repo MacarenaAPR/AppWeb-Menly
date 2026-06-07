@@ -8,27 +8,31 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
 from .serializers import CustomTokenObtainPairSerializer,ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer
+from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
+from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoEspecialSerializer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
+from .serializers import serializar_plan_restaurante
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva, SolicitudEspecial
+from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
-from django.db.models import Count, Q, F, Prefetch
+from django.db.models import Count, Q, F, Prefetch, Sum
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.generics import CreateAPIView, UpdateAPIView
 from django.db import IntegrityError, transaction
-from django.utils.timezone import now
-from datetime import datetime
+from django.utils.timezone import localtime, now
+from datetime import datetime, timedelta
 from calendar import monthrange
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
 from menu.permissions import CanManageConfiguracion, CanManageUsuarios,CanViewBitacora,CanManageProductos,CanManageReservas,CanManageMesas,CanManageHorarios,CanManageMetodosPago,CanManageRespaldos
 from menu.permissions import MENSAJE_CUENTA_INACTIVA
 from menu.utils import validar_horario_reserva, notificar_nueva_reserva, notificar_nueva_solicitud_especial
+from menu.utils import crear_notificacion_reserva, crear_notificacion_solicitud_especial
 from menu.cache_utils import get_cached_menu, invalidate_menu_cache, set_cached_menu
 
 
@@ -1156,6 +1160,15 @@ class CrearReservaPublicaView(APIView):
 
             logger.info("Reserva publica creada", extra={"slug": slug, "reserva_id": reserva.id})
             try:
+                crear_notificacion_reserva(reserva)
+            except Exception:
+                logger.error(
+                    "Error creando notificacion persistente de reserva publica",
+                    extra={"slug": slug, "reserva_id": reserva.id},
+                    exc_info=True
+                )
+
+            try:
                 notificar_nueva_reserva(reserva)
             except Exception:
                 logger.error("Error en notificacion de reserva publica", extra={"slug": slug}, exc_info=True)
@@ -1214,6 +1227,15 @@ class CrearSolicitudEspecialPublicaView(APIView):
                 extra={"slug": slug, "solicitud_id": solicitud.id}
             )
             try:
+                crear_notificacion_solicitud_especial(solicitud)
+            except Exception:
+                logger.error(
+                    "Error creando notificacion persistente de solicitud especial publica",
+                    extra={"slug": slug, "solicitud_id": solicitud.id},
+                    exc_info=True
+                )
+
+            try:
                 notificar_nueva_solicitud_especial(solicitud)
             except Exception:
                 logger.error(
@@ -1232,6 +1254,35 @@ class CrearSolicitudEspecialPublicaView(APIView):
             )
 
         logger.info("Solicitud especial publica invalida", extra={"slug": slug})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CrearPedidoWhatsAppPublicoView(APIView):
+    permission_classes = [AllowAny]
+
+    @transaction.atomic
+    def post(self, request, slug):
+        restaurante = get_object_or_404(Restaurante, slug=slug)
+
+        if not restaurante.activo:
+            return Response(
+                respuesta_publica_restaurante_inactivo(),
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = PedidoWhatsAppCreateSerializer(
+            data=request.data,
+            context={"restaurante": restaurante}
+        )
+
+        if serializer.is_valid():
+            pedido = serializer.save()
+            logger.info(
+                "Pedido WhatsApp publico creado",
+                extra={"slug": slug, "pedido_id": pedido.id}
+            )
+            return Response(serializer.to_representation(pedido), status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -1324,6 +1375,414 @@ class SolicitudEspecialDetalleDashboardView(APIView):
             "message": "Solicitud especial rechazada correctamente.",
             "solicitud": SolicitudEspecialDashboardSerializer(solicitud).data,
         })
+
+
+class NotificacionesDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        notificaciones = Notificacion.objects.filter(
+            restaurante=perfil.restaurante
+        ).order_by("-fecha_creacion")
+
+        leida = request.query_params.get("leida")
+        if leida is not None:
+            notificaciones = notificaciones.filter(
+                leida=str(leida).lower() in ["1", "true", "si", "sÃ­"]
+            )
+
+        data = NotificacionSerializer(notificaciones, many=True).data
+        pendientes = Notificacion.objects.filter(
+            restaurante=perfil.restaurante,
+            leida=False
+        ).count()
+
+        return Response({
+            "pendientes": pendientes,
+            "results": data,
+        })
+
+
+class NotificacionesContadorView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        pendientes = Notificacion.objects.filter(
+            restaurante=perfil.restaurante,
+            leida=False
+        ).count()
+
+        return Response({"pendientes": pendientes})
+
+
+class NotificacionDetalleView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get_notificacion(self, request, notificacion_id):
+        perfil = get_perfil_activo(request)
+        return get_object_or_404(
+            Notificacion,
+            id=notificacion_id,
+            restaurante=perfil.restaurante
+        )
+
+    def get(self, request, notificacion_id):
+        notificacion = self.get_notificacion(request, notificacion_id)
+        return Response(NotificacionDetalleSerializer(notificacion).data)
+
+
+class NotificacionMarcarLeidaView(NotificacionDetalleView):
+    def patch(self, request, notificacion_id):
+        notificacion = self.get_notificacion(request, notificacion_id)
+
+        if not notificacion.leida:
+            notificacion.leida = True
+            notificacion.fecha_lectura = now()
+            notificacion.save(update_fields=["leida", "fecha_lectura"])
+
+        pendientes = Notificacion.objects.filter(
+            restaurante=notificacion.restaurante,
+            leida=False
+        ).count()
+
+        return Response({
+            "message": "Notificacion marcada como leida.",
+            "pendientes": pendientes,
+            "notificacion": NotificacionDetalleSerializer(notificacion).data,
+        })
+
+
+def producto_mas_vendido_desde_snapshots(pedidos):
+    acumulados = {}
+    for pedido in pedidos:
+        for item in pedido.productos_snapshot or []:
+            clave = item.get("producto_id") or item.get("nombre")
+            if not clave:
+                continue
+            actual = acumulados.setdefault(
+                clave,
+                {"nombre": item.get("nombre", "Producto"), "cantidad": 0}
+            )
+            actual["cantidad"] += int(item.get("cantidad") or 0)
+
+    if not acumulados:
+        return None
+
+    return max(acumulados.values(), key=lambda item: item["cantidad"])
+
+
+def metricas_pedidos_whatsapp(restaurante):
+    hoy = now().date()
+    inicio_mes = hoy.replace(day=1)
+    inicio_semana = hoy - timedelta(days=6)
+    pedidos_hoy = PedidoWhatsApp.objects.filter(
+        restaurante=restaurante,
+        fecha_creacion__date=hoy
+    )
+    pedidos_hoy_activos = pedidos_hoy.exclude(estado=PedidoWhatsApp.ESTADO_CANCELADO)
+    pedidos_semana_activos = PedidoWhatsApp.objects.filter(
+        restaurante=restaurante,
+        fecha_creacion__date__gte=inicio_semana
+    ).exclude(estado=PedidoWhatsApp.ESTADO_CANCELADO)
+    pedidos_mes = PedidoWhatsApp.objects.filter(
+        restaurante=restaurante,
+        fecha_creacion__date__gte=inicio_mes
+    )
+    pedidos_mes_activos = pedidos_mes.exclude(estado=PedidoWhatsApp.ESTADO_CANCELADO)
+
+    return {
+        "venta_diaria_total": int(sum(pedido.total for pedido in pedidos_hoy_activos)),
+        "venta_semanal_total": int(sum(pedido.total for pedido in pedidos_semana_activos)),
+        "venta_mensual_total": int(sum(pedido.total for pedido in pedidos_mes_activos)),
+        "pedidos_diarios": pedidos_hoy.count(),
+        "pedidos_mes": pedidos_mes.count(),
+        "producto_mas_vendido_dia": producto_mas_vendido_desde_snapshots(pedidos_hoy),
+        "producto_mas_vendido_mes": producto_mas_vendido_desde_snapshots(pedidos_mes),
+        "pedidos_pendientes": PedidoWhatsApp.objects.filter(
+            restaurante=restaurante,
+            estado=PedidoWhatsApp.ESTADO_PENDIENTE
+        ).count(),
+        "pedidos_cancelados": PedidoWhatsApp.objects.filter(
+            restaurante=restaurante,
+            estado=PedidoWhatsApp.ESTADO_CANCELADO
+        ).count(),
+    }
+
+
+def metricas_pedidos_especiales(restaurante):
+    hoy = now().date()
+    inicio_mes = hoy.replace(day=1)
+    pedidos_hoy = PedidoEspecial.objects.filter(
+        restaurante=restaurante,
+        fecha_creacion__date=hoy
+    )
+    pedidos_mes = PedidoEspecial.objects.filter(
+        restaurante=restaurante,
+        fecha_creacion__date__gte=inicio_mes
+    )
+    pedidos_hoy_activos = pedidos_hoy.exclude(estado=PedidoEspecial.ESTADO_CANCELADO)
+    pedidos_mes_activos = pedidos_mes.exclude(estado=PedidoEspecial.ESTADO_CANCELADO)
+
+    return {
+        "pedidos_diarios": pedidos_hoy.count(),
+        "total_diario": int(sum(pedido.total for pedido in pedidos_hoy_activos)),
+        "pedidos_mes": pedidos_mes.count(),
+        "total_mensual": int(sum(pedido.total for pedido in pedidos_mes_activos)),
+        "pedidos_pendientes": PedidoEspecial.objects.filter(
+            restaurante=restaurante,
+            estado=PedidoEspecial.ESTADO_PENDIENTE
+        ).count(),
+        "pedidos_cancelados": PedidoEspecial.objects.filter(
+            restaurante=restaurante,
+            estado=PedidoEspecial.ESTADO_CANCELADO
+        ).count(),
+    }
+
+
+def plan_slug_restaurante(restaurante):
+    plan = getattr(restaurante, "plan", None)
+    return plan.slug if plan else "basico"
+
+
+def productos_vendidos_desde_snapshots(pedidos):
+    acumulados = {}
+    for pedido in pedidos:
+        for item in pedido.productos_snapshot or []:
+            nombre = item.get("nombre") or "Producto"
+            actual = acumulados.setdefault(nombre, {"nombre": nombre, "cantidad": 0})
+            actual["cantidad"] += int(item.get("cantidad") or 0)
+
+    vendidos = [item for item in acumulados.values() if item["cantidad"] > 0]
+    if not vendidos:
+        return None, None
+
+    producto_mas = max(vendidos, key=lambda item: item["cantidad"])
+    producto_menos = min(vendidos, key=lambda item: item["cantidad"])
+    return producto_mas, producto_menos
+
+
+class PedidosWhatsAppDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        pedidos = PedidoWhatsApp.objects.filter(
+            restaurante=perfil.restaurante
+        ).order_by("-fecha_creacion", "-id")
+
+        return paginated_response(
+            request,
+            pedidos,
+            lambda page: PedidoWhatsAppDashboardSerializer(page, many=True).data
+        )
+
+
+class PedidoWhatsAppDetalleDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get_pedido(self, request, pedido_id):
+        perfil = get_perfil_activo(request)
+        return get_object_or_404(PedidoWhatsApp, id=pedido_id, restaurante=perfil.restaurante)
+
+    def get(self, request, pedido_id):
+        pedido = self.get_pedido(request, pedido_id)
+        return Response(PedidoWhatsAppDashboardSerializer(pedido).data)
+
+    def patch(self, request, pedido_id):
+        pedido = self.get_pedido(request, pedido_id)
+        serializer = PedidoWhatsAppDashboardSerializer(
+            pedido,
+            data=request.data,
+            partial=True,
+            context={"restaurante": pedido.restaurante}
+        )
+
+        if serializer.is_valid():
+            pedido = serializer.save()
+            return Response({
+                "message": "Pedido WhatsApp actualizado correctamente.",
+                "pedido": PedidoWhatsAppDashboardSerializer(pedido).data,
+            })
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PedidosEspecialesDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        pedidos = PedidoEspecial.objects.filter(
+            restaurante=perfil.restaurante
+        ).select_related("solicitud_especial").order_by("-fecha_creacion", "-id")
+
+        return paginated_response(
+            request,
+            pedidos,
+            lambda page: PedidoEspecialSerializer(page, many=True).data
+        )
+
+    def post(self, request):
+        perfil = get_perfil_activo(request)
+        serializer = PedidoEspecialSerializer(
+            data=request.data,
+            context={"restaurante": perfil.restaurante}
+        )
+
+        if serializer.is_valid():
+            pedido = serializer.save()
+            return Response({
+                "message": "Pedido especial creado correctamente.",
+                "pedido": PedidoEspecialSerializer(pedido).data,
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PedidoEspecialDetalleDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get_pedido(self, request, pedido_id):
+        perfil = get_perfil_activo(request)
+        return get_object_or_404(PedidoEspecial, id=pedido_id, restaurante=perfil.restaurante)
+
+    def get(self, request, pedido_id):
+        pedido = self.get_pedido(request, pedido_id)
+        return Response(PedidoEspecialSerializer(pedido).data)
+
+    def patch(self, request, pedido_id):
+        pedido = self.get_pedido(request, pedido_id)
+        serializer = PedidoEspecialSerializer(
+            pedido,
+            data=request.data,
+            partial=True,
+            context={"restaurante": pedido.restaurante}
+        )
+
+        if serializer.is_valid():
+            pedido = serializer.save()
+            return Response({
+                "message": "Pedido especial actualizado correctamente.",
+                "pedido": PedidoEspecialSerializer(pedido).data,
+            })
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PedidosMetricasDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        restaurante = perfil.restaurante
+        hoy = now().date()
+        inicio_mes = hoy.replace(day=1)
+
+        reservas_mes = Reserva.objects.filter(
+            restaurante=restaurante,
+            fecha_creacion__date__gte=inicio_mes
+        )
+        visitas_total = Producto.objects.filter(
+            restaurante=restaurante
+        ).aggregate(total=Sum("clicks"))["total"] or 0
+
+        return Response({
+            "whatsapp": metricas_pedidos_whatsapp(restaurante),
+            "especiales": metricas_pedidos_especiales(restaurante),
+            "reservas": {
+                "reservas_mes": reservas_mes.count(),
+                "reservas_pendientes": Reserva.objects.filter(
+                    restaurante=restaurante,
+                    estado=Reserva.ESTADO_PENDIENTE if hasattr(Reserva, "ESTADO_PENDIENTE") else "pendiente"
+                ).count(),
+                "reservas_canceladas_mes": reservas_mes.filter(estado="cancelada").count(),
+            },
+            "visitas": {
+                "clicks_productos_total": visitas_total,
+            },
+        })
+
+
+class ReporteMensualMetricasView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        restaurante = perfil.restaurante
+
+        if plan_slug_restaurante(restaurante) not in ["pro", "full_pro"]:
+            return Response(
+                {"error": "El reporte mensual estÃ¡ disponible solo para planes Pro y Full Pro."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        hoy = now().date()
+        inicio_mes = hoy.replace(day=1)
+        dias_mes = monthrange(hoy.year, hoy.month)[1]
+        mes = hoy.strftime("%Y-%m")
+
+        pedidos_mes = list(PedidoWhatsApp.objects.filter(
+            restaurante=restaurante,
+            fecha_creacion__date__gte=inicio_mes,
+            fecha_creacion__date__lte=hoy.replace(day=dias_mes),
+        ).order_by("fecha_creacion", "id"))
+
+        pedidos_activos = [
+            pedido for pedido in pedidos_mes
+            if pedido.estado != PedidoWhatsApp.ESTADO_CANCELADO
+        ]
+
+        ventas_por_dia = {dia: 0 for dia in range(1, dias_mes + 1)}
+        for pedido in pedidos_activos:
+            dia = localtime(pedido.fecha_creacion).day
+            ventas_por_dia[dia] += int(pedido.total or 0)
+
+        venta_diaria = [
+            {"dia": dia, "total": total}
+            for dia, total in ventas_por_dia.items()
+        ]
+        dia_mayor = max(venta_diaria, key=lambda item: item["total"])
+        dia_menor = min(venta_diaria, key=lambda item: item["total"])
+        producto_mas, producto_menos = productos_vendidos_desde_snapshots(pedidos_activos)
+
+        return Response({
+            "mes": mes,
+            "venta_total": int(sum(pedido.total for pedido in pedidos_activos)),
+            "pedidos_total": len(pedidos_mes),
+            "pedidos_cancelados": len([
+                pedido for pedido in pedidos_mes
+                if pedido.estado == PedidoWhatsApp.ESTADO_CANCELADO
+            ]),
+            "venta_diaria": venta_diaria,
+            "dia_mayor_venta": dia_mayor,
+            "dia_menor_venta": dia_menor,
+            "producto_mas_vendido": producto_mas,
+            "producto_menos_vendido": producto_menos,
+        })
+
+
+class DashboardUltimosPedidosView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        pedidos = PedidoWhatsApp.objects.filter(
+            restaurante=perfil.restaurante
+        ).order_by("-fecha_creacion", "-id")[:10]
+
+        return Response([
+            {
+                "id": pedido.id,
+                "numero_pedido": pedido.numero_pedido,
+                "nombre_cliente": pedido.nombre_cliente,
+                "tipo_entrega": pedido.tipo_entrega,
+                "fecha_creacion": pedido.fecha_creacion,
+                "hora_formateada": localtime(pedido.fecha_creacion).strftime("%H:%M"),
+            }
+            for pedido in pedidos
+        ])
 
 
 class ReservasDashboardView(APIView):
@@ -2104,6 +2563,10 @@ class MiRestauranteView(APIView):
                 restaurante=restaurante,
                 estado="pendiente"
             ).count()
+            notificaciones_pendientes = Notificacion.objects.filter(
+                restaurante=restaurante,
+                leida=False
+            ).count()
 
             return Response({
                 "usuario": {
@@ -2121,6 +2584,7 @@ class MiRestauranteView(APIView):
                     "slug": restaurante.slug,
                     "activo": restaurante.activo,
                     "imgen_principal": request.build_absolute_uri(restaurante.imgen_principal.url) if restaurante.imgen_principal else None,
+                    "plan": serializar_plan_restaurante(restaurante),
                     **serializar_flags_restaurante(restaurante),
                 },
                 "cuenta_inactiva": not restaurante.activo,
@@ -2135,6 +2599,7 @@ class MiRestauranteView(APIView):
                     "total_productos": resumen["total"],
                     "reservas_hoy": reservas_hoy,
                     "reservas_pendientes": reservas_pendientes,
+                    "notificaciones_pendientes": notificaciones_pendientes,
 
                 },
                 "suscripcion": calcular_estado_suscripcion(restaurante),

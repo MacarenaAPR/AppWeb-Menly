@@ -24,6 +24,22 @@ class Icono(models.Model):
     def __str__(self):
         return f"{self.nombre} ({self.clase_css})"
 
+
+class Plan(models.Model):
+    nombre = models.CharField(max_length=80, unique=True)
+    slug = models.SlugField(max_length=80, unique=True)
+    descripcion = models.TextField(blank=True)
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class Restaurante(models.Model):
     
     nombre_empresa = models.CharField(max_length=150)
@@ -47,6 +63,13 @@ class Restaurante(models.Model):
     link_delivery = models.URLField(blank=True, null=True)
     
     slug = models.SlugField(unique=True)
+    plan = models.ForeignKey(
+        Plan,
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True,
+        related_name="restaurantes"
+    )
     
     activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(default=timezone.now)
@@ -69,9 +92,6 @@ class Restaurante(models.Model):
     def __str__(self):
         return self.nombre_empresa
     
-from django.db import models
-from cloudinary.models import CloudinaryField
-
 
 class ImagenRestaurante(models.Model):
     restaurante = models.ForeignKey(
@@ -368,7 +388,171 @@ class SolicitudEspecial(models.Model):
     def __str__(self):
         return f"{self.nombre} {self.apellido} - {self.restaurante.nombre_empresa}"
 
-from django.db import models
+
+class PedidoWhatsApp(models.Model):
+    TIPO_DELIVERY = "delivery"
+    TIPO_RETIRO_LOCAL = "retiro_local"
+    TIPO_PARA_LLEVAR = "para_llevar"
+
+    TIPOS_ENTREGA = [
+        (TIPO_DELIVERY, "Delivery"),
+        (TIPO_RETIRO_LOCAL, "Retiro en local"),
+        (TIPO_PARA_LLEVAR, "Para llevar"),
+    ]
+
+    ESTADO_PENDIENTE = "pendiente"
+    ESTADO_CONFIRMADO = "confirmado"
+    ESTADO_EN_PREPARACION = "en_preparacion"
+    ESTADO_LISTO = "listo"
+    ESTADO_ENTREGADO = "entregado"
+    ESTADO_CANCELADO = "cancelado"
+    ESTADO_COMPLETADO = "completado"
+
+    ESTADOS = [
+        (ESTADO_PENDIENTE, "Pendiente"),
+        (ESTADO_CONFIRMADO, "Confirmado"),
+        (ESTADO_EN_PREPARACION, "En preparación"),
+        (ESTADO_LISTO, "Listo"),
+        (ESTADO_ENTREGADO, "Entregado"),
+        (ESTADO_CANCELADO, "Cancelado"),
+        (ESTADO_COMPLETADO, "Completado"),
+    ]
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="pedidos_whatsapp"
+    )
+    numero_pedido = models.PositiveIntegerField()
+    nombre_cliente = models.CharField(max_length=120)
+    telefono_cliente = models.CharField(max_length=30)
+    tipo_entrega = models.CharField(max_length=20, choices=TIPOS_ENTREGA)
+    direccion_entrega = models.TextField(blank=True, null=True)
+    productos_snapshot = models.JSONField()
+    total = models.DecimalField(max_digits=10, decimal_places=0)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    mensaje_whatsapp_generado = models.TextField()
+    whatsapp_destino = models.CharField(max_length=30)
+
+    class Meta:
+        ordering = ["-fecha_creacion"]
+        indexes = [
+            models.Index(fields=["restaurante", "-fecha_creacion"], name="pedw_rest_fecha_idx"),
+            models.Index(fields=["restaurante", "estado"], name="pedw_rest_estado_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["restaurante", "numero_pedido"],
+                name="unique_pedido_whatsapp_numero_por_rest"
+            )
+        ]
+
+    def __str__(self):
+        return f"Pedido WhatsApp #{self.numero_pedido} - {self.restaurante.nombre_empresa}"
+
+
+class PedidoEspecial(models.Model):
+    ESTADO_PENDIENTE = "pendiente"
+    ESTADO_CONFIRMADO = "confirmado"
+    ESTADO_EN_PREPARACION = "en_preparacion"
+    ESTADO_LISTO = "listo"
+    ESTADO_ENTREGADO = "entregado"
+    ESTADO_CANCELADO = "cancelado"
+
+    ESTADOS = [
+        (ESTADO_PENDIENTE, "Pendiente"),
+        (ESTADO_CONFIRMADO, "Confirmado"),
+        (ESTADO_EN_PREPARACION, "En preparación"),
+        (ESTADO_LISTO, "Listo"),
+        (ESTADO_ENTREGADO, "Entregado"),
+        (ESTADO_CANCELADO, "Cancelado"),
+    ]
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="pedidos_especiales"
+    )
+    solicitud_especial = models.ForeignKey(
+        SolicitudEspecial,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="pedidos_especiales"
+    )
+    numero_pedido = models.PositiveIntegerField()
+    nombre_cliente = models.CharField(max_length=120)
+    telefono_cliente = models.CharField(max_length=30)
+    email_cliente = models.EmailField(blank=True)
+    descripcion_original = models.TextField(blank=True)
+    items = models.JSONField()
+    total = models.DecimalField(max_digits=10, decimal_places=0)
+    fecha_entrega = models.DateField()
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-fecha_creacion"]
+        indexes = [
+            models.Index(fields=["restaurante", "-fecha_creacion"], name="pedesp_rest_fecha_idx"),
+            models.Index(fields=["restaurante", "estado"], name="pedesp_rest_estado_idx"),
+            models.Index(fields=["restaurante", "fecha_entrega"], name="pedesp_rest_entrega_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["restaurante", "numero_pedido"],
+                name="unique_pedido_especial_numero_por_rest"
+            )
+        ]
+
+    def __str__(self):
+        return f"Pedido especial #{self.numero_pedido} - {self.restaurante.nombre_empresa}"
+
+
+class Notificacion(models.Model):
+    TIPO_RESERVA = "reserva"
+    TIPO_SOLICITUD_ESPECIAL = "solicitud_especial"
+
+    TIPOS = [
+        (TIPO_RESERVA, "Reserva"),
+        (TIPO_SOLICITUD_ESPECIAL, "Solicitud especial"),
+    ]
+
+    MODELO_RESERVA = "Reserva"
+    MODELO_SOLICITUD_ESPECIAL = "SolicitudEspecial"
+
+    MODELOS_REFERENCIA = [
+        (MODELO_RESERVA, "Reserva"),
+        (MODELO_SOLICITUD_ESPECIAL, "Solicitud especial"),
+    ]
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="notificaciones"
+    )
+    tipo = models.CharField(max_length=30, choices=TIPOS)
+    titulo = models.CharField(max_length=160)
+    mensaje = models.TextField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    leida = models.BooleanField(default=False)
+    fecha_lectura = models.DateTimeField(blank=True, null=True)
+    referencia_id = models.PositiveIntegerField()
+    referencia_modelo = models.CharField(max_length=40, choices=MODELOS_REFERENCIA)
+
+    class Meta:
+        ordering = ["-fecha_creacion"]
+        indexes = [
+            models.Index(fields=["restaurante", "leida", "-fecha_creacion"], name="notif_rest_leida_fecha_idx"),
+            models.Index(fields=["restaurante", "tipo"], name="notif_rest_tipo_idx"),
+            models.Index(fields=["referencia_modelo", "referencia_id"], name="notif_referencia_idx"),
+        ]
+
+    def __str__(self):
+        estado = "leida" if self.leida else "pendiente"
+        return f"{self.titulo} - {self.restaurante.nombre_empresa} ({estado})"
 
 
 class HorarioAtencion(models.Model):

@@ -118,6 +118,13 @@ export default function MainMenu(){
       isActive: location.pathname === `/dashboard/${restaurante.slug}/solicitudes-especiales`,
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/solicitudes-especiales`),
     },
+    (restaurante.carrito_whatsapp_activo === true || restaurante.solicitudes_especiales_activas === true) && permisos.canManageReservas && {
+      key: "pedidos",
+      icon: <i className="bi bi-receipt-cutoff"></i>,
+      name: "Pedidos",
+      isActive: location.pathname === `/dashboard/${restaurante.slug}/pedidos`,
+      onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/pedidos`),
+    },
     restaurante.metricas_activas === true && {
       key: "metricas",
       icon: <i className="bi bi-bar-chart-line"></i>,
