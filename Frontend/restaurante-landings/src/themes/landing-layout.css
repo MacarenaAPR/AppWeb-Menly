@@ -317,6 +317,60 @@
   object-fit: cover;
 }
 
+/* Theme 1: composición simétrica con imágenes diagonales y centro hexagonal. */
+.page-shell.theme_1 .hero-visual {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  transition:
+    clip-path 420ms ease,
+    filter 420ms ease;
+  will-change: clip-path;
+}
+
+.page-shell.theme_1 .hero-visual-left {
+  clip-path: polygon(0 0, 100% 0, 76% 50%, 100% 100%, 0 100%);
+  filter: drop-shadow(9px 0 14px rgba(45, 22, 12, 0.24));
+}
+
+.page-shell.theme_1 .hero-visual-right {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 24% 50%);
+  filter: drop-shadow(-9px 0 14px rgba(45, 22, 12, 0.24));
+}
+
+.page-shell.theme_1 .hero-visual img {
+  display: block;
+  object-fit: cover;
+  transform: scale(1.01);
+  transform-origin: center;
+  transition: transform 650ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.page-shell.theme_1 .hero-copy {
+  z-index: 4;
+  margin-inline: clamp(-72px, -5vw, -38px);
+  padding-inline: clamp(70px, 7vw, 112px);
+  clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%);
+  filter: drop-shadow(0 8px 16px rgba(45, 22, 12, 0.2));
+  transition:
+    clip-path 420ms ease,
+    filter 420ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .page-shell.theme_1 .hero-panel:hover .hero-visual-left {
+    filter: drop-shadow(11px 0 18px rgba(45, 22, 12, 0.3));
+  }
+
+  .page-shell.theme_1 .hero-panel:hover .hero-visual-right {
+    filter: drop-shadow(-11px 0 18px rgba(45, 22, 12, 0.3));
+  }
+
+  .page-shell.theme_1 .hero-panel:hover .hero-visual img {
+    transform: scale(1.035);
+  }
+}
+
 .page-shell .hero-copy {
   position: relative;
   z-index: 3;
@@ -1386,6 +1440,25 @@
     min-height: 250px;
   }
 
+  .page-shell.theme_1 .theme-one-primary-visual {
+    display: block;
+    grid-row: 1;
+    min-height: 250px;
+    clip-path: polygon(0 0, 100% 0, 92% 50%, 100% 100%, 0 100%);
+    filter: drop-shadow(6px 8px 12px rgba(45, 22, 12, 0.22));
+  }
+
+  .page-shell.theme_1 .hero-visual-right {
+    display: none;
+  }
+
+  .page-shell.theme_1 .hero-copy {
+    margin-inline: 0;
+    padding-inline: 24px;
+    clip-path: none;
+    filter: none;
+  }
+
   .page-shell .hero-copy {
     grid-row: 2;
     padding: 34px 24px 28px;
@@ -1462,6 +1535,14 @@
     min-width: 260px;
     height: 190px;
     min-height: 190px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-shell.theme_1 .hero-visual,
+  .page-shell.theme_1 .hero-visual img,
+  .page-shell.theme_1 .hero-copy {
+    transition: none;
   }
 }
 

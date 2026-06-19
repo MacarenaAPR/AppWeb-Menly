@@ -998,7 +998,10 @@ export default function Home() {
 
       <main className="page-content">
         <section className="hero-panel" id="inicio">
-          <figure className="hero-visual hero-visual-left" aria-hidden="true">
+          <figure
+            className="hero-visual hero-visual-left theme-one-primary-visual"
+            aria-hidden="true"
+          >
             <img src={imagenPrincipalOptimizada} alt="" />
           </figure>
 
