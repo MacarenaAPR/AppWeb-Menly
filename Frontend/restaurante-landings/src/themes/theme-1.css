@@ -1,0 +1,82 @@
+/*
+ * THEME 1 — VISUAL OVERRIDES
+ * --------------------------
+ * Ajustes visuales exclusivos de Theme-1.
+ * No contiene variables, lógica ni cambios en la estructura React.
+ */
+
+.page-shell.theme_1 .hero-visual {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  transition:
+    clip-path var(--theme-1-hero-transition),
+    filter var(--theme-1-hero-transition);
+  will-change: clip-path;
+}
+.page-shell.theme_1 .hero-visual-left {
+  clip-path: var(--theme-1-hero-left-clip);
+  filter: var(--theme-1-hero-left-shadow);
+}
+.page-shell.theme_1 .hero-visual-right {
+  clip-path: var(--theme-1-hero-right-clip);
+  filter: var(--theme-1-hero-right-shadow);
+}
+.page-shell.theme_1 .hero-visual img {
+  display: block;
+  object-fit: cover;
+  transform: scale(1.01);
+  transform-origin: center;
+  transition: transform var(--theme-1-hero-image-transition);
+}
+.page-shell.theme_1 .hero-copy {
+  z-index: 4;
+  margin-inline: clamp(-72px, -5vw, -38px);
+  padding-inline: clamp(70px, 7vw, 112px);
+  clip-path: var(--theme-1-hero-center-clip);
+  filter: var(--theme-1-hero-center-shadow);
+  transition:
+    clip-path var(--theme-1-hero-transition),
+    filter var(--theme-1-hero-transition);
+}
+@media (hover: hover) and (pointer: fine) {
+  .page-shell.theme_1 .hero-panel:hover .hero-visual-left {
+    filter: var(--theme-1-hero-left-shadow-hover);
+  }
+
+  .page-shell.theme_1 .hero-panel:hover .hero-visual-right {
+    filter: var(--theme-1-hero-right-shadow-hover);
+  }
+
+  .page-shell.theme_1 .hero-panel:hover .hero-visual img {
+    transform: scale(1.035);
+  }
+}
+@media (max-width: 800px) {
+
+  .page-shell.theme_1 .theme-one-primary-visual {
+    display: block;
+    grid-row: 1;
+    min-height: 250px;
+    clip-path: var(--theme-1-hero-mobile-clip);
+    filter: var(--theme-1-hero-mobile-shadow);
+  }
+
+  .page-shell.theme_1 .hero-visual-right {
+    display: none;
+  }
+
+  .page-shell.theme_1 .hero-copy {
+    margin-inline: 0;
+    padding-inline: 24px;
+    clip-path: none;
+    filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-shell.theme_1 .hero-visual,
+  .page-shell.theme_1 .hero-visual img,
+  .page-shell.theme_1 .hero-copy {
+    transition: none;
+  }
+}

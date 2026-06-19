@@ -7,7 +7,6 @@ import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
 import { apiFetch, BASE_URL } from "../Services/api";
 import { getSlugFromHostname } from "../utils/getSlugFromHostname";
 import { getOptimizedImageUrl } from "../utils/images";
-import "../themes/themes.css";
 import { GiFireBowl } from "react-icons/gi";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
