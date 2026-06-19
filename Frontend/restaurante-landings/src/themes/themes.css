@@ -3229,6 +3229,729 @@ main{
   }
 }
 
+/* Generic landing structure
+   Theme variants only need to override these variables. */
+:root {
+  --landing-bg-main: #f5f3ef;
+  --landing-bg-section: #ffffff;
+  --landing-bg-card: #ffffff;
+  --landing-text-main: #232323;
+  --landing-text-muted: #686868;
+  --landing-border-color: rgba(35, 35, 35, 0.16);
+
+  --btn-background-primary: #292929;
+  --btn-border-primary: #292929;
+  --btn-text-primary: #ffffff;
+
+  --btn-background-secondary: transparent;
+  --btn-border-secondary: #292929;
+  --btn-text-secondary: #292929;
+
+  --btn-background-carrito: #292929;
+  --btn-borde-carrito: #292929;
+  --btn-text-carrito: #ffffff;
+
+  --category-background: #ffffff;
+  --category-border: rgba(35, 35, 35, 0.18);
+  --category-text: #292929;
+  --category-active-background: #292929;
+  --category-active-border: #292929;
+  --category-active-text: #ffffff;
+
+  --product-card-background: #ffffff;
+  --product-card-border: rgba(35, 35, 35, 0.16);
+  --product-card-text: #292929;
+}
+
+.page-shell {
+  --landing-bg-main: var(--color-bg, #f5f3ef);
+  --landing-bg-section: var(--color-bg-primary, var(--color-surface, #fff));
+  --landing-bg-card: var(--color-surface, #fff);
+  --landing-text-main: var(--color-text-primary, #232323);
+  --landing-text-muted: var(--color-text-secondary, #686868);
+  --landing-border-color: var(--color-border, rgba(35, 35, 35, 0.16));
+
+  --btn-background-primary: var(--bg-color-btn2, var(--color-primary, #292929));
+  --btn-border-primary: var(--bg-color-btn2, var(--color-primary, #292929));
+  --btn-text-primary: var(--text-color-btn2, #fff);
+
+  --btn-background-secondary: var(--bg-color-btn1, transparent);
+  --btn-border-secondary: var(--border-color-btn1, var(--color-primary, #292929));
+  --btn-text-secondary: var(--text-color-btn1, var(--color-text-primary, #292929));
+
+  --btn-background-carrito: var(--color-bg-btn-pedidosya, var(--color-primary, #292929));
+  --btn-borde-carrito: var(--color-bg-btn-pedidosya, var(--color-primary, #292929));
+  --btn-text-carrito: var(--color-text-btn-pedidosya, #fff);
+
+  --category-background: var(--color-surface, #fff);
+  --category-border: var(--color-border, rgba(35, 35, 35, 0.18));
+  --category-text: var(--color-text-primary, #292929);
+  --category-active-background: var(--color-primary, #292929);
+  --category-active-border: var(--color-primary, #292929);
+  --category-active-text: var(--text-color-btn2, #fff);
+
+  --product-card-background: var(--color-surface, #fff);
+  --product-card-border: var(--color-border, rgba(35, 35, 35, 0.16));
+  --product-card-text: var(--color-text-primary, #292929);
+
+  color: var(--landing-text-main);
+  background: var(--landing-bg-main);
+}
+
+.page-shell .site-header {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  min-height: 76px;
+  padding: 10px clamp(20px, 5vw, 76px);
+  border-bottom: 1px solid var(--landing-border-color);
+  background: color-mix(in srgb, var(--landing-bg-section) 92%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.page-shell .brand-block {
+  justify-self: start;
+  min-width: 0;
+}
+
+.page-shell .brand-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.page-shell .brand-name {
+  color: var(--landing-text-main);
+  font-size: clamp(1rem, 1.35vw, 1.35rem);
+}
+
+.page-shell .brand-tag {
+  color: var(--landing-text-muted);
+}
+
+.page-shell .site-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 2.5vw, 38px);
+}
+
+.page-shell .site-nav a {
+  padding: 8px 0;
+  border: 0;
+  color: var(--landing-text-main);
+  background: transparent;
+  font-size: 0.92rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.page-shell .site-nav a:hover,
+.page-shell .site-nav a:focus-visible {
+  color: var(--color-primary);
+  background: transparent;
+}
+
+.page-shell .header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.header-social {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-social a {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 50%;
+  color: var(--landing-text-main);
+  background: var(--landing-bg-card);
+  text-decoration: none;
+}
+
+.page-shell .cart-trigger {
+  border-color: var(--btn-borde-carrito);
+  background: var(--btn-background-carrito);
+  color: var(--btn-text-carrito);
+}
+
+.page-shell .page-content {
+  width: 100%;
+  max-width: none;
+  gap: clamp(42px, 6vw, 82px);
+  padding: 0 0 54px;
+}
+
+.page-shell .hero-panel {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.72fr) minmax(380px, 1.45fr) minmax(180px, 0.72fr);
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  min-height: 420px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--landing-bg-section);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.hero-visual {
+  min-width: 0;
+  min-height: 420px;
+  margin: 0;
+  overflow: hidden;
+  background: var(--landing-bg-card);
+}
+
+.hero-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page-shell .hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: none;
+  padding: clamp(36px, 5vw, 76px);
+  text-align: center;
+}
+
+.page-shell .hero-copy .eyebrow {
+  color: var(--color-primary);
+}
+
+.page-shell .hero-panel h1 {
+  max-width: 800px;
+  margin: 10px 0 20px;
+  color: var(--landing-text-main);
+  font-size: clamp(2.8rem, 5.5vw, 5.4rem);
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.page-shell .hero-panel p {
+  max-width: 620px;
+  color: var(--landing-text-muted);
+  font-size: clamp(0.95rem, 1.2vw, 1.12rem);
+  line-height: 1.65;
+}
+
+.page-shell .hero-actions {
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.page-shell .button-primary {
+  border-color: var(--btn-border-primary);
+  background: var(--btn-background-primary);
+  color: var(--btn-text-primary);
+}
+
+.page-shell .button-secondary {
+  border-color: var(--btn-border-secondary);
+  background: var(--btn-background-secondary);
+  color: var(--btn-text-secondary);
+}
+
+.page-shell .button-primary,
+.page-shell .button-secondary {
+  min-height: 46px;
+  padding: 11px 24px;
+  border-radius: 999px;
+}
+
+.page-shell .partner-row {
+  justify-content: center;
+}
+
+.page-shell .quick-benefits {
+  display: flex;
+  justify-content: center;
+  gap: 10px 28px;
+  width: min(100% - 40px, 840px);
+  margin: -54px auto 0;
+  padding: 14px 22px;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--landing-bg-card) 92%, transparent);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--landing-text-main) 10%, transparent);
+}
+
+.page-shell .quick-benefits article {
+  min-height: 0;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-shell .quick-benefits i {
+  color: var(--color-primary);
+}
+
+.page-shell .quick-benefits span {
+  color: var(--landing-text-main);
+}
+
+.page-shell .promo-panel,
+.page-shell .menu-wrapper,
+.reservation-showcase {
+  width: min(100% - 48px, 1240px);
+  margin-inline: auto;
+}
+
+.page-shell .promo-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.page-shell .promo-card {
+  min-width: 0;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 22px;
+  background: var(--landing-bg-section);
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--landing-text-main) 9%, transparent);
+}
+
+.page-shell .promo-card-large .promo-slide {
+  min-height: 290px;
+}
+
+.page-shell .featured-carousel .featured-slide {
+  border-color: var(--product-card-border);
+  background: var(--product-card-background);
+}
+
+.page-shell .featured-carousel .promo-item-small h3,
+.page-shell .featured-carousel .promo-item-small strong {
+  color: var(--product-card-text);
+}
+
+.page-shell .menu-wrapper {
+  border: 1px solid var(--landing-border-color);
+  border-radius: 24px;
+  background: var(--landing-bg-section);
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--landing-text-main) 8%, transparent);
+}
+
+.page-shell .menu-section {
+  padding: clamp(24px, 4vw, 46px);
+}
+
+.page-shell .menu-header {
+  text-align: center;
+}
+
+.page-shell .menu-header h2 {
+  margin-bottom: 8px;
+  color: var(--landing-text-main);
+  font-size: clamp(2.2rem, 4vw, 3.7rem);
+}
+
+.page-shell .menu-header p {
+  color: var(--landing-text-muted);
+}
+
+.page-shell .menu-tabs {
+  display: flex;
+  gap: 10px;
+  margin: 24px 0 30px;
+  padding: 4px 0 10px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.page-shell .menu-tab {
+  flex: 0 0 auto;
+  min-width: 132px;
+  min-height: 45px;
+  padding: 9px 18px;
+  flex-direction: row;
+  border: 1px solid var(--category-border);
+  border-radius: 999px;
+  background: var(--category-background);
+  color: var(--category-text);
+}
+
+.page-shell .menu-tab.is-active {
+  border-color: var(--category-active-border);
+  background: var(--category-active-background);
+  color: var(--category-active-text);
+}
+
+.page-shell .menu-tab.is-active .category-icon {
+  color: var(--category-active-text);
+}
+
+.page-shell .menu-bubble-header {
+  color: var(--landing-text-main);
+}
+
+.page-shell .productos-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.page-shell .producto-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--product-card-border);
+  border-radius: 16px;
+  background: var(--product-card-background);
+  color: var(--product-card-text);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--landing-text-main) 7%, transparent);
+}
+
+.page-shell .producto-card-main {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  min-width: 0;
+  padding: 10px;
+}
+
+.page-shell .producto-card-image {
+  width: 82px;
+  height: 82px;
+  border-radius: 11px;
+}
+
+.page-shell .producto-card-content {
+  min-width: 0;
+  padding: 2px 10px;
+}
+
+.page-shell .producto-card h3,
+.page-shell .producto-head > span {
+  color: var(--product-card-text);
+}
+
+.page-shell .producto-card p {
+  display: -webkit-box;
+  color: var(--landing-text-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.page-shell .producto-action {
+  display: none;
+}
+
+.page-shell .producto-add-cart {
+  align-self: center;
+  min-width: 76px;
+  min-height: 38px;
+  margin: 10px;
+  padding: 8px 10px;
+  border-color: var(--btn-borde-carrito);
+  border-radius: 999px;
+  background: var(--btn-background-carrito);
+  color: var(--btn-text-carrito);
+}
+
+.reservation-showcase {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.reservation-showcase .landing-action-anchor {
+  position: absolute;
+}
+
+.page-shell .restaurant-info-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  min-height: 520px;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--landing-bg-card) 82%, transparent),
+      color-mix(in srgb, var(--landing-bg-card) 92%, transparent)
+    ),
+    var(--about-bg);
+  background-position: center;
+  background-size: cover;
+  overflow: hidden;
+}
+
+.page-shell .about-summary {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(26px, 4vw, 48px);
+}
+
+.section-kicker {
+  color: var(--color-primary);
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-shell .about-summary h2 {
+  margin: 8px 0 14px;
+  color: var(--landing-text-main);
+}
+
+.page-shell .about-summary p {
+  color: var(--landing-text-muted);
+}
+
+.page-shell .action-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 28px;
+}
+
+.page-shell .action-card {
+  min-height: 112px;
+  border: 1px solid var(--btn-border-primary);
+  border-radius: 16px;
+  background: var(--btn-background-primary);
+  color: var(--btn-text-primary);
+}
+
+.page-shell .action-card small {
+  color: inherit;
+  opacity: 0.78;
+}
+
+.page-shell .location-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid var(--landing-border-color);
+}
+
+.page-shell .info-box {
+  border-color: var(--landing-border-color);
+  background: color-mix(in srgb, var(--landing-bg-card) 86%, transparent);
+}
+
+.page-shell .gallery-panel {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  flex-direction: column;
+  border: 0;
+  background: transparent;
+}
+
+.page-shell .gallery-panel h2 {
+  margin: 0 0 14px;
+  color: var(--landing-text-main);
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+}
+
+.page-shell .gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(210px, 1fr) minmax(210px, 1fr);
+  flex: 1;
+  gap: 14px;
+}
+
+.page-shell .gallery-card {
+  min-height: 210px;
+  aspect-ratio: auto;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 18px;
+  background: var(--landing-bg-card);
+}
+
+.page-shell .gallery-card:first-child {
+  grid-column: span 2;
+}
+
+.page-shell .landing-footer {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+  width: 100%;
+  margin-top: 0;
+  padding: 30px clamp(24px, 5vw, 76px) 50px;
+  border-top: 1px solid var(--landing-border-color);
+  color: var(--landing-text-main);
+  background: var(--landing-bg-section);
+}
+
+.footer-copyright {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+  left: 0;
+  color: var(--landing-text-muted);
+  text-align: center;
+}
+
+@media (max-width: 1020px) {
+  .page-shell .site-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .page-shell .site-nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-bottom: 8px;
+  }
+
+  .page-shell .hero-panel {
+    grid-template-columns: minmax(150px, 0.55fr) minmax(360px, 1.45fr) minmax(150px, 0.55fr);
+  }
+
+  .page-shell .promo-panel,
+  .reservation-showcase {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell .productos-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-shell .gallery-grid {
+    min-height: 460px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-shell .site-header {
+    display: flex;
+    min-height: 66px;
+    padding: 8px 14px;
+  }
+
+  .page-shell .site-nav {
+    display: flex;
+  }
+
+  .header-social,
+  .page-shell .header-cta {
+    display: none;
+  }
+
+  .page-shell .hero-panel {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .hero-visual-left {
+    display: none;
+  }
+
+  .hero-visual-right {
+    grid-row: 1;
+    min-height: 240px;
+  }
+
+  .page-shell .hero-copy {
+    grid-row: 2;
+    padding: 34px 18px 46px;
+  }
+
+  .page-shell .hero-panel h1 {
+    font-size: clamp(2.4rem, 12vw, 4rem);
+  }
+
+  .page-shell .quick-benefits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: calc(100% - 28px);
+    margin-top: -24px;
+    border-radius: 18px;
+  }
+
+  .page-shell .promo-panel,
+  .page-shell .menu-wrapper,
+  .reservation-showcase {
+    width: calc(100% - 28px);
+  }
+
+  .page-shell .promo-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell .menu-tabs {
+    margin-inline: -10px;
+    padding-inline: 10px;
+  }
+
+  .page-shell .productos-list {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell .producto-card-main {
+    grid-template-columns: 74px minmax(0, 1fr);
+  }
+
+  .page-shell .producto-card-image {
+    width: 74px;
+    height: 74px;
+  }
+
+  .page-shell .action-cards,
+  .page-shell .location-card {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell .restaurant-info-section {
+    min-height: 0;
+  }
+
+  .page-shell .gallery-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    min-height: 0;
+  }
+
+  .page-shell .gallery-card:first-child {
+    grid-column: auto;
+  }
+
+  .page-shell .gallery-card {
+    min-height: 220px;
+  }
+
+  .page-shell .landing-footer {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding-bottom: 68px;
+  }
+
+  .page-shell .footer-contact,
+  .page-shell .footer-social {
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
 /*   MÃ“VIL PEQUEÃ‘O */
 @media (max-width: 360px) {
   .site-header {

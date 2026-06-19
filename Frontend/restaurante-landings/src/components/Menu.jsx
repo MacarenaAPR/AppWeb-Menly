@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getOptimizedImageUrl } from "../utils/images";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
@@ -30,9 +30,26 @@ export default function Menu({
   onAddToCart,
   maxCantidad = 5,
 }) {
+  const menuTabsRef = useRef(null);
+  const dragStateRef = useRef({
+    isDragging: false,
+    startX: 0,
+    startScrollLeft: 0,
+    hasMoved: false,
+  });
+  const suppressClickRef = useRef(false);
+  const suppressClickTimerRef = useRef(null);
   const [openCategory, setOpenCategory] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cantidadProducto, setCantidadProducto] = useState(1);
+  const [cantidadesProductos, setCantidadesProductos] = useState({});
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(suppressClickTimerRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!selectedProduct) return undefined;
@@ -58,6 +75,88 @@ export default function Menu({
     setSelectedProduct(producto);
   };
 
+  const getCantidadProductoCard = (productoId) =>
+    cantidadesProductos[productoId] || 1;
+
+  const cambiarCantidadProductoCard = (productoId, delta) => {
+    setCantidadesProductos((cantidadesActuales) => {
+      const cantidadActual = cantidadesActuales[productoId] || 1;
+      const nuevaCantidad = Math.min(
+        maxCantidad,
+        Math.max(1, cantidadActual + delta)
+      );
+
+      return {
+        ...cantidadesActuales,
+        [productoId]: nuevaCantidad,
+      };
+    });
+  };
+
+  const handleTabsMouseDown = (event) => {
+    if (event.button !== 0) return;
+
+    const container = menuTabsRef.current;
+    if (!container) return;
+
+    window.clearTimeout(suppressClickTimerRef.current);
+    suppressClickRef.current = false;
+    dragStateRef.current = {
+      isDragging: true,
+      startX: event.clientX,
+      startScrollLeft: container.scrollLeft,
+      hasMoved: false,
+    };
+  };
+
+  const handleTabsMouseMove = (event) => {
+    const container = menuTabsRef.current;
+    const dragState = dragStateRef.current;
+
+    if (!container || !dragState.isDragging) return;
+
+    const distance = event.clientX - dragState.startX;
+
+    if (!dragState.hasMoved && Math.abs(distance) > 4) {
+      dragState.hasMoved = true;
+      suppressClickRef.current = true;
+      container.classList.add("is-dragging");
+    }
+
+    if (!dragState.hasMoved) return;
+
+    event.preventDefault();
+    container.scrollLeft = dragState.startScrollLeft - distance;
+  };
+
+  const stopTabsDrag = () => {
+    const container = menuTabsRef.current;
+    const didMove = dragStateRef.current.hasMoved;
+
+    dragStateRef.current.isDragging = false;
+    dragStateRef.current.hasMoved = false;
+    container?.classList.remove("is-dragging");
+
+    if (didMove) {
+      suppressClickTimerRef.current = window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+    }
+  };
+
+  const handleCategoryClick = (index, isOpen) => {
+    if (suppressClickRef.current) return;
+    setOpenCategory(isOpen ? null : index);
+  };
+
+  const handleCategoryFocus = (event) => {
+    event.currentTarget.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
+  };
+
   if (!categorias || categorias.length === 0) {
     return <p className="menu-loading">Cargando menú...</p>;
   }
@@ -71,11 +170,20 @@ export default function Menu({
   return (
     <section className="menu-section">
       <div className="menu-header">
-        <h2>Nuestro menú</h2>
+        <h2>Menú</h2>
         <p>Explora nuestras categorías y selecciona tus platos favoritos.</p>
       </div>
 
-      <div className="menu-tabs" role="tablist" aria-label="Categorías del menú">
+      <div
+        ref={menuTabsRef}
+        className="menu-tabs"
+        role="tablist"
+        aria-label="Categorías del menú"
+        onMouseDown={handleTabsMouseDown}
+        onMouseMove={handleTabsMouseMove}
+        onMouseUp={stopTabsDrag}
+        onMouseLeave={stopTabsDrag}
+      >
         {categorias.map((cat, index) => {
           const isOpen = activeCategory === index;
           const categoryName = cat.categoria || cat.nombre || `Categoría ${index + 1}`;
@@ -89,7 +197,8 @@ export default function Menu({
               aria-expanded={isOpen}
               aria-controls={`menu-panel-${index}`}
               role="tab"
-              onClick={() => setOpenCategory(isOpen ? null : index)}
+              onClick={() => handleCategoryClick(index, isOpen)}
+              onFocus={handleCategoryFocus}
             >
               <span className="category-icon">{renderCategoryIcon(cat)}</span>
               <span>{categoryName}</span>
@@ -146,13 +255,47 @@ export default function Menu({
                   </div>
                 </button>
                 {carritoActivo && (
-                  <button
-                    type="button"
-                    className="producto-add-cart"
-                    onClick={() => onAddToCart?.(producto)}
-                  >
-                    Agregar al carrito
-                  </button>
+                  <div className="producto-card-actions">
+                    <div
+                      className="producto-quantity-control"
+                      aria-label={`Cantidad de ${producto.nombre}`}
+                    >
+                      <button
+                        type="button"
+                        className="producto-quantity-btn"
+                        aria-label={`Disminuir cantidad de ${producto.nombre}`}
+                        onClick={() => cambiarCantidadProductoCard(producto.id, -1)}
+                        disabled={getCantidadProductoCard(producto.id) <= 1}
+                      >
+                        −
+                      </button>
+                      <span className="producto-quantity-value">
+                        {getCantidadProductoCard(producto.id)}
+                      </span>
+                      <button
+                        type="button"
+                        className="producto-quantity-btn"
+                        aria-label={`Aumentar cantidad de ${producto.nombre}`}
+                        onClick={() => cambiarCantidadProductoCard(producto.id, 1)}
+                        disabled={getCantidadProductoCard(producto.id) >= maxCantidad}
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="producto-add-cart"
+                      onClick={() =>
+                        onAddToCart?.(
+                          producto,
+                          getCantidadProductoCard(producto.id)
+                        )
+                      }
+                    >
+                      Agregar
+                    </button>
+                  </div>
                 )}
               </article>
             ))}

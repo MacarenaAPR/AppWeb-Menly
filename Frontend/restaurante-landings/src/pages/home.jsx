@@ -104,6 +104,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -943,10 +944,7 @@ export default function Home() {
           >
             <i className="bi bi-x-lg" aria-hidden="true"></i>
           </button>
-          <a href="#inicio" onClick={() => setMobileNavOpen(false)}>Inicio</a>
           <a href="#menu" onClick={() => setMobileNavOpen(false)}>Menú</a>
-          <a href="#promociones" onClick={() => setMobileNavOpen(false)}>Promociones</a>
-          <a href="#nosotros" onClick={() => setMobileNavOpen(false)}>Nosotros</a>
           {reservasActivas && (
             <a
               href="#reserva"
@@ -955,9 +953,10 @@ export default function Home() {
                 abrirModalAccion("reserva");
               }}
             >
-              Reserva
+              Reservas
             </a>
           )}
+          <a href="#nosotros" onClick={() => setMobileNavOpen(false)}>Contacto</a>
         </nav>
 
         {mobileNavOpen && (
@@ -970,57 +969,101 @@ export default function Home() {
         )}
 
         <div className="header-actions">
-          {reservasActivas && (
-            <a
-              className="button-primary header-cta"
-              href="#reserva"
-              onClick={(event) => {
-                event.preventDefault();
-                abrirModalAccion("reserva");
-              }}
-            >
-              Escríbenos
-            </a>
-          )}
+          <div className="header-social" aria-label="Redes sociales">
+            <span>Síguenos</span>
+            {restaurante?.facebook && (
+              <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                <i className="bi bi-facebook" aria-hidden="true"></i>
+              </a>
+            )}
+            {restaurante?.instagram && (
+              <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                <i className="bi bi-instagram" aria-hidden="true"></i>
+              </a>
+            )}
+            {restaurante?.whatsapp && (
+              <a
+                href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="WhatsApp"
+              >
+                <i className="bi bi-whatsapp" aria-hidden="true"></i>
+              </a>
+            )}
+          </div>
           {carritoWhatsappActivo && !mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-header")}
         </div>
       </header>
 
       <main className="page-content">
         <section className="hero-panel" id="inicio">
+          <figure className="hero-visual hero-visual-left" aria-hidden="true">
+            <img src={imagenPrincipalOptimizada} alt="" />
+          </figure>
+
           <div className="hero-copy">
-            <span className="eyebrow">{restaurante?.nombre_empresa}</span>
-            <h1>{restaurante?.mensaje_bienvenida}</h1>
+            {logoOptimizado && (
+              <img
+                className="hero-center-logo"
+                src={logoOptimizado}
+                alt={restaurante?.nombre_empresa}
+                width="180"
+                height="180"
+              />
+            )}
+            <h1>{restaurante?.nombre_empresa}</h1>
             <p>
-              {restaurante?.descripcion || "Platos preparados con ingredientes frescos, recetas caseras y mucho amor. Un estilo rústico y elegante para disfrutar desde la primera mordida."}
+              {restaurante?.mensaje_bienvenida ||
+                restaurante?.descripcion ||
+                "Sabores preparados con ingredientes frescos para convertir cada momento en algo especial."}
             </p>
 
             <div className="hero-actions">
-              {carritoWhatsappActivo && (
-                <button
-                  type="button"
-                  className="button-primary"
-                  onClick={() => setCarritoAbierto(true)}
-                >
-                  <i className="bi bi-basket2-fill" aria-hidden="true"></i>
-                  Pedir ahora
-                </button>
-              )}
-              <a className="button-secondary" href="#menu">
-                Ver menú
-              </a>
               {reservasActivas && (
                 <a
-                  className="button-secondary"
+                  className="button-primary"
                   href="#reserva"
                   onClick={(event) => {
                     event.preventDefault();
                     abrirModalAccion("reserva");
                   }}
                 >
-                  Reservar mesa
+                  Reserva ahora
                 </a>
               )}
+              <a className="button-secondary" href="#menu">
+                Ver menú
+              </a>
+              {carritoWhatsappActivo && (
+                <button
+                  type="button"
+                  className="button-secondary hero-order-button"
+                  onClick={() => setCarritoAbierto(true)}
+                >
+                  <i className="bi bi-basket2-fill" aria-hidden="true"></i>
+                  Pedir ahora
+                </button>
+              )}
+            </div>
+
+            <div className="hero-tags" aria-label="Beneficios">
+              <div className="hero-tags-track">
+                <div className="hero-tags-group">
+                  <span>Atención rápida</span>
+                  <span>Ingredientes frescos</span>
+                  <span>Preparado al momento</span>
+                  <span>Sabor casero</span>
+                  {carritoWhatsappActivo && <span>Delivery</span>}
+                </div>
+                <div className="hero-tags-group" aria-hidden="true">
+                  <span>Atención rápida</span>
+                  <span>Ingredientes frescos</span>
+                  <span>Preparado al momento</span>
+                  <span>Sabor casero</span>
+                  {carritoWhatsappActivo && <span>Delivery</span>}
+                </div>
+              </div>
             </div>
 
             {restaurante?.link_delivery && (
@@ -1063,95 +1106,22 @@ export default function Home() {
               </div>
             )}
           </div>
-        </section>
 
-        <section className="quick-benefits" aria-label="Beneficios">
-          <article>
-            <i className="bi bi-flower1" aria-hidden="true"></i>
-            <span>Ingredientes frescos</span>
-          </article>
-          <article>
-            <i className="bi bi-egg-fried" aria-hidden="true"></i>
-            <span>Preparado al momento</span>
-          </article>
-          <article>
-            <i className="bi bi-whatsapp" aria-hidden="true"></i>
-            <span>Pedido por WhatsApp</span>
-          </article>
-          <article>
-            <i className="bi bi-clock" aria-hidden="true"></i>
-            <span>Atención rápida</span>
-          </article>
+          <figure className="hero-visual hero-visual-right" aria-hidden="true">
+            <img
+              src={imagenesRestaurante[0]?.url || imagenFormularioOptimizada}
+              alt=""
+            />
+          </figure>
         </section>
 
         <section className="promo-panel" id="promociones">
-          <article className="promo-card promo-card-large">
+          <article className="promo-card promo-card-small commercial-showcase-card">
             <div className="promo-card-header">
-              <span className="promo-label">
+              <span className="promo-tag">
                 <GiFireBowl />
-                 Promociones
+                Destacados y promociones
               </span>
-            </div>
-
-            {promociones.length > 0 ? (
-              <div
-                ref={promocionesCarouselRef}
-                className="promo-carousel"
-                aria-label="Carrusel de promociones"
-              >
-                {promociones.map((producto) => (
-                  <div key={producto.id} className="promo-slide">
-                    <div className={`promo-slide-image ${hasProductImage(producto) ? "has-product-image" : "uses-fallback-image"}`}>
-                      <img
-                        src={getProductImage(producto, { width: 720, height: 460 })}
-                        alt={producto.nombre}
-                        loading="lazy"
-                        width="720"
-                        height="460"
-                      />
-                    </div>
-
-                    <div className="promo-slide-content">
-                      <div className="promo-item">
-                        <h2>{producto.nombre}</h2>
-                        {getProductConditions(producto) && (
-                          <p className="promo-conditions">
-                            <small>{getProductConditions(producto)}</small>
-                          </p>
-                        )}
-                        <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="promo-button"
-                        onClick={() => handlePromotionClick(producto)}
-                      >
-                        Ver promoción
-                      </button>
-                      {carritoWhatsappActivo && (
-                        <button
-                          type="button"
-                          className="producto-add-cart promo-add-cart"
-                          onClick={() => agregarAlCarrito(producto)}
-                        >
-                          Agregar al carrito
-                        </button>
-                      )}
-                    </div>
-
-                    
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No hay promociones disponibles.</p>
-            )}
-          </article>
-
-          <article className="promo-card promo-card-small">
-            <div className="promo-card-header">
-              <span className="promo-tag">Destacados</span>
               {destacadosConCarrusel && (
                 <div className="featured-controls" aria-label="Controles de destacados">
                   <button
@@ -1172,11 +1142,11 @@ export default function Home() {
               )}
             </div>
 
-            {productosDestacados.length > 0 ? (
+            {(promociones.length > 0 || productosDestacados.length > 0) ? (
               <div
                 ref={destacadosCarouselRef}
-                className={destacadosClase}
-                aria-label={destacadosConCarrusel ? "Carrusel de productos destacados" : "Productos destacados"}
+                className={`${destacadosClase} commercial-showcase`}
+                aria-label="Carrusel de destacados y promociones"
                 style={{
                   "--featured-visible": destacadosVisibles,
                 }}
@@ -1185,40 +1155,110 @@ export default function Home() {
                   className="featured-track"
                   style={{ transform: `translateX(-${destacadosOffset}px)` }}
                 >
-                  {productosDestacados.map((producto) => (
-                    <div key={producto.id} className="featured-slide">
-                      <div className="featured-slide-image">
-                        <img
-                          src={getProductImage(producto, { width: 420, height: 320 })}
-                          alt={producto.nombre}
-                          loading="lazy"
-                          width="420"
-                          height="320"
-                        />
-                      </div>
+                  <div className="commercial-showcase-group">
+                    {promociones.map((producto) => (
+                      <div key={`promocion-${producto.id}`} className="featured-slide commercial-slide">
+                        <div className="featured-slide-image">
+                          <img
+                            src={getProductImage(producto, { width: 520, height: 390 })}
+                            alt={producto.nombre}
+                            loading="lazy"
+                            width="520"
+                            height="390"
+                          />
+                        </div>
 
-                      <div className="promo-item-small">
-                        <p>{producto.categoriaNombre}</p>
-                        <h3>{producto.nombre}</h3>
-                        <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
-                        {carritoWhatsappActivo && (
+                        <span className="commercial-badge">Promoción</span>
+
+                        <div className="promo-item-small">
+                          <h3>{producto.nombre}</h3>
+                          <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
                           <button
                             type="button"
-                            className="producto-add-cart featured-add-cart"
-                            onClick={() => agregarAlCarrito(producto)}
+                            className="commercial-action"
+                            onClick={() => handlePromotionClick(producto)}
                           >
-                            Agregar al carrito
+                            Ver promoción
                           </button>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+
+                    {productosDestacados.map((producto) => (
+                      <div key={`destacado-${producto.id}`} className="featured-slide commercial-slide">
+                        <div className="featured-slide-image">
+                          <img
+                            src={getProductImage(producto, { width: 420, height: 320 })}
+                            alt={producto.nombre}
+                            loading="lazy"
+                            width="420"
+                            height="320"
+                          />
+                        </div>
+
+                        <span className="commercial-badge">Destacado</span>
+
+                        <div className="promo-item-small">
+                          <h3>{producto.nombre}</h3>
+                          <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                          {carritoWhatsappActivo && (
+                            <button
+                              type="button"
+                              className="commercial-action"
+                              onClick={() => agregarAlCarrito(producto)}
+                            >
+                              Añadir
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="commercial-showcase-group" aria-hidden="true">
+                    {promociones.map((producto) => (
+                      <div key={`promocion-copy-${producto.id}`} className="featured-slide commercial-slide">
+                        <div className="featured-slide-image">
+                          <img
+                            src={getProductImage(producto, { width: 520, height: 390 })}
+                            alt=""
+                            loading="lazy"
+                            width="520"
+                            height="390"
+                          />
+                        </div>
+                        <span className="commercial-badge">Promoción</span>
+                        <div className="promo-item-small">
+                          <h3>{producto.nombre}</h3>
+                          <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                        </div>
+                      </div>
+                    ))}
+
+                    {productosDestacados.map((producto) => (
+                      <div key={`destacado-copy-${producto.id}`} className="featured-slide commercial-slide">
+                        <div className="featured-slide-image">
+                          <img
+                            src={getProductImage(producto, { width: 420, height: 320 })}
+                            alt=""
+                            loading="lazy"
+                            width="420"
+                            height="320"
+                          />
+                        </div>
+                        <span className="commercial-badge">Destacado</span>
+                        <div className="promo-item-small">
+                          <h3>{producto.nombre}</h3>
+                          <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (
-              <p>No hay productos destacados.</p>
+              <p>No hay destacados ni promociones disponibles.</p>
             )}
-
           </article>
         </section>
 
@@ -1336,23 +1376,25 @@ export default function Home() {
           />
         </section>
 
-        <span id="reserva" className="landing-action-anchor" aria-hidden="true"></span>
-        <span id="solicitudes-especiales" className="landing-action-anchor" aria-hidden="true"></span>
+        <section className="reservation-showcase">
+          <span id="reserva" className="landing-action-anchor" aria-hidden="true"></span>
+          <span id="solicitudes-especiales" className="landing-action-anchor" aria-hidden="true"></span>
 
-        <section
-          className="highlights-grid restaurant-info-section"
-          id="nosotros"
-          style={{
-            "--about-bg": `url(${
-              imagenFormularioOptimizada
-            })`,
-          }}
-        >
-          <article className="about-card about-summary">
-            <h2>Sobre nosotros</h2>
-            <p>
-              {restaurante?.sobre_nosotros || "Somos apasionados por la buena comida. Combinamos recetas tradicionales con ingredientes frescos para ofrecerte una experiencia única."}
-            </p>
+          <article
+            className="reservation-card"
+            style={{
+              "--about-bg": `url(${
+                imagenFormularioOptimizada
+              })`,
+            }}
+          >
+            <div className="reservation-card-copy">
+              <h2>{restaurante?.nombre_empresa}</h2>
+              <p>
+                {restaurante?.descripcion ||
+                  "Reserva tu momento perfecto o solicita preparaciones especiales para ti."}
+              </p>
+            </div>
 
             {(solicitudesEspecialesActivas || reservasActivas) && (
               <div className="action-cards" aria-label="Acciones del restaurante">
@@ -1363,10 +1405,7 @@ export default function Home() {
                     onClick={() => abrirModalAccion("solicitud")}
                   >
                     <i className="bi bi-stars" aria-hidden="true"></i>
-                    <span>
-                      <strong>Solicitudes especiales</strong>
-                      <small>Cotiza eventos, pedidos grandes o preparaciones a medida.</small>
-                    </span>
+                    <strong>Pedido Especial</strong>
                   </button>
                 )}
 
@@ -1377,111 +1416,180 @@ export default function Home() {
                     onClick={() => abrirModalAccion("reserva")}
                   >
                     <i className="bi bi-calendar2-check" aria-hidden="true"></i>
-                    <span>
-                      <strong>Reserva tu mesa</strong>
-                      <small>Elige fecha, hora y cantidad de personas.</small>
-                    </span>
+                    <strong>Solicitar Reserva</strong>
                   </button>
                 )}
               </div>
             )}
           </article>
 
-          <aside className="location-card">
-            <article className="info-box">
-              <h3>Ubicación</h3>
-              <p>{restaurante?.direccion}, {restaurante?.ciudad}</p>
-              {restaurante?.google_maps && (
-                <a href={restaurante?.google_maps} target="_blank" rel="noreferrer">
-                  Ver en Google Maps
-                </a>
-              )}
-            </article>
-            <article className="info-box">
-              <h3>Contacto</h3>
-              <p>Teléfono: {restaurante?.telefono}</p>
-              {restaurante?.whatsapp && (
-                <p>WhatsApp: {restaurante?.whatsapp}</p>
-              )}
-            </article>
-            <article className="info-box">
-              <h3>Síguenos</h3>
-              <div className="social-links">
-                {restaurante?.instagram && (
-                  <a href={restaurante?.instagram} target="_blank" rel="noreferrer" title="Instagram">
-                    <i className="bi bi-instagram"></i>
-                  </a>
-                )}
-                {restaurante?.facebook && (
-                  <a href={restaurante?.facebook} target="_blank" rel="noreferrer" title="Facebook">
-                    <i className="bi bi-facebook"></i>
-                  </a>
-                )}
+          <div className="restaurant-details-column">
+            <section className="gallery-panel" aria-label="Galería del restaurante">
+              <h2>Galería</h2>
+              <div className="gallery-grid">
+                {imagenesRestaurante.length > 0 ? (
+                  <div className="gallery-track">
+                    <div className="gallery-group">
+                      {imagenesRestaurante.map((imagen, index) => (
+                        <button
+                          key={imagen.id || imagen.url || index}
+                          type="button"
+                          className="gallery-card"
+                          onClick={() => setSelectedGalleryImage(imagen)}
+                          aria-label={`Ampliar ${imagen.label || `imagen ${index + 1}`}`}
+                        >
+                          <img
+                            src={getOptimizedImageUrl(imagen.url, {
+                              baseUrl: CLOUDINARY_BASE,
+                              width: 520,
+                              height: 390,
+                            })}
+                            alt={imagen.label || `Imagen ${index + 1} de ${restaurante?.nombre_empresa || "restaurante"}`}
+                            loading="lazy"
+                            width="520"
+                            height="390"
+                          />
+                        </button>
+                      ))}
+                    </div>
 
+                    <div className="gallery-group" aria-hidden="true">
+                      {imagenesRestaurante.map((imagen, index) => (
+                        <button
+                          key={`gallery-copy-${imagen.id || imagen.url || index}`}
+                          type="button"
+                          className="gallery-card"
+                          tabIndex="-1"
+                          onClick={() => setSelectedGalleryImage(imagen)}
+                        >
+                          <img
+                            src={getOptimizedImageUrl(imagen.url, {
+                              baseUrl: CLOUDINARY_BASE,
+                              width: 520,
+                              height: 390,
+                            })}
+                            alt=""
+                            loading="lazy"
+                            width="520"
+                            height="390"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="gallery-empty">No hay imágenes disponibles.</p>
+                )}
               </div>
-            </article>
-          </aside>
-        </section>
+            </section>
 
-        <section className="gallery-panel" aria-label="Un vistazo a nuestro espacio">
-          <h2>Un vistazo a nuestro espacio</h2>
-          <div className="gallery-grid">
-            {imagenesRestaurante.length > 0 ? (
-              imagenesRestaurante.map((imagen, index) => (
-                <figure key={imagen.id || imagen.url || index} className="gallery-card">
+            <section className="about-panel" id="nosotros">
+              <div className="about-panel-heading">
+                {logoOptimizado && (
                   <img
-                    src={getOptimizedImageUrl(imagen.url, {
-                      baseUrl: CLOUDINARY_BASE,
-                      width: 520,
-                      height: 390,
-                    })}
-                    alt={imagen.label || `Imagen ${index + 1} de ${restaurante?.nombre_empresa || "restaurante"}`}
+                    src={logoOptimizado}
+                    alt={restaurante?.nombre_empresa}
                     loading="lazy"
-                    width="520"
-                    height="390"
+                    width="110"
+                    height="110"
                   />
-                  
-                </figure>
-              ))
-            ) : (
-              <p className="gallery-empty">No hay imágenes disponibles.</p>
-            )}
+                )}
+                <div>
+                  <h2>Sobre Nosotros</h2>
+                  <p>
+                    {restaurante?.sobre_nosotros ||
+                      restaurante?.descripcion ||
+                      "Sabores que convierten cualquier momento en algo especial."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="about-panel-details">
+                <article>
+                  <h3>Horarios</h3>
+                  <p>Consulta nuestros horarios de atención.</p>
+                </article>
+                <article>
+                  <h3>Ubicación</h3>
+                  <p>{restaurante?.direccion}, {restaurante?.ciudad}</p>
+                  {restaurante?.google_maps && (
+                    <a href={restaurante.google_maps} target="_blank" rel="noreferrer">
+                      Ver mapa
+                    </a>
+                  )}
+                </article>
+                <article>
+                  <h3>Contacto</h3>
+                  <p>{restaurante?.telefono || restaurante?.whatsapp}</p>
+                </article>
+                <article>
+                  <h3>Síguenos</h3>
+                  <div className="social-links">
+                    {restaurante?.facebook && (
+                      <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                        <i className="bi bi-facebook"></i>
+                      </a>
+                    )}
+                    {restaurante?.instagram && (
+                      <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                        <i className="bi bi-instagram"></i>
+                      </a>
+                    )}
+                    {restaurante?.whatsapp && (
+                      <a
+                        href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="WhatsApp"
+                      >
+                        <i className="bi bi-whatsapp"></i>
+                      </a>
+                    )}
+                  </div>
+                </article>
+              </div>
+            </section>
           </div>
         </section>
 
         <footer className="landing-footer">
-          <div className="footer-brand">
-            {logoOptimizado && (
-              <img src={logoOptimizado} alt={restaurante.nombre_empresa} loading="lazy" width="56" height="56" />
-            )}
-            <div>
-              <strong>{restaurante?.nombre_empresa}</strong>
-              <span>Sitio creado con Menly</span>
-            </div>
-          </div>
-          <div className="footer-social">
-            {restaurante?.instagram && (
-              <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
-                <i className="bi bi-instagram"></i>
-              </a>
-            )}
-            {restaurante?.facebook && (
-              <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
-                <i className="bi bi-facebook"></i>
-              </a>
-            )}
-            {restaurante?.whatsapp && (
-              <a href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
-                <i className="bi bi-whatsapp"></i>
-              </a>
-            )}
-          </div>
-          <div className="footer-contact">
-            <span>{restaurante?.telefono || restaurante?.whatsapp}</span>
-            <small>{restaurante?.direccion}, {restaurante?.ciudad}</small>
-          </div>
+          <p>
+            © 2026 {restaurante?.nombre_empresa} · Desarrollado con Menly
+          </p>
         </footer>
       </main>
+      {selectedGalleryImage && (
+        <div
+          className="gallery-lightbox-backdrop"
+          role="presentation"
+          onClick={() => setSelectedGalleryImage(null)}
+        >
+          <section
+            className="gallery-lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Imagen ampliada de la galería"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="gallery-lightbox-close"
+              aria-label="Cerrar imagen"
+              onClick={() => setSelectedGalleryImage(null)}
+            >
+              <i className="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+            <img
+              src={getOptimizedImageUrl(selectedGalleryImage.url, {
+                baseUrl: CLOUDINARY_BASE,
+                width: 1400,
+                height: 1000,
+              })}
+              alt={selectedGalleryImage.label || `Imagen de ${restaurante?.nombre_empresa || "restaurante"}`}
+            />
+          </section>
+        </div>
+      )}
       {carritoWhatsappActivo && mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-floating")}
       {toastCarrito && <div className="cart-toast">{toastCarrito}</div>}
       {modalActivo && (
