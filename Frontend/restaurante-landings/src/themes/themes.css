@@ -237,16 +237,7 @@
     --landing-bg-hero-center: var(--override-landing-bg-hero-center, var(--bg-general, #ffffff));
     --landing-title-color: var(--override-landing-title-color, var(--color-primary, #5b160d));
 
-    /* BOTONES PRINCIPALES */
-    --btn-background-primary: var(--override-btn-background-primary, var(--bg-color-primary, var(--color-primary)));
-    --btn-border-primary: var(--override-btn-border-primary, var(--border-color-primary, var(--color-primary)));
-    --btn-text-primary: var(--override-btn-text-primary, var(--text-color-primary, #ffffff));
-    --btn-box-shadow-color-primary:var(--override-btn-background-primary, var(var(--box-shadow-color-primary)));
 
-    /* BOTONES SECUNDARIOS */
-    --btn-background-secondary: var(--override-btn-background-secondary, var(--bg-color-secondary, var(--color-secondary)));
-    --btn-border-secondary: var(--override-btn-border-secondary, var(--border-color-secondary, var(--color-secondary)));
-    --btn-text-secondary: var(--override-btn-text-secondary, var(--text-color-secondary, #ffffff));
 
     
 
