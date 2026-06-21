@@ -1,0 +1,194 @@
+/* ===============================
+   RESPONSIVE · TABLET
+================================ */
+@media (max-width: 1024px) {
+  .site-header,
+  .hero-panel,
+  .promo-panel,
+  .gallery-grid,
+  .info-grid,
+  .product-modal,
+  .promo-slide {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    gap: 18px;
+  }
+
+  .product-modal {
+    overflow-y: auto;
+  }
+
+  .product-modal-image,
+  .product-modal-image img {
+    min-height: 260px;
+    max-height: 360px;
+  }
+}
+@media (max-width: 1020px) {
+
+  .page-shell .site-nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-bottom: 8px;
+  }
+
+  .page-shell .promo-panel,
+  .reservation-showcase {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell .gallery-grid {
+    min-height: 460px;
+  }
+}
+@media (min-width: 769px) and (max-width: 1180px) {
+  .page-content {
+    padding-inline: 18px;
+  }
+
+  .promo-panel {
+    max-height: none;
+  }
+
+  .promo-card {
+    min-width: 0;
+  }
+
+  .promo-slide {
+    grid-template-columns: minmax(260px, 48%) minmax(0, 1fr);
+  }
+
+  .promo-item h2 {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    line-height: 1;
+  }
+
+  .promo-item p,
+  .promo-conditions {
+    font-size: 0.9rem;
+    line-height: 1.35;
+  }
+
+  .promo-item strong {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  .featured-slide {
+    min-height: 190px;
+  }
+
+  .featured-slide-image {
+    min-height: 125px;
+  }
+
+  .featured-slide-image img {
+    height: 125px;
+    object-fit: cover;
+  }
+
+  .promo-item-small {
+    padding: 12px;
+  }
+
+  .menu-header {
+    margin-top: 8px;
+  }
+
+  .menu-tabs {
+    overflow-x: auto;
+  }
+
+  .menu-tab {
+    min-width: 130px;
+  }
+}
+@media (max-width: 900px) {
+  .restaurant-info-section {
+    grid-template-columns: 1fr;
+    border-radius: 18px;
+  }
+
+  .location-card {
+    border-left: 0;
+    border-top: 1px solid var(--color-border-accent, var(--color-border));
+  }
+}
+@media (max-width: 900px) {
+  .page-content {
+    width: min(100% - 24px, 1180px);
+    gap: 18px;
+  }
+
+  .promo-panel,
+  .order-modes,
+  .highlights-grid,
+  .landing-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: -34px;
+  }
+
+  .order-modes article {
+    border-left: 0;
+    border-top: 1px solid var(--color-border-accent, var(--color-border));
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-contact,
+  .footer-social {
+    justify-content: flex-start;
+    align-items: flex-start;
+    text-align: left;
+  }
+}
+@media (max-width: 900px) {
+  .promo-card-large .promo-slide {
+    grid-template-columns: minmax(190px, 50%) minmax(0, 1fr);
+    min-height: 320px;
+  }
+
+  .promo-card-large .promo-slide-image,
+  .promo-card-large .promo-slide-image img {
+    min-height: 260px;
+  }
+}
+@media (max-width: 1060px) {
+  .page-shell .site-header {
+    grid-template-columns: minmax(110px, 0.6fr) auto minmax(250px, 1fr);
+    gap: 16px;
+  }
+
+  .page-shell .site-nav {
+    gap: 24px;
+  }
+
+  .header-social > span {
+    display: none;
+  }
+
+  .page-shell .hero-panel {
+    grid-template-columns: minmax(170px, 0.75fr) minmax(410px, 1.5fr) minmax(170px, 0.75fr);
+  }
+
+  .page-shell .productos-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-shell .reservation-showcase {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    width: calc(100% - 48px);
+    gap: 24px;
+  }
+
+  .about-panel-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

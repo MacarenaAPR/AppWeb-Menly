@@ -1,0 +1,21 @@
+/* ===============================
+   RESPONSIVE · SMALL MOBILE
+================================ */
+@media (max-width: 360px) {
+  .site-header {
+    gap: 8px;
+    padding-inline: 10px;
+  }
+
+
+
+  .hero-actions,
+  .promo-slide,
+  .gallery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .promo-slide-image img {
+    aspect-ratio: 16 / 10;
+  }
+}

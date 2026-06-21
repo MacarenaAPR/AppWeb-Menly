@@ -1,0 +1,273 @@
+/* ===============================
+   MODALES
+================================ */
+/* Producto */
+/* Carrito */
+/* Reservas */
+/* Galería */
+.modal-open {
+  overflow: hidden
+}
+.product-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px)
+}
+.product-modal {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.95fr) minmax(280px, 1fr);
+  width: min(880px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, var(--color-border), transparent 34%),
+    var(--color-bg);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55)
+}
+.product-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: rgba(8, 5, 3, 0.74);
+  color: var(--color-primary);
+  cursor: pointer
+}
+.product-modal-close:hover {
+  background: var(--color-border)
+}
+.product-modal-image {
+  min-height: 340px;
+  background: var(--color-surface)
+}
+.product-modal-image img {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+  object-fit: cover;
+  display: block
+}
+.product-modal-content {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  padding: 42px 36px
+}
+.product-modal-label {
+  color: var(--color-secondary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase
+}
+.product-modal-content h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3.5vw, 3.2rem);
+  line-height: 1
+}
+.product-modal-content strong {
+  color: var(--color-primary);
+  font-size: 1.55rem
+}
+.product-modal-content p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.7
+}
+.product-modal-add {
+  width: fit-content;
+  margin-top: 4px
+}
+.product-modal-cart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-top: 4px
+}
+.cart-modal-qty {
+  display: grid;
+  gap: 6px;
+  color: var(--color-text-primary);
+  font-weight: 800
+}
+.cart-modal-qty span {
+  font-size: 0.82rem
+}
+.cart-modal-qty input {
+  width: 92px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 800
+}
+.product-modal-conditions {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--color-border);
+  border: 1px solid var(--color-border)
+}
+.product-modal-conditions h3 {
+  margin: 0;
+  color: var(--color-secondary);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase
+}
+.product-modal-conditions p {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.92rem;
+  line-height: 1.55
+}
+.reserva-form input:focus-visible,
+.reserva-form textarea:focus-visible,
+.reserva-form button:focus-visible,
+.cart-form input:focus-visible,
+.cart-form select:focus-visible,
+.cart-form button:focus-visible,
+.cart-trigger:focus-visible,
+.cart-modal-qty input:focus-visible,
+.menu-tab:focus-visible,
+.producto-card-main:focus-visible,
+.producto-add-cart:focus-visible,
+.producto-card:focus-visible,
+.promo-button:focus-visible,
+.button-primary:focus-visible,
+.button-secondary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-primary), white 25%);
+  outline-offset: 3px
+}
+.cart-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px)
+}
+.cart-whatsapp-modal {
+  position: relative;
+  width: min(920px, 100%);
+  max-height: calc(100vh - 44px);
+  overflow-y: auto
+}
+.landing-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--color-canvas, var(--color-bg)) 72%, transparent);
+  backdrop-filter: blur(7px)
+}
+.landing-modal {
+  position: relative;
+  width: min(820px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border: 1px solid var(--color-border-accent, var(--color-border));
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-accent, var(--color-primary)) 18%, transparent), transparent 34%),
+    var(--color-canvas, var(--color-bg));
+  box-shadow: 0 28px 80px color-mix(in srgb, var(--color-canvas, var(--color-bg)) 55%, transparent)
+}
+.landing-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--color-border-accent, var(--color-border));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 86%, transparent);
+  color: var(--color-accent, var(--color-primary));
+  cursor: pointer
+}
+.landing-modal-close:hover {
+  background: color-mix(in srgb, var(--color-accent, var(--color-primary)) 16%, var(--color-surface-translucent, var(--color-surface)))
+}
+.landing-modal .reserva-section {
+  display: block
+}
+.landing-modal .reserva-card {
+  padding: clamp(24px, 4vw, 38px);
+  padding-top: clamp(48px, 5vw, 56px);
+  border: 0;
+  border-radius: 0;
+  background: transparent
+}
+.page-shell .product-modal .producto-add-cart::before {
+  display: none;
+  content: none
+}
+.gallery-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  padding: 24px;
+  place-items: center;
+  background: var(--gallery-lightbox-overlay)
+}
+.gallery-lightbox {
+  position: relative;
+  display: grid;
+  width: min(100%, 1100px);
+  max-height: calc(100svh - 48px);
+  place-items: center
+}
+.gallery-lightbox img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: calc(100svh - 48px);
+  border: 1px solid var(--landing-border-color);
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: var(--landing-shadow)
+}
+.gallery-lightbox-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 50%;
+  background: var(--landing-bg-card);
+  color: var(--landing-text-main);
+  cursor: pointer
+}

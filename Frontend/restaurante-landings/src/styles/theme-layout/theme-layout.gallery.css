@@ -1,0 +1,174 @@
+/* ===============================
+   GALERÍA
+================================ */
+/* Layout */
+/* Carrusel */
+/* Tarjetas */
+/* Estados */
+.gallery-panel h2 {
+  margin: 0;
+  font-family: var(--font-family-precios-destacados);
+  font-size: var(--size-text-reserva);
+}
+.gallery-card img {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  object-fit: cover;
+  display: block;
+}
+.gallery-card figcaption {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(8, 5, 3, 0.72);
+  color: var(--color-text-primary);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.gallery-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 44px 20px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+.page-shell .gallery-card {
+  min-height: 210px;
+  aspect-ratio: auto;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 18px;
+  background: var(--landing-bg-card);
+}
+.page-shell .gallery-card:first-child {
+  grid-column: span 2;
+}
+/* Legacy: conservado para compatibilidad */
+.menu-wrapper,
+.highlights-grid,
+.gallery-panel,
+.reserve-wrapper {
+  border: 1px solid var(--color-border-accent, var(--color-border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 72%, transparent);
+  box-shadow: var(--shadow-card, none);
+}
+.about-card h2,
+.gallery-panel h2,
+.reserva-header h2 {
+  color: var(--color-text-display, var(--color-text-primary));
+  letter-spacing: 0;
+}
+.about-card p,
+.info-box p,
+.gallery-empty,
+.reserva-header p {
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+.gallery-panel {
+  order: 5;
+  display: grid;
+  gap: 24px;
+  padding: clamp(18px, 3vw, 28px);
+}
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+.gallery-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  position: relative;
+  margin: 0;
+  color: var(--color-text-secondary);
+  min-height: 0;
+  border-radius: 14px;
+  aspect-ratio: 1.25 / 1;
+  border-color: var(--color-border-accent, var(--color-border));
+}
+.page-shell .gallery-panel {
+  display: flex;
+  min-width: 0;
+  padding: 0;
+  flex-direction: column;
+  border: 0;
+  background: transparent;
+}
+.page-shell .gallery-panel h2 {
+  margin: 0 0 18px;
+  color: var(--landing-title-color);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-family: var(--landing-font-display);
+  text-align: center;
+}
+.page-shell .gallery-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(210px, 1fr) minmax(210px, 1fr);
+  flex: 1;
+  gap: 14px;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.page-shell .gallery-grid::-webkit-scrollbar {
+  display: none;
+}
+.gallery-track {
+  display: flex;
+  width: max-content;
+  flex-wrap: nowrap;
+  animation: galleryMarquee 28s linear infinite;
+  will-change: transform;
+}
+.gallery-group {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 18px;
+  padding-right: 18px;
+}
+.page-shell .gallery-card,
+.page-shell .gallery-card:first-child {
+  display: block;
+  flex: 0 0 310px;
+  width: 310px;
+  height: 220px;
+  min-width: 310px;
+  min-height: 220px;
+  padding: 0;
+  margin: 0;
+  grid-column: auto;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 9px;
+  background: var(--landing-bg-card);
+  overflow: hidden;
+  cursor: pointer;
+}
+.page-shell .gallery-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@keyframes galleryMarquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+.gallery-grid:hover .gallery-track,
+.gallery-grid:focus-within .gallery-track {
+  animation-play-state: paused;
+}

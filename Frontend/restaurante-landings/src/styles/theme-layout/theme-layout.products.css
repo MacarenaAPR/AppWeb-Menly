@@ -1,0 +1,271 @@
+/* ===============================
+   PRODUCTOS
+================================ */
+/* Layout */
+/* Tarjetas */
+/* Contenido */
+/* Acciones */
+/* Estados */
+.producto-card {
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: inherit
+}
+.producto-card-image,
+.producto-category,
+.producto-action {
+  display: none
+}
+.producto-card-content {
+  min-width: 0
+}
+.producto-card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease
+}
+.producto-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px
+}
+.producto-card h3 {
+  margin: 0;
+  font-size: 1rem
+}
+.producto-card p {
+  margin: 0;
+  color: var(--color-text-secondary)
+}
+.producto-head span {
+  color: var(--color-secondary);
+  font-weight: 800
+}
+.producto-add-cart:hover {
+  filter: brightness(1.06)
+}
+.page-shell .producto-card h3,
+.page-shell .producto-head > span {
+  color: var(--product-card-text)
+}
+.page-shell .producto-card p {
+  display: -webkit-box;
+  color: var(--landing-text-muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden
+}
+.page-shell .producto-action {
+  display: none
+}
+.button-primary,
+.button-secondary,
+.promo-button,
+.producto-add-cart {
+  border-radius: 999px;
+  font-weight: 900
+}
+.promo-item h2,
+.promo-item-small h3,
+.producto-card h3 {
+  color: var(--color-text-display, var(--color-text-primary));
+  letter-spacing: 0
+}
+.promo-item p,
+.promo-conditions,
+.promo-item-small p,
+.producto-card p {
+  color: var(--color-text-muted, var(--color-text-secondary))
+}
+.promo-item strong,
+.promo-item-small strong,
+.producto-head span:not(.producto-category) {
+  color: var(--color-accent, var(--color-primary));
+  font-family: var(--font-family-base);
+  font-weight: 950
+}
+.featured-slide,
+.producto-card {
+  border: 1px solid var(--color-border-accent, var(--color-border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 86%, transparent);
+  overflow: hidden
+}
+.featured-slide-image,
+.producto-card-image {
+  border-radius: 16px
+}
+.producto-add-cart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: 14px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--color-accent, var(--color-primary)) 62%, transparent);
+  background: transparent;
+  color: var(--color-text-display, var(--color-text-primary))
+}
+.producto-add-cart:hover,
+.promo-button:hover,
+.button-secondary:hover {
+  background: var(--color-accent, var(--color-primary));
+  color: var(--color-text-on-accent, #fff)
+}
+.productos-list {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))
+}
+.producto-card-main {
+  width: 100%;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left
+}
+.producto-action,
+.producto-category {
+  color: var(--color-accent, var(--color-primary))
+}
+/* Legacy: conservado para compatibilidad */
+.promo-card-large .promo-slide-image.has-product-image img {
+  object-fit: cover
+}
+.page-shell .productos-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+  display: grid
+}
+.page-shell .producto-card {
+  color: var(--product-card-text);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--product-card-border);
+  border-radius: 12px;
+  background: var(--product-card-background);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  gap: 12px;
+  min-height: 108px;
+  padding: 8px 12px 8px 8px;
+  overflow: hidden
+}
+.page-shell .producto-card-main {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  min-width: 0;
+  padding: 8px 4px;
+  align-items: center;
+  min-height: 86px;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  text-align: left
+}
+.page-shell .producto-card-image {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  position: relative;
+  display: block;
+  flex: 0 0 70px;
+  min-width: 70px;
+  min-height: 70px;
+  border: 0;
+  background: var(--landing-bg-card);
+  overflow: hidden;
+  align-self: center
+}
+.page-shell .producto-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  max-width: none;
+  opacity: 1;
+  visibility: visible;
+  object-fit: cover;
+  object-position: center
+}
+.page-shell .producto-card-content {
+  min-width: 0;
+  padding: 3px 2px;
+  display: flex;
+  min-height: 64px;
+  flex-direction: column;
+  justify-content: space-between
+}
+.page-shell .producto-head {
+  display: block
+}
+.page-shell .producto-head > div {
+  min-width: 0
+}
+.page-shell .producto-card h3 {
+  margin: 0;
+  color: var(--product-card-text);
+  font-size: 0.88rem;
+  font-weight: 800;
+  line-height: 1.25
+}
+.page-shell .producto-category,
+.page-shell .producto-card p,
+.page-shell .producto-action {
+  display: none
+}
+.page-shell .producto-head > span {
+  display: block;
+  margin-top: 10px;
+  color: var(--product-card-price);
+  font-size: 0.82rem;
+  font-weight: 750
+}
+.page-shell .producto-card-actions {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  width: auto;
+  min-width: 80px;
+  flex-direction: column;
+  gap: 8px
+}
+.page-shell .producto-add-cart {
+  border-color: var(--btn-borde-carrito);
+  align-self: center;
+  min-width: 80px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--btn-background-carrito);
+  color: var(--btn-text-carrito);
+  position: static;
+  justify-self: center;
+  width: auto;
+  max-width: 100px;
+  height: 30px;
+  border: 1px solid var(--btn-borde-carrito);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap
+}
+.page-shell .producto-add-cart::before {
+  display: none;
+  content: none
+}

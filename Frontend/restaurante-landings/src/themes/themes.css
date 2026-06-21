@@ -52,491 +52,139 @@
     --landing-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
     --landing-radius-large: 32px;
     --landing-font-display: var(--font-family-precios-destacados, Georgia, serif);
-    --landing-font-body: var(--font-family-base, "Poppins", sans-serif)
+    --landing-font-body: var(--font-family-base, "Poppins", sans-serif);
+    --hero-badge-background: var(--color-primary, #5b160d);
+    --hero-badge-text: var(--color-text-on-accent, #ffffff);
+    --hero-badge-shadow: 0 4px 4px rgba(0, 0, 0, 0.35);
+    --hero-badge-rotate: -2deg;
+    --hero-badge-radius: 999px;
+    --hero-badge-padding: 8px 32px;
+    --hero-badge-letter-spacing: 0.14em;
+    --hero-badge-text-transform: uppercase;
+    --hero-badge-font-family: var(--font-family-base, system-ui, sans-serif);
+    --hero-badge-font-size: clamp(1rem, 2.4vw, 2rem);
+    --hero-badge-font-weight: 900;
+    --hero-badge-image: none;
+    --hero-badge-image-size: contain;
+    --hero-badge-image-position: center;
+    --hero-badge-image-repeat: no-repeat
 }
 /* =======================================================
    THEME 1
 ======================================================= */
-.theme_1 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(246, 236, 219, 0.2), rgba(246, 236, 219, 0.94)),
-    url(../assets/fondoFormulario/theme1.png);
-    --img-bg-formulario-size: cover;
-    --color-bg: #f3eadc;
-    --texture-bg: radial-gradient(circle, rgba(75, 55, 36, 0.055) 1px, transparent 1px);
-    --color-glow: rgba(164, 116, 68, 0.12);
-    --color-bg-primary: rgba(255, 249, 239, 0.92);
-    --color-bg-secondary: rgba(162, 120, 78, 0.18);
-    --color-bg-info-grid: rgba(255, 249, 239, 0.596);
-    --color-text-info-grid-p: rgba(58, 43, 30, 0.72);
-    --color-text-promociones-destacadas-h2: #3b2a1d;
-    --color-text-destacado: #8c6339;
-    --text-size-destacados: 2rem;
-    --color-border-nav: rgba(72, 50, 32, 0.16);
-    --texto-color-nav: #2f241a;
-    --size-text-nav: 1.5rem;
-    --size-text-reserva: 2.3rem;
-    --size-text-header: 1.7rem;
-    --bg-color-btn1: #fff8ec;
-    --border-color-btn1: rgba(72, 50, 32, 0.2);
-    --text-color-btn1: #2f241a;
-    --color-bg-btn-pedidosya: #8c6339;
-    --color-bg-btn-pedidosya-hover: #6f4d2c;
-    --color-text-btn-pedidosya: #ffffff;
-    --bg-color-btn2: #8c6339;
-    --text-color-btn2: #ffffff;
-    --bg-color-btn3: #2f241a;
-    --text-color-btn3: #ffffff;
-    --bg-div-destacado: rgba(255, 249, 239, 0.96);
-    --font-family-precios-destacados: "Playfair Display", Georgia, serif;
-    --font-family-base: "Poppins", system-ui, sans-serif;
-    --color-text-primary: #2f241a;
-    --color-text-secondary: rgba(58, 43, 30, 0.72);
-    --color-surface: #fff8ec;
-    --color-primary: #8c6339;
-    --color-secondary: #b98b5e;
-    --color-border: rgba(72, 50, 32, 0.16);
-    --color-border-2: rgba(72, 50, 32, 0.1);
-    --theme-1-hero-left-clip: polygon(0 0, 100% 0, 76% 50%, 100% 100%, 0 100%);
-    --theme-1-hero-right-clip: polygon(0 0, 100% 0, 100% 100%, 0 100%, 24% 50%);
-    --theme-1-hero-center-clip: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%);
-    --theme-1-hero-mobile-clip: polygon(0 0, 100% 0, 92% 50%, 100% 100%, 0 100%);
-    --theme-1-hero-left-shadow: drop-shadow(9px 0 14px rgba(45, 22, 12, 0.24));
-    --theme-1-hero-right-shadow: drop-shadow(-9px 0 14px rgba(45, 22, 12, 0.24));
-    --theme-1-hero-left-shadow-hover: drop-shadow(11px 0 18px rgba(45, 22, 12, 0.3));
-    --theme-1-hero-right-shadow-hover: drop-shadow(-11px 0 18px rgba(45, 22, 12, 0.3));
-    --theme-1-hero-center-shadow: drop-shadow(0 8px 16px rgba(45, 22, 12, 0.2));
-    --theme-1-hero-mobile-shadow: drop-shadow(6px 8px 12px rgba(45, 22, 12, 0.22));
-    --theme-1-hero-transition: 420ms ease;
-    --theme-1-hero-image-transition: 650ms cubic-bezier(0.2, 0.7, 0.2, 1);
-    --color-surface-translucent: rgba(255, 248, 236, 0.92);
-    --color-border-accent: rgba(72, 50, 32, 0.18);
-    --color-accent-strong: #6f4d2c;
-    --hero-overlay: linear-gradient(90deg, rgba(255, 248, 236, 0.96), rgba(255, 248, 236, 0.76) 44%, rgba(255, 248, 236, 0.18));
-    --shadow-card: 0 18px 48px rgba(72, 50, 32, 0.12);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 18%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 88%, var(--color-accent, var(--color-primary)) 12%)
-}
-/* =======================================================
-   THEME 2
-======================================================= */
-.theme_2 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(246, 240, 229, 0.78), rgba(246, 240, 229, 0.92)),
-    url(../assets/fondoFormulario/theme2.png);
-    --img-bg-formulario-size: cover;
-    --color-bg: #f6f0e5;
-    --texture-bg: radial-gradient(circle, rgba(82, 63, 38, 0.06) 1px, transparent 1px);
-    --color-glow: rgba(172, 124, 55, 0.14);
-    --color-bg-primary: rgba(255, 251, 243, 0.92);
-    --color-bg-secondary: rgba(200, 168, 112, 0.22);
-    --color-bg-info-grid: rgba(209, 224, 196, 0.671);
-    --color-text-info-grid-p: rgba(53, 42, 28, 0.72);
-    --color-text-promociones-destacadas-h2: #3d321f;
-    --color-text-destacado: #ffc400;
-    --text-size-destacados: 2rem;
-    --color-border-nav: rgba(82, 63, 38, 0.14);
-    --texto-color-nav: #2f2a22;
-    --size-text-nav: 2rem;
-    --bg-color-btn1: #fffaf0;
-    --border-color-btn1: rgba(82, 63, 38, 0.18);
-    --text-color-btn1: #2f2a22;
-    --color-bg-btn-pedidosya: #55772c;
-    --color-bg-btn-pedidosya-hover: #456424;
-    --color-text-btn-pedidosya: #ffffff;
-    --bg-color-btn2: #55772c;
-    --text-color-btn2: #ffffff;
-    --bg-color-btn3: #2f2a22;
-    --text-color-btn3: #ffffff;
-    --bg-div-destacado: rgba(255, 251, 243, 0.96);
-    --font-family-precios-destacados: "Playfair Display", Georgia, serif;
-    --font-family-base: "Poppins", system-ui, sans-serif;
-    --color-text-primary: #2f2a22;
-    --color-text-secondary: rgba(53, 42, 28, 0.72);
-    --size-text-reserva: 4rem;
-    --color-surface: #fffaf0;
-    --color-primary: #55772c;
-    --color-secondary: #55772c;
-    --color-border: rgba(82, 63, 38, 0.16);
-    --color-border-2: rgba(82, 63, 38, 0.1);
-    --color-surface-translucent: rgba(255, 250, 240, 0.92);
-    --color-border-accent: rgba(82, 63, 38, 0.18);
-    --color-accent-strong: #456424;
-    --color-accent-secondary: #c8a870;
-    --hero-overlay: linear-gradient(90deg, rgba(255, 250, 240, 0.96), rgba(255, 250, 240, 0.72) 44%, rgba(255, 250, 240, 0.16));
-    --shadow-card: 0 18px 48px rgba(82, 63, 38, 0.12);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 18%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 86%, var(--color-accent, var(--color-primary)) 14%);
-    --override-landing-bg-menu: var(--color-bg-info-grid, var(--color-primary));
-    --override-category-active-background: var(--color-secondary);
-    --override-category-active-border: var(--color-secondary)
-}
-/* =======================================================
-   THEME 3
-======================================================= */
-.theme_3 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(252, 252, 252, 0.1), rgba(18, 18, 18, 0.1)),
-    url(../assets/fondoFormulario/theme3.png);
-    --img-bg-formulario-size: cover;
-    --color-bg: #060606;
-    --texture-bg: radial-gradient(circle, rgba(255, 59, 24, 0.06) 1px, transparent 1px);
-    --color-glow: rgba(255, 72, 32, 0.14);
-    --color-bg-primary: rgba(255, 72, 32, 0.16);
-    --color-bg-secondary: rgba(255, 72, 32, 0.06);
-    --color-bg-info-grid: rgba(18, 18, 18, 0.96);
-    --color-text-info-grid-p: rgba(255, 255, 255, 0.72);
-    --color-text-promociones-destacadas-h2: #ffffff;
-    --color-border-nav: rgba(255, 255, 255, 0.08);
-    --texto-color-nav: rgba(255, 255, 255, 0.88);
-    --size-text-nav: 2.2rem;
-    --bg-color-btn1: rgba(255, 255, 255, 0.04);
-    --border-color-btn1: rgba(255, 72, 32, 0.22);
-    --text-color-btn1: #f5f5f5;
-    --color-bg-btn-pedidosya: transparent;
-    --color-bg-btn-pedidosya-hover: rgba(255, 72, 32, 0.1);
-    --color-text-btn-pedidosya: #f5f5f5;
-    --bg-color-btn2: #9b1700;
-    --text-color-btn2: #ffffff;
-    --bg-color-btn3: #941600;
-    --text-color-btn3: #ffffff;
-    --bg-div-destacado: rgba(12, 12, 12, 0.96);
-    --color-text-destacado: #ffffff;
-    --text-size-destacados: 2.5rem;
-    --font-family-precios-destacados: Tangerine,
-    "Noto Sans JP",
-    sans-serif;
-    --font-family-base: "Inter",
-    "Poppins",
-    system-ui,
-    sans-serif;
-    --color-text-primary: #f5f5f5;
-    --color-text-secondary: rgb(255, 255, 255);
-    --size-text-reserva: 4rem;
-    --size-text-header: 3rem;
-    --color-surface: #111111;
-    --color-primary: #a51900;
-    --color-secondary: #141414;
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-border-2: rgba(255, 73, 32, 0.171);
-    --color-text-muted: rgba(255, 255, 255, 0.72);
-    --color-surface-translucent: rgba(17, 17, 17, 0.9);
-    --color-border-accent: rgba(255, 72, 32, 0.2);
-    --color-accent-strong: #ff4820;
-    --color-accent-secondary: #ff4820;
-    --hero-overlay: linear-gradient(90deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.66) 46%, rgba(0, 0, 0, 0.12));
-    --shadow-card: 0 22px 64px rgba(0, 0, 0, 0.38);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-accent-strong, var(--color-accent, var(--color-primary))) 18%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-canvas, var(--color-bg)) 78%, var(--color-accent, var(--color-primary)) 22%);
-    --override-landing-bg-main: #070707;
-    --override-landing-bg-section: #0b0b0b;
-    --override-landing-bg-menu: #111111;
-    --override-landing-bg-card: #202020;
-    --override-landing-bg-hero-center: #080808;
-    --override-landing-text-main: #f4f4f4;
-    --override-landing-text-muted: #c5c5c5;
-    --override-landing-title-color: #d51f25;
-    --override-landing-border-color: rgba(255, 255, 255, 0.12);
-    --override-btn-background-primary: #070707;
-    --override-btn-border-primary: #f1b72c;
-    --override-btn-text-primary: #f1b72c;
-    --override-btn-background-secondary: #ffbc37;
-    --override-btn-border-secondary: #ffbc37;
-    --override-btn-text-secondary: #101010;
-    --override-btn-background-carrito: #ffbc37;
-    --override-btn-borde-carrito: #ffbc37;
-    --override-btn-text-carrito: #101010;
-    --override-category-background: #d51f25;
-    --override-category-border: #d51f25;
-    --override-category-text: #ffffff;
-    --override-category-active-background: #ffbc37;
-    --override-category-active-border: #ffbc37;
-    --override-category-active-text: #101010;
-    --override-product-card-background: #222222;
-    --override-product-card-border: rgba(255, 255, 255, 0.08);
-    --override-product-card-text: #f4f4f4;
-    --override-product-card-price: #f4f4f4;
-    --override-landing-header-bg: #cc2027;
-    --override-landing-footer-bg: #242424;
-    --override-landing-header-text: #ffffff
-}
-/* =======================================================
-   THEME 4
-======================================================= */
-.theme_4 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(8, 10, 8, 0.3), rgba(131, 131, 131, 0.2)),
-    url(../assets/fondoFormulario/theme4.png);
-    --img-bg-formulario-size: cover;
-    --color-bg: #191716;
-    --texture-bg: radial-gradient(circle, rgba(255, 177, 32, 0) 1px, transparent 1px);
-    --color-glow: rgba(255, 177, 32, 0);
-    --color-bg-primary: #f3990788;
-    --color-bg-secondary: rgba(255, 72, 32, 0.38);
-    --color-bg-info-grid: rgba(16, 20, 16, 0.527);
-    --color-text-info-grid-p: rgba(255, 238, 196, 0.78);
-    --color-text-promociones-destacadas-h2: #ff3b1f;
-    --color-text-destacado: #ff3b1f;
-    --text-size-destacados: 2.5rem;
-    --color-border-nav: rgba(255, 176, 32, 0.22);
-    --texto-color-nav: #ffdd8a;
-    --size-text-nav: 1.15rem;
-    --bg-color-btn1: #274c33;
-    --border-color-btn1: rgba(255, 176, 32, 0.34);
-    --text-color-btn1: #ffdd8a;
-    --color-bg-btn-pedidosya: #ff3b1f;
-    --color-bg-btn-pedidosya-hover: #d92f18;
-    --color-text-btn-pedidosya: #ffffff;
-    --bg-color-btn2: #ff3b1f;
-    --text-color-btn2: #ffffff;
-    --bg-color-btn3: #ffb020;
-    --text-color-btn3: #1b1205;
-    --bg-div-destacado: #111611;
-    --font-family-precios-destacados: "Fredericka the Great", "Bebas Neue", Georgia, serif;
-    --font-family-base: "Poppins", system-ui, sans-serif;
-    --color-text-primary: #fff1c7;
-    --color-text-secondary: rgba(255, 241, 199, 0.76);
-    --color-surface: #101410;
-    --color-primary: #ff3b1f;
-    --color-secondary: #f39a07;
-    --color-border: rgba(255, 176, 32, 0.26);
-    --color-border-2: #274c33;
-    --color-surface-translucent: rgba(16, 20, 16, 0.86);
-    --color-accent-strong: #d92f18;
-    --hero-overlay: linear-gradient(90deg, rgba(25, 23, 22, 0.92), rgba(25, 23, 22, 0.68) 46%, rgba(25, 23, 22, 0.16));
-    --shadow-card: 0 22px 64px rgba(0, 0, 0, 0.28);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-accent-secondary, var(--color-secondary)) 20%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-canvas, var(--color-bg)) 72%, var(--color-accent, var(--color-primary)) 28%);
-    --override-landing-bg-menu: var(--color-bg-info-grid, var(--color-primary));
-    --override-category-active-background: var(--color-secondary);
-    --override-category-active-border: var(--color-secondary)
-;
-    --color-surface-strong: #111611}
-/* =======================================================
-   THEME 5
-======================================================= */
-.theme_5 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(20, 45, 30, 0.3), rgba(20, 45, 30, 0.5)),
-    url(../assets/fondoFormulario/theme5.png);
-    --img-bg-formulario-size: contain, cover;
-    --color-bg: #10291c;
-    --texture-bg: radial-gradient(circle, rgba(255, 183, 77, 0.08) 1px, transparent 1px);
-    --color-glow: rgba(255, 145, 35, 0.18);
-    --color-bg-primary: #b43a18;
-    --color-bg-secondary: #b43a181f;
-    --color-bg-info-grid: #10291c52;
-    --color-text-info-grid-p: rgba(241, 243, 242, 0.78);
-    --color-text-promociones-destacadas-h2: #b43a18;
-    --color-text-destacado: #b43a18;
-    --text-size-destacados: 2rem;
-    --color-border-nav: rgba(255, 183, 77, 0.2);
-    --texto-color-nav: #f8e9c8;
-    --size-text-nav: 1.15rem;
-    --bg-color-btn1: #1b3827;
-    --border-color-btn1: rgba(255, 183, 77, 0.38);
-    --text-color-btn1: #f8e9c8;
-    --color-bg-btn-pedidosya: #f25a24;
-    --color-bg-btn-pedidosya-hover: #c93f16;
-    --color-text-btn-pedidosya: #ffffff;
-    --bg-color-btn2: #d94a1e;
-    --text-color-btn2: #ffffff;
-    --bg-color-btn3: #f5b24d;
-    --text-color-btn3: #2b1a0d;
-    --bg-div-destacado: rgba(20, 45, 30, 0.92);
-    --font-family-precios-destacados: "Fredericka the Great", Georgia, serif;
-    --font-family-base: "Poppins", system-ui, sans-serif;
-    --color-text-primary: #f8e9c8;
-    --color-text-secondary: rgb(151, 161, 91);
-    --color-surface: #173321;
-    --color-primary: #f25a24;
-    --color-secondary: #dbba82;
-    --color-border: rgba(255, 183, 77, 0.26);
-    --color-border-2: rgba(242, 90, 36, 0.22);
-    --color-text-muted: rgba(241, 243, 242, 0.78);
-    --color-surface-translucent: rgba(23, 51, 33, 0.9);
-    --color-accent: #d94a1e;
-    --color-accent-strong: #f25a24;
-    --hero-overlay: linear-gradient(90deg, rgba(16, 41, 28, 0.94), rgba(16, 41, 28, 0.7) 46%, rgba(16, 41, 28, 0.18));
-    --shadow-card: 0 22px 64px rgba(8, 22, 14, 0.36);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-accent-secondary, var(--color-secondary)) 16%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-canvas, var(--color-bg)) 78%, var(--color-accent, var(--color-primary)) 22%);
-    --override-landing-bg-menu: var(--color-bg-info-grid, var(--color-primary));
-    --override-category-active-background: var(--color-secondary);
-    --override-category-active-border: var(--color-secondary)
-}
-/* =======================================================
-   THEME 6
-======================================================= */
-.theme_6 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(255, 230, 229, 0.10), rgba(246, 157, 166, 0.5)),
-    url(../assets/fondoFormulario/theme6.png);
-    --img-bg-formulario-size: cover;
-    --color-bg: #fff1ed;
-    --texture-bg: radial-gradient(circle, rgba(215, 119, 128, 0.08) 1px, transparent 1px);
-    --color-glow: rgba(246, 157, 166, 0.22);
-    --color-bg-primary: rgba(255, 246, 241, 0.82);
-    --color-bg-secondary: rgba(246, 157, 166, 0.34);
-    --color-bg-info-grid: rgba(246, 157, 166, 0.72);
-    --color-text-info-grid-p: rgba(92, 45, 50, 0.78);
-    --color-text-promociones-destacadas-h2: #bb3242;
-    --color-text-destacado: #4e1a20;
-    --text-size-destacados: 2rem;
-    --color-border-nav: rgba(184, 95, 105, 0.18);
-    --texto-color-nav: #8f4d56;
-    --size-text-nav: 1.15rem;
-    --bg-color-btn1: rgba(255, 248, 245, 0.9);
-    --border-color-btn1: rgba(184, 95, 105, 0.28);
-    --text-color-btn1: #8f4d56;
-    --color-bg-btn-pedidosya: transparent;
-    --color-bg-btn-pedidosya-hover: rgba(246, 157, 166, 0.18);
-    --color-text-btn-pedidosya: #8f4d56;
-    --bg-color-btn2: #e88691;
-    --text-color-btn2: #ffffff;
-    --bg-color-btn3: #d76f7c;
-    --text-color-btn3: #ffffff;
-    --bg-div-destacado: rgba(255, 248, 245, 0.92);
-    --font-family-precios-destacados: Fredericka the Great, Georgia, serif;
-    --font-family-base: "Poppins", system-ui, sans-serif;
-    --color-text-primary: #7a3f48;
-    --color-text-secondary: rgba(92, 45, 50, 0.76);
-    --color-surface: rgba(255, 248, 245, 0.9);
-    --color-primary: #d76f7c;
-    --color-secondary: #e88691;
-    --color-border: rgba(184, 95, 105, 0.22);
-    --color-border-2: rgba(184, 95, 105, 0.14);
-    --color-surface-translucent: rgba(255, 248, 245, 0.94);
-    --color-accent-strong: #bb3242;
-    --hero-overlay: linear-gradient(90deg, rgba(255, 248, 245, 0.96), rgba(255, 248, 245, 0.72) 44%, rgba(255, 248, 245, 0.16));
-    --shadow-card: 0 18px 48px rgba(184, 95, 105, 0.14);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 20%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 88%, var(--color-accent, var(--color-primary)) 12%)
-;
-    --color-surface-strong: #fff8f5}
-/* =======================================================
-   THEME 7
-======================================================= */
-.theme_7 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(201, 228, 238, 0.3), rgba(8, 56, 73, 0.6)),
-    url(../assets/fondoFormulario/theme7.png);
-    --img-bg-formulario-size: none;
-    --color-bg: #f3efe6;
-    --texture-bg: radial-gradient(circle, rgba(30, 91, 111, 0.08) 1px, transparent 1px);
-    --color-glow: rgba(38, 111, 135, 0.16);
-    --color-bg-primary: rgba(255, 252, 244, 0.74);
-    --color-bg-secondary: rgba(178, 216, 221, 0.36);
-    --color-bg-info-grid: #07394ac5;
-    --color-text-info-grid-p: rgba(255, 255, 255, 0.78);
-    --color-text-promociones-destacadas-h2: rgba(255, 255, 255, 0.925);
-    --color-border-nav: rgba(24, 83, 105, 0.18);
-    --texto-color-nav: #163d4f;
-    --size-text-nav: 1.15rem;
-    --bg-color-btn1: rgba(255, 252, 244, 0.82);
-    --border-color-btn1: rgba(24, 83, 105, 0.34);
-    --text-color-btn1: #163d4f;
-    --color-bg-btn-pedidosya: transparent;
-    --color-bg-btn-pedidosya-hover: rgba(24, 83, 105, 0.12);
-    --color-text-btn-pedidosya: #163d4f;
-    --bg-color-btn2: #1d6f8d;
-    --text-color-btn2: #ffffff;
-    --bg-color-btn3: #0b5870;
-    --text-color-btn3: #ffffff;
-    --bg-div-destacado: rgba(255, 252, 244, 0.9);
-    --color-text-destacado: #001a24;
-    --text-size-destacados: 2rem;
-    --font-family-precios-destacados: Cinzel, Georgia, serif;
-    --font-family-base: "Poppins", system-ui, sans-serif;
-    --color-text-primary: #163d4f;
-    --color-text-secondary: rgb(0, 43, 63);
-    --color-surface: rgba(255, 252, 244, 0.88);
-    --color-primary: #557f8f;
-    --color-secondary: #0b5870;
-    --color-border: rgba(24, 83, 105, 0.2);
-    --color-border-2: rgba(24, 83, 105, 0.14);
-    --color-text-muted: rgba(0, 43, 63, 0.74);
-    --color-surface-translucent: rgba(255, 252, 244, 0.92);
-    --color-accent: #1d6f8d;
-    --color-accent-strong: #0b5870;
-    --color-accent-secondary: #557f8f;
-    --hero-overlay: linear-gradient(90deg, rgba(255, 252, 244, 0.96), rgba(255, 252, 244, 0.72) 44%, rgba(255, 252, 244, 0.14));
-    --shadow-card: 0 18px 48px rgba(24, 83, 105, 0.14);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 18%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 86%, var(--color-accent, var(--color-primary)) 14%)
-;
-    --color-surface-strong: #fffcf4}
-/* =======================================================
-   THEME 8
-======================================================= */
-.theme_8 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(116, 93, 54, 0.2), rgba(238, 219, 187, 0.6)), url(../assets/fondoFormulario/theme8.png);
-    --img-bg-formulario-size: cover;
-    --color-bg: #f4ead8;
-    --texture-bg: radial-gradient(circle, rgba(97, 73, 42, 0.08) 1px, transparent 1px);
-    --color-glow: rgba(166, 112, 54, 0.18);
-    --color-bg-primary: rgba(238, 219, 187, 0.20);
-    --color-bg-secondary: rgba(116, 93, 54, 0.22);
-    --color-bg-info-grid: rgba(41, 31, 14, 0.767);
-    --color-text-info-grid-p: rgba(255, 231, 191, 0.719);
-    --color-border-nav: rgba(92, 70, 42, 0.18);
-    --texto-color-nav: #3f2f1c;
-    --size-text-nav: 1.15rem;
-    --bg-color-btn1: rgba(255, 248, 236, 0.9);
-    --border-color-btn1: rgba(92, 70, 42, 0.28);
-    --text-color-btn1: #3f2f1c;
-    --color-bg-btn-pedidosya: #6f7a45;
-    --color-bg-btn-pedidosya-hover: #596438;
-    --color-text-btn-pedidosya: #ffffff;
-    --bg-color-btn2: #a95f2b;
-    --text-color-btn2: #fff7ec;
-    --bg-color-btn3: #6f7a45;
-    --text-color-btn3: #fff7ec;
-    --bg-div-destacado: rgba(255, 248, 236, 0.92);
-    --color-text-destacado: #cf9972;
-    --text-size-destacados: 1.45rem;
-    --font-family-precios-destacados: "Playfair Display", Kaushan Script, serif;
-    --font-family-base: "Poppins", system-ui, sans-serif;
-    --color-text-primary: #3f2f1c;
-    --color-text-secondary: rgba(63, 47, 28, 0.74);
-    --color-surface: #fff8ec;
-    --color-primary: #b46730;
-    --color-secondary: #6f7a45;
-    --color-border: rgba(92, 70, 42, 0.2);
-    --color-border-2: rgba(92, 70, 42, 0.14);
-    --color-surface-translucent: rgba(255, 248, 236, 0.92);
-    --color-accent: #a95f2b;
-    --color-accent-strong: #6f7a45;
-    --color-accent-secondary: #cf9972;
-    --hero-overlay: linear-gradient(90deg, rgba(255, 248, 236, 0.94), rgba(255, 248, 236, 0.7) 44%, rgba(255, 248, 236, 0.16));
-    --shadow-card: 0 18px 48px rgba(92, 70, 42, 0.16);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 18%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-surface-strong, var(--color-surface)) 84%, var(--color-accent, var(--color-primary)) 16%)
-}
+
 /* =======================================================
    THEME 9
 ======================================================= */
 .theme_9 {
-    --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(0,0,0,0.7), rgba(0, 0, 0, 0.11)), url(../assets/fondoFormulario/theme9.jpg);
-    --img-bg-formulario-size: cover;
-    --color-bg: #000000;
-    --color-glow: rgba(255, 0, 0, 0.18);
-    --texture-bg: radial-gradient(circle,rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    --color-bg-primary: rgba(255, 0, 0, 0.829);
-    --color-bg-secondary: rgba(255, 0, 0, 0.3);
-    --color-bg-info-grid: rgba(0, 0, 0, 0.82);
-    --color-text-info-grid-p: #f5f5f5;
-    --color-border-nav: #a1a1a11e;
-    --texto-color-nav: #ffffffee;
-    --size-text-nav: 1.75rem;
-    --bg-color-btn1: rgb(15, 15, 15);
-    --border-color-btn1: rgba(255, 0, 0, 0.3);
-    --text-color-btn1: #f5f5f5;
+    /*base*/
+    /*BTN BUTTON PRIMARY*/
+    --bg-color-primary:#BF2220;
+    --text-color-primary:#F5F5F5;
+    --border-color-primary:#ffff;
+    --box-shadow-color-primary:#fff;
+    /*BTN BUTTON Secondary*/
+    --bg-color-secondary:#BF2220;
+    --text-color-secondary:#F5F5F5;
+    --border-color-secondary:#ffff;
+    --box-shadow-color-secondary:#fff;
+    /*Landings general*/
+    --bg-general:#090909;
+    --text-color-general:#ffff;
+    --font-family-general:arial;
+    --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
+    
+    /*site-header*/
+    --bg-general-site-header:#bf2220;
+    --color-border-bottom-header:#909090;
+    --color-text-header-social-span:#fff;
+    --bg-header-social:#202020;
+    --color-text-header-social-a:#fff;
+    --color-text-hover-header:#202020;
+    --color-text-brand-name:#fff;
+    --size-text-header: 1.25rem;
+    --letter-spacing-header:0.1em;
+    --font-family-header: "Bebas Neue", "Arial Black", system-ui, sans-serif;
+    /*CART-trigger carrito header*/
+    --bg-color-strong-cart-trigger:#FFBC38;
+    
+    --bg-color-cart-trigger:#FFBC38;
+    --border-color-cart-trigger:#FFBC38;
+    --color-text-cart-trigger:#202020;
+    --shadow-cart-trigger:0 10px 24px rgba(0, 0, 0, 0.7);
+    
+    /*HERO*/
+    /*hero-panel h1*/
+    --font-size-h1-hero-panel:clamp(2.4rem, 4.5vw, 4.6rem);
+    --color-text-h1-hero-panel:#bf2220; 
+    --letter-spacing-h1-hero-panel: 0.03em;
+    --text-shadow-h1-hero-panel: 0 4px 4px #303030;
+    --transform-text-h1-hero-panel:perspective(1000px) rotateZ(-3deg);
+    /*hero panel P*/
+    --color-text-p-hero-panel:#ffff;
+    --font-size-p-hero-panel:clamp(1rem, 1.12vw, 1.04rem);
+    --font-family-p-hero-panel:arial;
+    /*hero-theme-badge*/    
+    --hero-badge-image: url("../assets/brushes/theme-9-hero-badge-brush.png");
+    --hero-badge-background: transparent;
+    --hero-badge-text: #ffffff;
+    --hero-badge-shadow: 0 4px 4px #202020;
+    --hero-badge-rotate: -2.5deg;
+    --hero-badge-radius: 0;
+    --hero-badge-padding: 8px 58px;
+    --hero-badge-letter-spacing: 0.24em;
+    --hero-badge-text-transform: uppercase ;
+    --hero-badge-font-family: "Bebas Neue", "Arial Black", sans-serif;
+    --hero-badge-font-size: 1.5rem;
+    --hero-badge-font-weight: 900;
+    --hero-badge-transform:perspective(1000px) rotateZ(-4deg);
+    /*tags hero*/
+    --color-text-tags-span:#ffbc38;
+    --font-family-tags-span:arial;
+    --font-size-tags-span:clamp(0.66rem, 0.92vw, 0.84rem);
+    /*PEDIDOS YA*/
+    --color-text-partner-now:#fff;
     --color-bg-btn-pedidosya: rgba(255, 0, 0, 0.829);
     --color-bg-btn-pedidosya-hover: #c90024;
     --color-text-btn-pedidosya: #f5f5f5;
+
+    /*destacados y promos*/
+    --color-svg-promo-tag:#ffbc38;
+    --color-text-promo-tag:#bf2220;
+    --font-family-promo-tag:arial;
+    --font-size-promo-tag:0.8rem;
+    /*commercial-badge*/
+    --bg-color-commercial-badge:#bf2220;
+    --color-text-commercial-badge:#fff;
+    /* PRODUCTOS */
+    --product-card-background: #0f0f0f;
+    --product-card-border: #202020;
+    --product-card-text: #fff;
+    --product-card-price: #ffbc38;
+
+    /*ABOUT BASE*/
+    --font-family-about-title:"Bebas Neue", "Arial Black", system-ui, sans-serif;
+    --font-family-about-parrafo:arial;
+    /*SOCIAL ABOUT LINK*/
+    --border-color-social-hover:#bf2220;
+
+    
+    --img-principal-base-restaurante: none;
+    --img-bg-formulario: linear-gradient(rgba(0,0,0,0.7), rgba(0, 0, 0, 0.11)), url(../assets/fondoFormulario/theme9.jpg);
+    --img-bg-formulario-size: cover;
+    --color-bg: #090909;
+    --color-glow: rgba(255, 0, 0, 0.18);
+    --texture-bg: radial-gradient(circle,rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    --color-bg-primary: #BF2220;
+    --color-bg-secondary: rgba(255, 0, 0, 0.3);
+    --color-bg-info-grid: rgba(0, 0, 0, 0.82);
+    --color-text-info-grid-p: #f5f5f5;
+   
+    --bg-color-btn1: rgb(15, 15, 15);
+    --border-color-btn1: rgba(255, 0, 0, 0.3);
+    --text-color-btn1: #f5f5f5;
+
+
     --bg-color-btn2: rgba(179, 0, 0, 0.829);
     --text-color-btn2: #f5f5f5;
     --bg-color-btn3: rgba(54, 0, 0, 0.829);
@@ -545,15 +193,16 @@
     --color-text-destacado: #ffd247;
     --text-size-destacados: 2rem;
     --font-family-precios-destacados: "Metal Mania", cursive, system-ui, sans-serif;
-    --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
+    
+   
     --color-text-primary: #f5f5f5;
     --color-text-secondary: rgba(255, 255, 255, 0.781);
     --color-surface: #0e0000;
-    --color-primary: #ff1f1f;
-    --color-secondary: #b30000;
+    --color-primary: #BF2220;
+    --color-secondary: #BF2220;
     --color-border: rgba(255, 31, 31, 0.28);
     --color-border-2: rgba(49, 21, 21, 0.568);
-    --color-canvas: #08090b;
+
     --color-text-display: #f7f4ee;
     --color-text-muted: rgba(247, 244, 238, 0.72);
     --color-surface-translucent: rgba(14, 15, 18, 0.9);
@@ -567,42 +216,59 @@
     --promo-overlay-color: color-mix(in srgb, var(--color-canvas, var(--color-bg)) 80%, var(--color-accent, var(--color-primary)) 20%)
 ;
     --color-surface-strong: #111317;
-    --color-text-on-accent: #160d04}
+    --color-text-on-accent: #160d04;
+    
+}
 /* =======================================================
    MAPEO PAGE SHELL
 ======================================================= */
 .page-shell {
-    --landing-bg-main: var(--override-landing-bg-main, var(--color-bg, #f7f4ef));
-    --landing-bg-section: var(--override-landing-bg-section, var(--color-bg, #ffffff));
-    --landing-bg-card: var(--override-landing-bg-card, var(--color-bg, #ffffff));
-    --landing-text-main: var(--override-landing-text-main, var(--color-text-primary, #32231f));
+    /* PAGE SHELL */
+    --landing-bg-main: var(--override-landing-bg-main, var(--bg-general, #f7f4ef));
+    --landing-bg-section: var(--override-landing-bg-section, var(--bg-general, #ffffff));
+    --landing-bg-card: var(--override-landing-bg-card, var(--bg-general, #ffffff));
+    --landing-text-main: var(--override-landing-text-main, var(--text-color-general, #32231f));
     --landing-text-muted: var(--override-landing-text-muted, var(--color-text-secondary, #715f58));
     --landing-border-color: var(--override-landing-border-color, var(--color-border, rgba(50, 35, 31, 0.18)));
-    --btn-background-primary: var(--override-btn-background-primary, var(--bg-color-btn2, var(--color-primary)));
-    --btn-border-primary: var(--override-btn-border-primary, var(--bg-color-btn2, var(--color-primary)));
-    --btn-text-primary: var(--override-btn-text-primary, var(--text-color-btn2, #ffffff));
-    --btn-background-secondary: var(--override-btn-background-secondary, var(--bg-color-btn3, var(--color-secondary)));
-    --btn-border-secondary: var(--override-btn-border-secondary, var(--bg-color-btn3, var(--color-secondary)));
-    --btn-text-secondary: var(--override-btn-text-secondary, var(--text-color-btn3, #ffffff));
-    --btn-background-carrito: var(--override-btn-background-carrito, var(--color-bg-btn-pedidosya, var(--color-secondary)));
-    --btn-borde-carrito: var(--override-btn-borde-carrito, var(--color-bg-btn-pedidosya, var(--color-secondary)));
-    --btn-text-carrito: var(--override-btn-text-carrito, var(--color-text-btn-pedidosya, #ffffff));
+    --landing-font-display: var(--font-family-precios-destacados, Georgia, serif);
+    --landing-font-body: var(--font-family-base, "Poppins", sans-serif);
+
+    /* HERO */
+    --landing-bg-hero-center: var(--override-landing-bg-hero-center, var(--bg-general, #ffffff));
+    --landing-title-color: var(--override-landing-title-color, var(--color-primary, #5b160d));
+
+    /* BOTONES PRINCIPALES */
+    --btn-background-primary: var(--override-btn-background-primary, var(--bg-color-primary, var(--color-primary)));
+    --btn-border-primary: var(--override-btn-border-primary, var(--border-color-primary, var(--color-primary)));
+    --btn-text-primary: var(--override-btn-text-primary, var(--text-color-primary, #ffffff));
+    --btn-box-shadow-color-primary:var(--override-btn-background-primary, var(var(--box-shadow-color-primary)));
+
+    /* BOTONES SECUNDARIOS */
+    --btn-background-secondary: var(--override-btn-background-secondary, var(--bg-color-secondary, var(--color-secondary)));
+    --btn-border-secondary: var(--override-btn-border-secondary, var(--border-color-secondary, var(--color-secondary)));
+    --btn-text-secondary: var(--override-btn-text-secondary, var(--text-color-secondary, #ffffff));
+
+    
+
+    /* CATEGORÍAS */
     --category-background: var(--override-category-background, var(--color-primary));
     --category-border: var(--override-category-border, var(--color-primary));
     --category-text: var(--override-category-text, var(--color-text-primary, #32231f));
+
+    /* CATEGORÍA ACTIVA */
     --category-active-background: var(--override-category-active-background, var(--color-secondary));
     --category-active-border: var(--override-category-active-border, var(--color-secondary));
     --category-active-text: var(--override-category-active-text, var(--text-color-btn3, #ffffff));
-    --product-card-background: var(--override-product-card-background, var(--color-surface));
-    --product-card-border: var(--override-product-card-border, var(--color-border));
-    --product-card-text: var(--override-product-card-text, var(--color-text-primary));
+
+    
+
+    /* MENÚ */
     --landing-bg-menu: var(--override-landing-bg-menu, var(--color-bg-info-grid, var(--color-primary, #5b160d)));
-    --landing-bg-hero-center: var(--override-landing-bg-hero-center, var(--color-bg, #ffffff));
-    --landing-title-color: var(--override-landing-title-color, var(--color-primary, #5b160d));
-    --product-card-price: var(--override-product-card-price, var(--color-primary));
-    --landing-header-bg: var(--override-landing-header-bg, var(--color-bg-primary, var(--color-surface)));
-    --landing-footer-bg: var(--override-landing-footer-bg, var(--color-bg-primary, var(--color-surface)));
-    --landing-header-text: var(--override-landing-header-text, var(--texto-color-nav, var(--color-text-primary)));
+
+    /* DESTACADOS */
     --highlight-badge-background: var(--color-secondary);
-    --highlight-badge-text: var(--text-color-btn3, #ffffff)
+    --highlight-badge-text: var(--text-color-btn3, #ffffff);
+
+    /* FOOTER */
+    --landing-footer-bg: var(--override-landing-footer-bg, var(--color-bg-primary, var(--color-surface)));
 }

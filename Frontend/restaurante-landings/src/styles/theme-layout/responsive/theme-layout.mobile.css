@@ -1,0 +1,1283 @@
+/* ===============================
+   RESPONSIVE · MOBILE
+================================ */
+@media (max-width: 768px) {
+  html,
+  #root,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body.mobile-nav-open {
+    overflow: hidden;
+  }
+
+  .page-shell {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .page-content {
+    overflow-x: hidden;
+  }
+
+  .page-content > *,
+  .promo-panel,
+  .promo-card,
+  .menu-wrapper,
+  .menu-section,
+  .cart-whatsapp-panel,
+  .menu-bubble,
+  .reserve-wrapper,
+  .gallery-panel,
+  .highlights-grid,
+  .reserva-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .site-header {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-align: left;
+  }
+
+  .brand-block {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .brand-logo {
+    max-width: clamp(42px, 12vw, 52px);
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+  }
+
+  .span-info-brand-block {
+    min-width: 0;
+  }
+
+
+  .brand-tag,
+  .cart-trigger-header span,
+  .producto-card h3,
+  .producto-category,
+  .producto-head span:not(.producto-category) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+
+  .header-actions {
+    flex: 0 0 auto;
+  }
+
+  .cart-trigger-header {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    padding: 0;
+    gap: 0;
+  }
+
+  .cart-trigger-header span {
+    display: none;
+  }
+
+  .cart-trigger-header strong {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 21px;
+    height: 21px;
+    padding: 0 6px;
+  }
+  .mobile-menu-toggle {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    flex: 0 0 40px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    cursor: pointer;
+  }
+
+  .mobile-menu-toggle span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    margin-inline: auto;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  .site-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 70;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: min(82%, 310px);
+    max-width: calc(100% - 24px);
+    min-height: 100svh;
+    padding: 18px;
+    background: var(--color-bg);
+    border-right: 1px solid var(--color-border);
+    box-shadow: 18px 0 50px rgba(0, 0, 0, 0.36);
+    transform: translate3d(-100%, 0, 0);
+    transition: transform 0.22s ease;
+    visibility: hidden;
+    pointer-events: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    contain: layout paint;
+  }
+
+  .site-nav.is-open {
+    transform: translate3d(0, 0, 0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .site-nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .mobile-nav-close {
+    display: inline-grid;
+    place-items: center;
+    align-self: flex-end;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-primary);
+    cursor: pointer;
+  }
+
+  .mobile-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: block;
+    width: auto;
+    border: 0;
+    background: rgba(0, 0, 0, 0.48);
+  }
+  .button-primary,
+  .button-secondary,
+  .promo-button {
+    max-width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    font-size: clamp(0.82rem, 2.9vw, 0.95rem);
+    line-height: 1;
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+  .hero-panel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    aspect-ratio: 4 / 5;
+  }
+
+  .hero-copy {
+    width: 100%;
+    min-width: 0;
+    margin-top: auto;
+    text-align: left;
+  }
+
+
+  .hero-panel h1 {
+    margin-bottom: 12px;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  .hero-panel p {
+    margin-bottom: 16px;
+    text-align: left;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .hero-actions .button-primary,
+  .hero-actions .button-secondary {
+    flex: 1 1 132px;
+    min-width: 0;
+  }
+  .promo-panel {
+    max-height: none;
+  }
+
+  .promo-card {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .promo-label,
+  .promo-tag {
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+  }
+
+  .promo-carousel,
+  .featured-carousel {
+    gap: 12px;
+    padding: 8px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    border-radius: 18px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .promo-slide {
+    grid-template-columns: minmax(94px, 34%) minmax(0, 1fr);
+    gap: 12px;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+  }
+
+  .promo-slide-image,
+  .featured-slide-image {
+    border-radius: 14px;
+  }
+
+  .promo-slide-image img,
+  .featured-slide-image img {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 13px;
+  }
+
+  .promo-slide-content {
+    min-width: 0;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .promo-item h2 {
+    font-size: clamp(1.1rem, 5.4vw, 1.55rem);
+    line-height: 1.05;
+    
+  }
+
+  .promo-item p,
+  .promo-conditions,
+  .producto-card p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    line-height: 1.35;
+  }
+
+  .promo-item p,
+  .promo-conditions {
+    -webkit-line-clamp: 2;
+    font-size: clamp(0.78rem, 2.7vw, 0.9rem);
+  }
+
+  .promo-item strong,
+  .promo-item-small strong {
+    font-size: clamp(1.2rem, 5.2vw, 1.65rem);
+  }
+
+  .promo-slide-content .promo-button {
+    align-self: flex-start;
+    min-height: 38px;
+    padding: 9px 12px;
+  }
+
+  .featured-slide {
+    grid-template-columns: 86px minmax(0, 1fr);
+    grid-template-rows: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    width: 100%;
+    min-width: 100%;
+    min-height: 118px;
+  }
+
+  .featured-slide-image {
+    min-height: 86px;
+  }
+
+  .featured-slide-image img {
+    min-height: 86px;
+    max-height: 86px;
+  }
+
+  .promo-item-small {
+    padding: 0;
+    border: 0;
+  }
+
+  .promo-item-small h3 {
+    font-size: clamp(1rem, 4vw, 1.25rem);
+  }
+  .highlights-grid {
+    border-radius: 18px;
+  }
+
+  .about-card {
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .about-card p,
+  .info-box p,
+  .reserva-header p {
+    font-size: clamp(0.84rem, 2.9vw, 0.95rem);
+    line-height: 1.5;
+  }
+
+  .info-grid {
+    gap: 10px;
+  }
+
+  .info-box {
+    align-items: flex-start;
+    gap: 8px;
+    text-align: left;
+  }
+  .menu-section {
+    gap: 12px;
+  }
+
+  .menu-header {
+    margin-bottom: 0;
+  }
+
+  .menu-header h2 {
+    line-height: 0.95;
+  }
+
+  .menu-header p {
+    font-size: clamp(0.86rem, 3vw, 0.95rem);
+  }
+
+  .menu-tabs {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 0;
+    box-shadow: none;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+
+  .menu-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .menu-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    min-height: 42px;
+    max-width: 72vw;
+    min-width: 0;
+    padding: 8px 12px;
+    gap: 8px;
+    scroll-snap-align: start;
+    white-space: nowrap;
+    font-size: clamp(0.72rem, 2.6vw, 0.84rem);
+  }
+
+  .menu-tab:last-child {
+    border-right: 1px solid var(--color-border);
+  }
+
+  .menu-tab.is-active {
+    box-shadow: inset 0 0 0 1px var(--color-secondary);
+  }
+
+  .category-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 1rem;
+    flex: 0 0 auto;
+  }
+
+  .menu-bubble {
+    gap: 12px;
+  }
+
+  .menu-bubble-header {
+    padding-inline: 2px;
+    font-size: 0.8rem;
+  }
+
+  .category-title {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .productos-list {
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .producto-card {
+    display: grid;
+    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 10px;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .producto-card-main {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    min-height: 104px;
+  }
+
+  .producto-card:hover {
+    transform: none;
+  }
+
+  .producto-card-image {
+    display: block;
+    flex: 0 0 clamp(72px, 23vw, 88px);
+    width: clamp(72px, 23vw, 88px);
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .producto-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .producto-card-content {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 5px;
+  }
+
+  .producto-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 0;
+    align-items: flex-start;
+  }
+
+  .producto-head > div {
+    min-width: 0;
+  }
+
+  .producto-card h3 {
+    max-width: 100%;
+    font-size: clamp(0.95rem, 3.8vw, 1.08rem);
+    line-height: 1.2;
+  }
+
+  .producto-category {
+    display: block;
+    margin-top: 3px;
+    color: var(--color-primary);
+    font-size: clamp(0.72rem, 2.6vw, 0.82rem);
+    line-height: 1.15;
+  }
+
+  .producto-head span:not(.producto-category) {
+    flex: 0 1 auto;
+    font-size: clamp(0.92rem, 3.6vw, 1.05rem);
+    line-height: 1.15;
+    max-width: 100%;
+  }
+
+  .producto-card p {
+    -webkit-line-clamp: 2;
+    font-size: clamp(0.78rem, 2.8vw, 0.88rem);
+  }
+
+  .producto-action {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 28px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: #1b1410;
+    font-size: 0.75rem;
+    font-weight: 900;
+  }
+
+  .producto-add-cart {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .product-modal-cart-actions {
+    align-items: stretch;
+  }
+
+  .cart-modal-qty,
+  .cart-modal-qty input,
+  .product-modal-add {
+    width: 100%;
+  }
+  .product-modal-backdrop {
+    padding: 10px;
+  }
+
+  .product-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100svh - 20px);
+    border-radius: 18px;
+  }
+
+  .product-modal-image,
+  .product-modal-image img {
+    min-height: 210px;
+    max-height: 260px;
+  }
+
+  .product-modal-content {
+    gap: 10px;
+    padding: 22px 18px;
+  }
+
+  .product-modal-content h2 {
+    font-size: clamp(1.45rem, 8vw, 2rem);
+  }
+  .reserva-card {
+    padding: 18px 14px;
+    border-radius: 18px;
+    overflow: hidden;
+  }
+
+  .cart-whatsapp-panel {
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+
+  .cart-modal-backdrop {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .cart-whatsapp-modal {
+    width: 100%;
+    max-height: calc(100svh - 20px);
+  }
+
+  .cart-whatsapp-body {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-item {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .cart-quantity {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .cart-remove {
+    width: 100%;
+  }
+
+  .reserva-header {
+    text-align: left;
+  }
+
+  .reserva-header span {
+    margin-bottom: 6px;
+    font-size: clamp(1.25rem, 6vw, 1.8rem);
+  }
+
+  .reserva-header h2 {
+    margin-bottom: 8px;
+    font-size: clamp(1.35rem, 6vw, 1.9rem);
+  }
+
+  .reserva-form {
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .reserva-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .reserva-form input,
+  .reserva-form textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+  }
+
+  .reserva-form textarea {
+    min-height: 92px;
+  }
+  .gallery-panel {
+    gap: 14px;
+  }
+
+  .gallery-panel h2 {
+    font-size: clamp(1.8rem, 9vw, 2.4rem);
+    line-height: 1;
+    text-align: left;
+  }
+
+  .gallery-grid {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .gallery-card img {
+    min-height: 0;
+  }
+  .whatsapp-floating-btn {
+    right: 12px;
+    bottom: 12px;
+    width: 52px;
+    min-width: 52px;
+    height: 52px;
+    padding: 0;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  }
+
+  .whatsapp-floating-btn span {
+    display: none;
+  }
+
+  .cart-trigger-floating {
+    right: 12px;
+    bottom: 76px;
+    width: 52px;
+    min-width: 52px;
+    height: 52px;
+    padding: 0;
+  }
+
+  .cart-trigger-floating span {
+    display: none;
+  }
+}
+@media (max-width: 768px) {
+
+  .header-social {
+    display: none;
+  }
+
+  .hero-visual-left {
+    display: none;
+  }
+
+  .hero-visual-right {
+    grid-row: 1;
+    min-height: 240px;
+  }
+
+  .page-shell .hero-copy {
+    grid-row: 2;
+  }
+
+  .page-shell .quick-benefits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: calc(100% - 28px);
+    margin-top: -24px;
+    border-radius: 18px;
+  }
+
+  .page-shell .promo-panel,
+  .page-shell .menu-wrapper,
+  .reservation-showcase {
+    width: calc(100% - 28px);
+  }
+
+  .page-shell .promo-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell .menu-tabs {
+    margin-inline: -10px;
+    padding-inline: 10px;
+  }
+
+  .page-shell .action-cards,
+  .page-shell .location-card {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell .restaurant-info-section {
+    min-height: 0;
+  }
+
+  .page-shell .gallery-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    min-height: 0;
+  }
+
+  .page-shell .gallery-card:first-child {
+    grid-column: auto;
+  }
+
+  .page-shell .gallery-card {
+    min-height: 220px;
+  }
+
+  .page-shell .landing-footer {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding-bottom: 68px;
+  }
+
+  .page-shell .footer-contact,
+  .page-shell .footer-social {
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+@media (max-width: 640px) {
+  .restaurant-info-section .about-summary {
+    padding: 22px 18px;
+  }
+
+  .action-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .action-card {
+    min-height: auto;
+  }
+
+  .location-card {
+    padding: 18px;
+  }
+
+  .landing-modal-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .landing-modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    border-radius: 18px;
+  }
+
+  .landing-modal .reserva-card {
+    padding: 48px 18px 22px;
+  }
+}
+@media (max-width: 768px) {
+  .site-header {
+    min-height: 64px;
+    padding: 8px 12px;
+  }
+
+  .mobile-menu-toggle {
+    background: var(--color-surface-translucent, var(--color-surface));
+    color: var(--color-text-display, var(--color-text-primary));
+    border-color: var(--color-border-accent, var(--color-border));
+  }
+
+  .site-nav {
+    background: var(--color-canvas, var(--color-bg));
+  }
+
+  .site-nav a,
+  .mobile-nav-close {
+    background: var(--color-surface-translucent, var(--color-surface));
+    color: var(--color-text-display, var(--color-text-primary));
+    border-color: var(--color-border-accent, var(--color-border));
+  }
+
+  .hero-panel {
+    min-height: 430px;
+    aspect-ratio: auto;
+    padding: 24px 18px;
+    border-radius: 0 0 22px 22px;
+    background:
+      linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-canvas, #000) 84%, transparent) 70%),
+      var(--img-principal-base-restaurante),
+      var(--color-canvas, var(--color-bg));
+    background-size: cover;
+    background-position: center;
+  }
+
+  .hero-panel h1 {
+    font-size: clamp(2.4rem, 13vw, 4rem);
+  }
+
+  .hero-panel p {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .hero-actions .button-primary,
+  .hero-actions .button-secondary {
+    flex: 1 1 140px;
+  }
+
+  .quick-benefits {
+    grid-template-columns: 1fr 1fr;
+    padding: 0;
+  }
+
+  .quick-benefits article {
+    min-height: 54px;
+    padding: 10px;
+  }
+
+  .quick-benefits span {
+    font-size: 0.78rem;
+  }
+
+  .promo-slide {
+    min-height: 170px;
+  }
+
+  .menu-tabs {
+    display: flex;
+  }
+
+  .menu-tab {
+    min-height: 46px;
+    flex-direction: row;
+    border-radius: 999px;
+  }
+
+  .order-modes > div,
+  .order-modes article {
+    padding: 16px;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .landing-footer {
+    padding-bottom: 72px;
+  }
+}
+@media (max-width: 640px) {
+  .promo-card-small .promo-card-header {
+    align-items: flex-start;
+  }
+
+  .featured-carousel .featured-slide {
+    grid-template-rows: 180px 1fr;
+  }
+
+  .featured-carousel .featured-slide-image {
+    height: 180px;
+  }
+}
+@media (max-width: 768px) {
+  .promo-card-large {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .promo-card-large .promo-slide {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .promo-card-large .promo-slide-image,
+  .promo-card-large .promo-slide-image img {
+    min-height: 220px;
+  }
+
+  .promo-card-large .promo-slide-image img {
+    -webkit-mask-image:
+      linear-gradient(
+        to bottom,
+        black 0%,
+        black 54%,
+        rgba(0, 0, 0, 0.88) 70%,
+        rgba(0, 0, 0, 0.42) 88%,
+        transparent 100%
+      );
+    mask-image:
+      linear-gradient(
+        to bottom,
+        black 0%,
+        black 54%,
+        rgba(0, 0, 0, 0.88) 70%,
+        rgba(0, 0, 0, 0.42) 88%,
+        transparent 100%
+      );
+  }
+
+  .promo-card-large .promo-slide-image::after {
+    background:
+      linear-gradient(
+        to bottom,
+        transparent 0%,
+        transparent 48%,
+        var(--promo-overlay-soft, color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 18%, transparent)) 76%,
+        var(--promo-overlay-color, color-mix(in srgb, var(--color-canvas, var(--color-bg)) 82%, var(--color-accent, var(--color-primary)) 18%)) 100%
+      );
+    opacity: 0.82;
+  }
+
+  .promo-card-large .promo-slide-image.uses-fallback-image img {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .promo-card-large .promo-slide-content {
+    padding: 0 4px 4px;
+  }
+
+  .promo-card-large .promo-item h2 {
+    max-width: 100%;
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .promo-card-large .promo-item strong {
+    font-size: clamp(1.7rem, 8vw, 2.4rem);
+  }
+
+  .promo-card-large .promo-conditions {
+    grid-column: 1;
+  }
+}
+@media (max-width: 800px) {
+  .page-shell .site-header {
+    display: flex;
+    min-height: 64px;
+    padding: 7px 14px;
+  }
+
+  .page-shell .mobile-menu-toggle {
+    display: flex;
+    order: 3;
+    border-color: var(--landing-border-color);
+    background: var(--landing-bg-card);
+  }
+
+  .page-shell .brand-block {
+    order: 1;
+  }
+
+  .page-shell .header-actions {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .header-social {
+    display: none;
+  }
+
+  .page-shell .site-nav {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80;
+    display: flex;
+    width: min(82vw, 330px);
+    padding: 82px 20px 24px;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 12px;
+    background: var(--landing-bg-section);
+    transform: translateX(105%);
+    transition: transform 180ms ease;
+  }
+
+  .page-shell .site-nav.is-open {
+    transform: translateX(0);
+  }
+
+  .page-shell .site-nav a {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--landing-border-color);
+    border-radius: 10px;
+    color: var(--landing-text-main);
+    text-align: left;
+  }
+
+  .page-shell .hero-panel {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .hero-visual-left {
+    display: none;
+  }
+
+  .hero-visual-right {
+    grid-row: 1;
+    min-height: 250px;
+  }
+
+  .page-shell .hero-copy {
+    grid-row: 2;
+    padding: 34px 24px 28px;
+    clip-path: none;
+  }
+
+  .hero-center-logo {
+    width: 120px;
+    height: 72px;
+  }
+
+  .hero-tags {
+    width: 100%;
+  }
+
+  .page-shell .featured-carousel {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+  }
+
+  .page-shell .featured-track {
+    width: max-content;
+  }
+
+  .page-shell .featured-controls {
+    display: none;
+  }
+
+  .page-shell .featured-carousel .featured-slide {
+    width: 240px;
+    flex-basis: 240px;
+    scroll-snap-align: start;
+  }
+
+  .page-shell .menu-wrapper {
+    width: calc(100% - 28px);
+    margin-bottom: 46px;
+    border-radius: 22px;
+  }
+
+  .page-shell .menu-section {
+    padding: 28px 16px;
+  }
+
+  .page-shell .menu-tabs {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .page-shell .productos-list {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell .reservation-showcase {
+    grid-template-columns: 1fr;
+    width: calc(100% - 28px);
+    margin-bottom: 42px;
+  }
+
+  .reservation-card {
+    min-height: 450px;
+  }
+
+  .restaurant-details-column {
+    grid-template-rows: auto auto;
+    gap: 24px;
+  }
+
+  .page-shell .gallery-card,
+  .page-shell .gallery-card:first-child {
+    flex-basis: 260px;
+    width: 260px;
+    min-width: 260px;
+    height: 190px;
+    min-height: 190px;
+  }
+}
+@media (max-width: 520px) {
+  .page-shell .brand-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .page-shell .cart-trigger-header {
+    min-width: 92px;
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 0.76rem;
+  }
+
+  .page-shell .hero-panel h1 {
+    font-size: clamp(2.3rem, 13vw, 3.5rem);
+  }
+
+  .page-shell .hero-actions {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .page-shell .button-primary,
+  .page-shell .button-secondary {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .hero-tags {
+    display: block;
+  }
+
+  .hero-tags span {
+    white-space: nowrap;
+  }
+
+  .page-shell .promo-panel {
+    padding-inline: 14px;
+  }
+
+  .page-shell .producto-card {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .page-shell .producto-card-actions {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr);
+    width: 100%;
+    padding: 0 4px 4px;
+    align-items: center;
+  }
+
+  .page-shell .producto-quantity-control,
+  .page-shell .producto-add-cart {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .page-shell .reservation-card .action-cards {
+    gap: 12px;
+  }
+
+  .page-shell .reservation-card .action-card {
+    min-height: 96px;
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .about-panel-heading {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .about-panel-heading img {
+    width: 80px;
+    height: 80px;
+  }
+
+  .about-panel-details {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+@media (max-width: 640px) {
+
+  .featured-track {
+    gap:
+    12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-theme-badge {
+    max-width: 100%;
+    padding: 6px 32px;
+    transform: rotate(var(--hero-badge-rotate));
+  }
+
+  .hero-theme-badge span {
+    font-size: clamp(1rem, 7vw, 2rem);
+    letter-spacing: 0.16em;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .theme_9 .hero-theme-badge::before {
+    inset: -10px -24px;
+  }
+}

@@ -1,0 +1,124 @@
+/* ===============================
+   BASE
+================================ */
+/* Layout */
+/* Tipografía y controles compartidos */
+main {
+  background-size: contain;
+  background-position: start;
+  background-repeat: no-repeat
+}
+.button-primary,
+.button-secondary {
+  min-height: 48px;
+  padding: 11px 22px;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 152px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px
+}
+.social-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  text-decoration: none;
+  font-weight: 800;
+  margin-top: 0;
+  transition: all 0.2s ease
+}
+.social-links a:hover {
+  transform: scale(1.08)
+}
+
+.reserve-wrapper {
+  order: 4;
+  display: grid;
+  gap: 24px
+}
+.whatsapp-floating-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  min-width: 58px;
+  height: 58px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #25d366;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease
+}
+.whatsapp-floating-btn i {
+  font-size: 1.45rem;
+  line-height: 1
+}
+.whatsapp-floating-btn:hover {
+  background: #1ebe5d;
+  color: #fff;
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.32)
+}
+
+
+.page-shell {
+  width: 100%;
+  position: relative;
+  min-height: 100svh;
+  padding-bottom: 0;
+  background: var(--landing-bg-main);
+  color: var(--landing-text-main);
+  font-family: var(--landing-font-body);
+  height: auto;
+  overflow-x: clip
+}
+.page-shell .page-content {
+  width: 100%;
+  max-width: none;
+  gap: 0;
+  padding: 0;
+  display: flex;
+  margin: 0;
+  flex-direction: column;
+  overflow-x: clip
+}
+
+.page-shell .button-primary {
+  background: var(--btn-background-primary);
+  color: var(--btn-text-primary);
+  box-shadow: var(--landing-shadow);
+  border: 1px solid var(--btn-border-primary)
+}
+.page-shell .button-secondary {
+  background: var(--btn-background-secondary);
+  color: var(--btn-text-secondary);
+  box-shadow: var(--landing-shadow);
+  border: 1px solid var(--btn-border-secondary)
+}
+.restaurant-details-column {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 22px;
+  min-width: 0;
+  align-content: stretch
+}

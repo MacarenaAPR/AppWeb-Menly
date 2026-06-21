@@ -1,0 +1,98 @@
+/* ===============================
+   FOOTER
+================================ */
+/* Layout */
+/* Marca */
+/* Contacto */
+/* Redes */
+.footer-copyright {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+  left: 0;
+  color: var(--landing-text-muted);
+  text-align: center
+}
+.landing-footer {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+  gap: 22px;
+  align-items: center;
+  padding: 22px 0 6px;
+  color: var(--color-text-display, var(--color-text-primary))
+}
+/* Legacy: conservado para compatibilidad */
+.footer-brand,
+.footer-social,
+.footer-contact {
+  display: flex;
+  align-items: center;
+  gap: 12px
+}
+.footer-brand img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-accent, var(--color-border))
+}
+.footer-brand strong,
+.footer-brand span,
+.footer-contact span,
+.footer-contact small {
+  display: block
+}
+.footer-brand strong {
+  font-size: 1.25rem;
+  text-transform: uppercase
+}
+.footer-brand span,
+.footer-contact small {
+  color: var(--color-text-muted, var(--color-text-secondary));
+  font-size: 0.82rem
+}
+.footer-social {
+  justify-content: center
+}
+.footer-social a {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border-accent, var(--color-border));
+  border-radius: 50%;
+  color: var(--color-text-display, var(--color-text-primary));
+  text-decoration: none
+}
+.footer-contact {
+  justify-content: flex-end;
+  text-align: right;
+  flex-direction: column;
+  align-items: flex-end
+}
+.page-shell .page-content > .landing-footer {
+  order: 5
+}
+.page-shell .promo-panel,
+.page-shell .menu-wrapper,
+.page-shell .reservation-showcase,
+.page-shell .landing-footer {
+  min-width: 0
+}
+.page-shell .landing-footer {
+  position: relative;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+  margin-top: 0;
+  border-top: 1px solid var(--landing-border-color);
+  display: block;
+  width: 100%;
+  padding: 18px 24px;
+  color: var(--landing-header-text);
+  background: var(--landing-footer-bg);
+  margin: 0;
+  border: 0;
+  text-align: center
+}
+.page-shell .landing-footer p {
+  margin: 0;
+  font-size: 0.8rem
+}

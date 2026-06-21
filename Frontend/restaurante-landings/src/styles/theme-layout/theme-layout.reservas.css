@@ -1,0 +1,438 @@
+/* ===============================
+   RESERVAS
+================================ */
+/* Layout */
+/* Tarjetas de acción */
+/* Formularios */
+/* Información */
+.about-card,
+.info-box {
+  background: transparent;
+  border: none;
+  border-radius: 0
+}
+.about-card h2,
+.info-box h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase
+}
+.info-box p {
+  color: var(--color-text-info-grid-p);
+  line-height: 1.55;
+  margin: 4px 0 0;
+  font-size: 0.84rem
+}
+.info-box a {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 0.82rem
+}
+.reserva-section {
+  display: grid
+}
+.reserva-card {
+  padding: 28px;
+  border-radius: 24px;
+  background-image:var(--img-bg-formulario);
+  background-position: center;
+  background-size: var(--img-bg-formulario-size);
+  border: 1px solid var(--color-border)
+}
+.reserva-header span {
+  color: var(--color-primary);
+  font-weight: 700;
+  font-family: var(--font-family-precios-destacados);
+  display: inline-block;
+  font-size: var(--size-text-reserva);
+  margin-bottom: 10px
+}
+.reserva-header h2 {
+  margin: 0 0 14px
+}
+.reserva-header p {
+  color: var(--color-text-secondary);
+  line-height: 1.75
+}
+.reserva-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px
+}
+.reserva-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px
+}
+.reserva-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-weight: 700
+}
+.reserva-form label span {
+  font-size: 0.92rem
+}
+.reserva-form textarea {
+  min-height: 120px;
+  resize: vertical
+}
+.page-shell .promo-panel,
+.page-shell .menu-wrapper,
+.reservation-showcase {
+  width: min(100% - 48px, 1240px);
+  margin-inline: auto
+}
+.reservation-showcase {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+  gap: 20px;
+  align-items: stretch
+}
+.reservation-showcase .landing-action-anchor {
+  position: absolute
+}
+/* Legacy: conservado para compatibilidad */
+.page-shell .restaurant-info-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-width: 0;
+  min-height: 520px;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--landing-bg-card) 82%, transparent),
+      color-mix(in srgb, var(--landing-bg-card) 92%, transparent)
+    ),
+    var(--about-bg);
+  background-position: center;
+  background-size: cover;
+  overflow: hidden
+}
+.page-shell .about-summary {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(26px, 4vw, 48px)
+}
+.page-shell .about-summary h2 {
+  margin: 8px 0 14px;
+  color: var(--landing-text-main)
+}
+.page-shell .about-summary p {
+  color: var(--landing-text-muted)
+}
+.page-shell .action-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 28px
+}
+.page-shell .action-card {
+  min-height: 112px;
+  border: 1px solid var(--btn-border-primary);
+  border-radius: 16px;
+  background: var(--btn-background-primary);
+  color: var(--btn-text-primary)
+}
+.page-shell .action-card small {
+  color: inherit;
+  opacity: 0.78
+}
+.page-shell .location-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid var(--landing-border-color)
+}
+.page-shell .info-box {
+  border-color: var(--landing-border-color);
+  background: color-mix(in srgb, var(--landing-bg-card) 86%, transparent)
+}
+.restaurant-info-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  align-items: stretch;
+  gap: 0;
+  min-height: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-border-accent, var(--color-border));
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--color-canvas, var(--color-bg)) 94%, transparent) 0%,
+      color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 86%, transparent) 56%,
+      color-mix(in srgb, var(--color-canvas, var(--color-bg)) 74%, transparent) 100%
+    ),
+    var(--about-bg),
+    var(--color-canvas, var(--color-bg));
+  background-position: center right;
+  background-size: cover;
+  background-repeat: no-repeat
+}
+.restaurant-info-section .about-summary {
+  max-width: none;
+  padding: clamp(24px, 4vw, 42px)
+}
+.restaurant-info-section .about-summary p {
+  max-width: 62ch;
+  margin-bottom: 0
+}
+.action-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px
+}
+.action-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  min-height: 104px;
+  padding: 16px;
+  border: 1px solid var(--color-border-accent, var(--color-border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 88%, transparent);
+  color: var(--color-text-display, var(--color-text-primary));
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 18px 36px color-mix(in srgb, var(--color-canvas, var(--color-bg)) 28%, transparent);
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease
+}
+.action-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-accent, var(--color-primary));
+  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 72%, var(--color-accent, var(--color-primary)) 10%)
+}
+.action-card i {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-accent, var(--color-primary)) 18%, transparent);
+  color: var(--color-accent, var(--color-primary));
+  font-size: 1.25rem
+}
+.action-card span {
+  display: grid;
+  gap: 6px
+}
+.action-card strong {
+  color: var(--color-text-display, var(--color-text-primary));
+  font-size: 1rem;
+  line-height: 1.2
+}
+.action-card small {
+  color: var(--color-text-muted, var(--color-text-secondary));
+  font-size: 0.86rem;
+  line-height: 1.45
+}
+.location-card {
+  display: grid;
+  gap: 0;
+  padding: clamp(20px, 3vw, 34px);
+  background: color-mix(in srgb, var(--color-canvas, var(--color-bg)) 78%, transparent);
+  border-left: 1px solid var(--color-border-accent, var(--color-border));
+  backdrop-filter: blur(3px)
+}
+.location-card .info-box {
+  align-items: flex-start;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border-accent, var(--color-border))
+}
+.location-card .info-box:first-child {
+  padding-top: 0
+}
+.location-card .info-box:last-child {
+  padding-bottom: 0;
+  border-bottom: 0
+}
+.location-card .info-box a {
+  color: var(--color-accent, var(--color-primary));
+  font-weight: 800
+}
+.highlights-grid {
+  order: 3;
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 0;
+  background-repeat: no-repeat;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr);
+  min-height: 260px;
+  background:
+    var(--hero-overlay),
+    var(--about-bg);
+  background-position: center;
+  background-size: cover
+}
+.info-grid {
+  display: grid;
+  gap: 0;
+  background:var(--color-bg-info-grid);
+  border-top: 1px solid var(--color-border);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 18px
+}
+.info-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  border-color: var(--color-border-accent, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 76%, transparent)
+}
+.page-shell .page-content > .reservation-showcase {
+  order: 4
+}
+.page-shell .reservation-showcase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 32px;
+  width: calc(100% - 96px);
+  max-width: 1160px;
+  margin: 0 auto 72px;
+  align-items: stretch
+}
+.reservation-card {
+  position: relative;
+  display: flex;
+  min-height: 520px;
+  padding: 42px 34px 28px;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--landing-border-color);
+  border-radius: 18px;
+  color: #ffffff;
+  background:
+    var(--landing-reservation-overlay),
+    var(--about-bg),
+    var(--landing-bg-card);
+  background-position: center;
+  background-size: cover;
+  box-shadow: var(--landing-shadow);
+  overflow: hidden
+}
+.reservation-card-copy {
+  margin: auto 0;
+  text-align: center
+}
+.reservation-card-copy h2 {
+  margin: 0 0 18px;
+  color: #ffffff;
+  font-family: var(--landing-font-display);
+  font-size: clamp(2rem, 3.2vw, 3.2rem)
+}
+.reservation-card-copy p {
+  max-width: 34ch;
+  margin: 0 auto;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.5;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7)
+}
+.page-shell .reservation-card .action-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 34px
+}
+.page-shell .reservation-card .action-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 112px;
+  padding: 16px;
+  flex-direction: column;
+  gap: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 14px;
+  color: #ffffff;
+  background: rgba(20, 14, 10, 0.58);
+  box-shadow: var(--landing-shadow);
+  font-size: 1.15rem;
+  text-align: center
+}
+.about-panel {
+  padding: 28px 10px 0;
+  border-top: 1px solid var(--landing-border-color)
+}
+.about-panel-heading {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--landing-border-color)
+}
+.about-panel-heading img {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  object-fit: contain;
+  background: var(--landing-bg-card)
+}
+.about-panel h2 {
+  margin: 0 0 8px;
+  color: var(--landing-title-color);
+  font-family: var(--landing-font-display);
+  font-size: 1.7rem
+}
+.about-panel p {
+  margin: 0;
+  color: var(--landing-text-muted);
+  line-height: 1.45
+}
+.about-panel-details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  padding-top: 18px
+}
+.about-panel-details article {
+  min-width: 0
+}
+.about-panel-details h3 {
+  margin: 0 0 6px;
+  color: var(--landing-title-color);
+  font-size: 0.78rem;
+  text-transform: uppercase
+}
+.about-panel-details p,
+.about-panel-details a {
+  color: var(--landing-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.4
+}
+.about-panel .social-links {
+  display: flex;
+  gap: 8px
+}
+.about-panel .social-links a {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--btn-text-carrito);
+  background: var(--btn-background-carrito);
+  font-size: 1rem;
+  text-decoration: none
+}

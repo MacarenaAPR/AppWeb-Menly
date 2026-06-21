@@ -8,6 +8,7 @@ import { apiFetch, BASE_URL } from "../Services/api";
 import { getSlugFromHostname } from "../utils/getSlugFromHostname";
 import { getOptimizedImageUrl } from "../utils/images";
 import { GiFireBowl } from "react-icons/gi";
+import { TiShoppingCart } from "react-icons/ti";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 const MENU_CACHE_TTL = 60 * 5 * 1000;
@@ -386,8 +387,7 @@ export default function Home() {
       onClick={() => setCarritoAbierto(true)}
       aria-label={`Abrir carrito, ${totalUnidadesCarrito} productos`}
     >
-      <i className="bi bi-basket2-fill" aria-hidden="true"></i>
-      <span>Carrito</span>
+      <i aria-hidden="true"><TiShoppingCart /></i>
       <strong>{totalUnidadesCarrito}</strong>
     </button>
   );
@@ -865,6 +865,11 @@ export default function Home() {
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
     ? restaurante.theme_color
     : "theme_1";
+  const heroBadgeText =
+    restaurante?.categoria ||
+    restaurante?.tipo_negocio ||
+    restaurante?.especialidad ||
+    "Especialidad";
   const reservasActivas = restaurante?.reservas_activas === true;
   const solicitudesEspecialesActivas = restaurante?.solicitudes_especiales_activas === true;
   const carritoWhatsappActivo = restaurante?.carrito_whatsapp_activo === true;
@@ -1005,16 +1010,12 @@ export default function Home() {
           </figure>
 
           <div className="hero-copy">
-            {logoOptimizado && (
-              <img
-                className="hero-center-logo"
-                src={logoOptimizado}
-                alt={restaurante?.nombre_empresa}
-                width="180"
-                height="180"
-              />
-            )}
+            
+
             <h1>{restaurante?.nombre_empresa}</h1>
+            <div className="hero-theme-badge">
+              <span>{heroBadgeText}</span>
+            </div>
             <p>
               {restaurante?.mensaje_bienvenida ||
                 restaurante?.descripcion ||
@@ -1037,16 +1038,8 @@ export default function Home() {
               <a className="button-secondary" href="#menu">
                 Ver menú
               </a>
-              {carritoWhatsappActivo && (
-                <button
-                  type="button"
-                  className="button-secondary hero-order-button"
-                  onClick={() => setCarritoAbierto(true)}
-                >
-                  <i className="bi bi-basket2-fill" aria-hidden="true"></i>
-                  Pedir ahora
-                </button>
-              )}
+              
+            
             </div>
 
             <div className="hero-tags" aria-label="Beneficios">
