@@ -119,28 +119,6 @@
   font: inherit;
   font-weight: 800
 }
-.product-modal-conditions {
-  display: grid;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: var(--color-border);
-  border: 1px solid var(--color-border)
-}
-.product-modal-conditions h3 {
-  margin: 0;
-  color: var(--color-secondary);
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase
-}
-.product-modal-conditions p {
-  color: rgba(255, 255, 255, 0.74);
-  font-size: 0.92rem;
-  line-height: 1.55
-}
 .reserva-form input:focus-visible,
 .reserva-form textarea:focus-visible,
 .reserva-form button:focus-visible,
@@ -153,7 +131,6 @@
 .producto-card-main:focus-visible,
 .producto-add-cart:focus-visible,
 .producto-card:focus-visible,
-.promo-button:focus-visible,
 .button-primary:focus-visible,
 .button-secondary:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--color-primary), white 25%);

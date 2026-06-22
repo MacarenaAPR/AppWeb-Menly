@@ -191,9 +191,8 @@
     border: 0;
     background: rgba(0, 0, 0, 0.48);
   }
-  .button-primary,
-  .button-secondary,
-  .promo-button {
+.button-primary,
+  .button-secondary {
     max-width: 100%;
     min-height: 42px;
     padding: 10px 14px;
@@ -250,14 +249,12 @@
     overflow: hidden;
   }
 
-  .promo-label,
   .promo-tag {
     padding: 8px 12px;
     border-radius: 999px;
     font-size: 0.82rem;
   }
 
-  .promo-carousel,
   .featured-carousel {
     gap: 12px;
     padding: 8px;
@@ -268,21 +265,10 @@
     scroll-snap-type: x mandatory;
   }
 
-  .promo-slide {
-    grid-template-columns: minmax(94px, 34%) minmax(0, 1fr);
-    gap: 12px;
-    align-items: stretch;
-    width: 100%;
-    max-width: 100%;
-    min-width: 100%;
-  }
-
-  .promo-slide-image,
   .featured-slide-image {
     border-radius: 14px;
   }
 
-  .promo-slide-image img,
   .featured-slide-image img {
     width: 100%;
     height: 100%;
@@ -292,19 +278,6 @@
     border-radius: 13px;
   }
 
-  .promo-slide-content {
-    min-width: 0;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .promo-item h2 {
-    font-size: clamp(1.1rem, 5.4vw, 1.55rem);
-    line-height: 1.05;
-    
-  }
-
-  .promo-item p,
   .promo-conditions,
   .producto-card p {
     display: -webkit-box;
@@ -313,21 +286,13 @@
     line-height: 1.35;
   }
 
-  .promo-item p,
   .promo-conditions {
     -webkit-line-clamp: 2;
     font-size: clamp(0.78rem, 2.7vw, 0.9rem);
   }
 
-  .promo-item strong,
   .promo-item-small strong {
     font-size: clamp(1.2rem, 5.2vw, 1.65rem);
-  }
-
-  .promo-slide-content .promo-button {
-    align-self: flex-start;
-    min-height: 38px;
-    padding: 9px 12px;
   }
 
   .featured-slide {
@@ -843,10 +808,6 @@
     flex: 1 1 140px;
   }
 
-  .promo-slide {
-    min-height: 170px;
-  }
-
   .menu-tabs {
     display: flex;
   }
@@ -884,77 +845,11 @@
   }
 }
 @media (max-width: 768px) {
-  .promo-card-large {
-    padding: 14px;
-    border-radius: 20px;
-  }
-
-  .promo-card-large .promo-slide {
-    grid-template-columns: 1fr;
-    gap: 18px;
-    min-height: 0;
-    padding: 14px;
-  }
-
-  .promo-card-large .promo-slide-image,
-  .promo-card-large .promo-slide-image img {
-    min-height: 220px;
-  }
-
-  .promo-card-large .promo-slide-image img {
-    -webkit-mask-image:
-      linear-gradient(
-        to bottom,
-        black 0%,
-        black 54%,
-        rgba(0, 0, 0, 0.88) 70%,
-        rgba(0, 0, 0, 0.42) 88%,
-        transparent 100%
-      );
-    mask-image:
-      linear-gradient(
-        to bottom,
-        black 0%,
-        black 54%,
-        rgba(0, 0, 0, 0.88) 70%,
-        rgba(0, 0, 0, 0.42) 88%,
-        transparent 100%
-      );
-  }
-
-  .promo-card-large .promo-slide-image::after {
-    background:
-      linear-gradient(
-        to bottom,
-        transparent 0%,
-        transparent 48%,
-        var(--promo-overlay-soft, color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 18%, transparent)) 76%,
-        var(--promo-overlay-color, color-mix(in srgb, var(--color-canvas, var(--color-bg)) 82%, var(--color-accent, var(--color-primary)) 18%)) 100%
-      );
-    opacity: 0.82;
-  }
-
   .promo-card-large .promo-slide-image.uses-fallback-image img {
     -webkit-mask-image: none;
     mask-image: none;
   }
 
-  .promo-card-large .promo-slide-content {
-    padding: 0 4px 4px;
-  }
-
-  .promo-card-large .promo-item h2 {
-    max-width: 100%;
-    font-size: clamp(2rem, 10vw, 3rem);
-  }
-
-  .promo-card-large .promo-item strong {
-    font-size: clamp(1.7rem, 8vw, 2.4rem);
-  }
-
-  .promo-card-large .promo-conditions {
-    grid-column: 1;
-  }
 }
 @media (max-width: 800px) {
   .page-shell .site-header {

@@ -28,12 +28,6 @@
   overflow: hidden;
   box-sizing: border-box;
 }
-.promo-card-large {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 0;
-  align-items: center;
-}
 .promo-card-small {
   display: grid;
   gap: 0;
@@ -41,27 +35,10 @@
   grid-template-rows: auto minmax(0, 1fr);
   align-items: center;
 }
-.promo-card-small .promo-button {
-  width: 100%;
-  box-sizing: border-box;
-}
-.promo-card-large .promo-carousel,
 .promo-card-small .featured-carousel {
   align-self: center;
 }
-.promo-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 24px;
-  border-radius: 999px;
-  text-decoration: none;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-}
-
-.promo-button,.secondary {
+.secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -72,42 +49,19 @@
   font-weight: 700;
   cursor: pointer;
 }
-.button-secondary, .promo-button {
+.button-secondary {
   background: var(--bg-color-btn1);
   border: 1px solid var(--border-color-btn1);
   color: var(--text-color-btn1);
 }
-.promo-slide-content .promo-button {
-  max-width: 100%;
-  padding-inline: 20px;
-  white-space: nowrap;
-}
-
-.promo-carousel {
-  display: flex;
-  
-  
-  border-radius: 24px;
-  background: var(--color-secondary);
-  border: 1px solid var(--color-primary);
-}
-.promo-carousel::-webkit-scrollbar,
 .featured-carousel::-webkit-scrollbar {
   display: none;
 }
-.promo-slide-image,
 .featured-slide-image {
   overflow:contain;
   border-radius: 18px;
   background: var(--color-surface);
 }
-.promo-slide-image {
-  border: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.promo-slide-image img,
 .featured-slide-image img {
   width: 100%;
   height: 100%;
@@ -118,33 +72,12 @@
   display: block;
   border-radius: 15px;
 }
-.promo-slide-content {
-  display: flex;
-  min-width: 0;
-  overflow: hidden;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 10px;
-}
-
-.promo-item,
 .promo-item-small {
   display: grid;
   gap: 1px;
   text-align: left;
   min-width: 0;
 }
-.promo-item h2 {
-  font-size: clamp(1.7rem, 2.8vw, 2.5rem);
-  line-height: 1.05;
-  overflow-wrap: break-word;
-  color: var(--color-text-promociones-destacadas-h2);
-}
-.promo-item p {
-  color: var(--color-text-secondary);
-}
-.promo-item strong,
 .promo-item-small strong {
   color: var(--color-text-destacado);
   font-size: var(--text-size-destacados);
@@ -191,10 +124,6 @@
   font-weight: 700;
   font-size: 0.9rem;
 }
-.promo-add-cart,
-.featured-add-cart {
-  width: fit-content;
-}
 .page-shell .promo-card {
   min-width: 0;
   border: 1px solid var(--landing-border-color);
@@ -202,12 +131,7 @@
   background: var(--landing-bg-section);
   box-shadow: 0 16px 34px color-mix(in srgb, var(--landing-text-main) 9%, transparent);
 }
-.page-shell .promo-card-large .promo-slide {
-  min-height: 290px;
-}
-
-.button-secondary,
-.promo-button{
+.button-secondary {
   border: 1px solid color-mix(in srgb, var(--color-accent, var(--color-primary)) 62%, transparent);
   background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 72%, transparent);
   color: var(--color-text-display, var(--color-text-primary));
@@ -225,7 +149,6 @@
   justify-content: space-between;
   margin-bottom: 12px;
 }
-.promo-label,
 .promo-tag {
   display: inline-flex;
   border-radius: 10px;
@@ -238,7 +161,6 @@
   text-transform: none;
 }
 
-.promo-carousel,
 .featured-carousel {
   display: flex;
   overflow-x: auto;
@@ -251,33 +173,6 @@
   gap: 14px;
   padding: 0;
   background: transparent;
-}
-.promo-slide {
-  flex: 0 0 100%;
-  width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-  gap: 10px;
-  align-items: center;
-  scroll-snap-align: center;
-  min-width: 0;
-  box-sizing: border-box;
-  min-height: 348px;
-  border: 1px solid var(--color-border-accent, var(--color-border));
-  border-radius: 18px;
-  background: linear-gradient(135deg, var(--color-accent-secondary, var(--color-secondary)), var(--color-accent, var(--color-primary)));
-  color: var(--color-text-on-accent, #fff);
-  overflow: hidden;
-}
-.promo-slide-image img {
-  height: 100%;
-  object-fit: cover;
-}
-.promo-slide .promo-item h2,
-.promo-slide .promo-item p,
-.promo-slide .promo-conditions,
-.promo-slide .promo-item strong {
-  color: var(--color-text-on-accent, #fff);
 }
 .promo-item-small {
   padding: 10px 20px;
@@ -445,113 +340,9 @@
   font-size: 1.12rem;
   font-weight: 950;
 }
-.featured-carousel .featured-add-cart {
-  align-self: end;
-  justify-content: center;
-  width: 100%;
-  min-height: 42px;
-  margin-top: 8px;
-  padding: 10px 12px;
-}
-.promo-card-large .promo-card-header {
-  margin-bottom: 16px;
-}
-.promo-card-large .promo-carousel {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  gap: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  border: 0;
-  border-radius: 22px;
-  background: transparent;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-.promo-card-large .promo-carousel::-webkit-scrollbar {
-  display: none;
-}
-.promo-card-large .promo-slide {
-  position: relative;
-  flex: 0 0 100%;
-  display: grid;
-  grid-template-columns: minmax(220px, 56%) minmax(220px, 44%);
-  
-  align-items: stretch;
-  min-height: 320px;
-  
-  background:
-    linear-gradient(120deg, color-mix(in srgb, var(--color-canvas, var(--color-bg)) 76%, transparent), transparent 56%),
-    radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--color-accent, var(--color-primary)) 32%, transparent), transparent 36%),
-    linear-gradient(135deg, var(--color-surface-strong, var(--color-surface)), color-mix(in srgb, var(--color-accent, var(--color-primary)) 28%, var(--color-canvas, var(--color-bg))));
-  color: var(--color-text-display, var(--color-text-primary));
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 10%, transparent);
-  overflow: hidden;
-  scroll-snap-align: start;
-}
-.promo-card-large .promo-slide::after {
-  display: none;
-}
-.promo-card-large .promo-slide-image {
-  position: relative;
-  z-index: 1;
-  min-height: 320px;
-  height: 100%;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0 !important;
-  background: var(--color-surface-strong, var(--color-surface));
-  box-shadow: none;
-}
-.promo-card-large .promo-slide-image img {
-  width: 100%;
-  height: 100%;
-  max-height: none;
-  min-height: 320px;
-  display: block;
-  border-radius: 0;
-  object-position: center;
-  -webkit-mask-image:
-    linear-gradient(
-      to right,
-      black 0%,
-      black 45%,
-      rgba(0, 0, 0, 0.95) 60%,
-      rgba(0, 0, 0, 0.75) 75%,
-      rgba(0, 0, 0, 0.35) 90%,
-      transparent 100%
-    );
-  mask-image:
-    linear-gradient(
-      to right,
-      black 0%,
-      black 45%,
-      rgba(0, 0, 0, 0.95) 60%,
-      rgba(0, 0, 0, 0.75) 75%,
-      rgba(0, 0, 0, 0.35) 90%,
-      transparent 100%
-    );
-}
 .promo-card-large .promo-slide-image.uses-fallback-image {
   display: grid;
   place-items: center;
-}
-.promo-card-large .promo-slide-image::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(
-      to right,
-      transparent 0%,
-      transparent 40%,
-      var(--promo-overlay-soft, color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 18%, transparent)) 70%,
-      var(--promo-overlay-color, color-mix(in srgb, var(--color-canvas, var(--color-bg)) 82%, var(--color-accent, var(--color-primary)) 18%)) 100%
-    );
-  pointer-events: none;
-  opacity: 0.88;
 }
 .promo-card-large .promo-slide-image.uses-fallback-image::after {
   display: none;
@@ -564,84 +355,11 @@
   -webkit-mask-image: none;
   mask-image: none;
 }
-.promo-card-large .promo-slide-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-
-  min-width: 0;
-  padding: clamp(18px, 3vw, 32px);
-  overflow: visible;
-}
-.promo-card-large .promo-item {
-  gap: 14px;
-}
-.promo-card-large .promo-item h2 {
-  max-width: 100%;
-  color: var(--color-text-display, var(--color-text-primary));
-
-  line-height: 1;
-  letter-spacing: 0;
-  text-wrap: balance;
-}
-.promo-card-large .promo-item p {
-  max-width: 42ch;
-  margin: 0;
-  color: var(--color-text-muted, var(--color-text-secondary));
-  font-size: clamp(0.95rem, 1.2vw, 1.08rem);
-  line-height: 1.6;
-}
-.promo-card-large .promo-item strong {
-  color: var(--color-accent, var(--color-primary));
-  font-family: var(--font-family-base);
-
-  font-weight: 950;
-  line-height: 1;
-  text-shadow: 0 12px 30px color-mix(in srgb, var(--color-accent, var(--color-primary)) 26%, transparent);
-}
-.promo-card-large .promo-button,
-.promo-card-large .promo-add-cart {
-  min-height: 44px;
-  padding: 12px 18px;
-}
-.promo-card-large .promo-button {
-  border: 1px solid transparent;
-  background: linear-gradient(135deg, var(--color-accent, var(--color-primary)), var(--color-accent-secondary, var(--color-secondary)));
-  color: var(--color-text-on-accent, #fff);
-  box-shadow: 0 14px 32px color-mix(in srgb, var(--color-accent, var(--color-primary)) 24%, transparent);
-}
-.promo-card-large .promo-add-cart {
-  border-color: color-mix(in srgb, var(--color-accent, var(--color-primary)) 56%, transparent);
-  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 76%, transparent);
-  color: var(--color-text-display, var(--color-text-primary));
-}
-.promo-card-large .promo-conditions {
-  position: relative;
-  z-index: 1;
-  display: block;
-  align-self: stretch;
-  max-width: 100%;
-  margin: 0;
-  padding: 0;
-  color: var(--color-text-muted, var(--color-text-secondary));
-}
-.promo-card-large .promo-conditions small {
-  display: block;
-  font-size: 0.84rem;
-  font-weight: 700;
-  line-height: 1.45;
-}
 
 .page-shell .page-content > .order-modes {
   display: none;
 }
 
-.page-shell .promo-card-large {
-  display: none;
-}
 .page-shell .promo-card-small {
   width: 100%;
   padding: 0;
@@ -759,8 +477,7 @@
   color: var(--highlight-card-text);
   background: transparent;
 }
-.page-shell .featured-carousel .promo-item-small p,
-.page-shell .featured-add-cart {
+.page-shell .featured-carousel .promo-item-small p {
   display: none;
 }
 .page-shell .featured-carousel .promo-item-small h3,

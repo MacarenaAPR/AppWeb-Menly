@@ -6,8 +6,7 @@
   .hero-panel,
   .promo-panel,
   .gallery-grid,
-  .product-modal,
-  .promo-slide {
+  .product-modal {
     grid-template-columns: 1fr;
   }
 
@@ -52,23 +51,9 @@
     min-width: 0;
   }
 
-  .promo-slide {
-    grid-template-columns: minmax(260px, 48%) minmax(0, 1fr);
-  }
-
-  .promo-item h2 {
-    font-size: clamp(1.6rem, 3vw, 2.2rem);
-    line-height: 1;
-  }
-
-  .promo-item p,
   .promo-conditions {
     font-size: 0.9rem;
     line-height: 1.35;
-  }
-
-  .promo-item strong {
-    font-size: clamp(1.5rem, 3vw, 2rem);
   }
 
   .featured-slide {
@@ -118,17 +103,6 @@
   }
 
 
-}
-@media (max-width: 900px) {
-  .promo-card-large .promo-slide {
-    grid-template-columns: minmax(190px, 50%) minmax(0, 1fr);
-    min-height: 320px;
-  }
-
-  .promo-card-large .promo-slide-image,
-  .promo-card-large .promo-slide-image img {
-    min-height: 260px;
-  }
 }
 @media (max-width: 1060px) {
   .page-shell .site-header {

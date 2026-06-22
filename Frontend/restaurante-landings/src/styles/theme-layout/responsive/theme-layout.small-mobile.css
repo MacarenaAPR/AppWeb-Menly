@@ -10,12 +10,7 @@
 
 
   .hero-actions,
-  .promo-slide,
   .gallery-grid {
     grid-template-columns: 1fr;
-  }
-
-  .promo-slide-image img {
-    aspect-ratio: 16 / 10;
   }
 }

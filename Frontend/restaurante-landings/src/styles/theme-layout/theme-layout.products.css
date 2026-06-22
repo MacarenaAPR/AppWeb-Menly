@@ -64,24 +64,20 @@
 }
 .button-primary,
 .button-secondary,
-.promo-button,
 .producto-add-cart {
   border-radius: 999px;
   font-weight: 900
 }
-.promo-item h2,
 .promo-item-small h3,
 .producto-card h3 {
   color: var(--color-text-display, var(--color-text-primary));
   letter-spacing: 0
 }
-.promo-item p,
 .promo-conditions,
 .promo-item-small p,
 .producto-card p {
   color: var(--color-text-muted, var(--color-text-secondary))
 }
-.promo-item strong,
 .promo-item-small strong,
 .producto-head span:not(.producto-category) {
   color: var(--color-accent, var(--color-primary));
@@ -116,7 +112,6 @@
   color: var(--color-text-display, var(--color-text-primary))
 }
 .producto-add-cart:hover,
-.promo-button:hover,
 .button-secondary:hover {
   background: var(--color-accent, var(--color-primary));
   color: var(--color-text-on-accent, #fff)
