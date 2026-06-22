@@ -155,9 +155,12 @@
   border: 1px solid var(--reservation-card-color-borde);
   border-radius: 18px;
   color: #ffffff;
-  background:var(--reservation-card-color-bg),var(--img-principal-base-restaurante);
+  background:
+    var(--landing-reservation-overlay, linear-gradient(rgba(18, 10, 6, 0.26), rgba(18, 10, 6, 0.76))),
+    var(--about-bg, var(--img-principal-base-restaurante, none));
   background-position: center;
   background-size: cover;
+  background-repeat: no-repeat;
   box-shadow: var(--reservation-card-color-box-shadow);
   overflow: hidden
 }
