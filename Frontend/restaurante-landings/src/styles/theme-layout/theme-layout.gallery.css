@@ -71,7 +71,7 @@
 .gallery-panel {
   order: 5;
   display: grid;
-  gap: 24px;
+  gap: 10px;
   padding: clamp(18px, 3vw, 28px);
 }
 .gallery-grid {
@@ -100,11 +100,12 @@
   background: transparent;
 }
 .page-shell .gallery-panel h2 {
-  margin: 0 0 18px;
-  color: var(--landing-title-color);
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  font-family: var(--landing-font-display);
-  text-align: center;
+  margin: 0 0 0px;
+  color: var(--galeria-title-text-color);
+  font-size: var(--galeria-title-text-font-size);
+  font-family: var(--galeria-title-text-font-family);
+  text-align: start;
+  letter-spacing: var(--galeria-title-text-letter-spacing);
 }
 .page-shell .gallery-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));

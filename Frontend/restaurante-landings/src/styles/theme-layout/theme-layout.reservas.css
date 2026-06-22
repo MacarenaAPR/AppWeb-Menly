@@ -372,7 +372,7 @@
 }
 .about-panel {
   padding: 28px 10px 0;
-  border-top: 1px solid var(--landing-border-color)
+  border-top: 1px solid var(--about-panel-color-border)
 }
 .about-panel-heading {
   display: grid;
@@ -380,7 +380,7 @@
   align-items: center;
   gap: 24px;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--landing-border-color)
+  border-bottom: 1px solid var(--about-panel-color-border)
 }
 .about-panel-heading img {
   width: 112px;
@@ -391,35 +391,41 @@
 }
 .about-panel h2 {
   margin: 0 0 8px;
-  color: var(--landing-title-color);
-  font-family: var(--landing-font-display);
-  font-size: 1.7rem
+  color: var(--about-title-text-color);
+  font-family: var(--about-title-text-font-family);
+  font-size: var(--about-title-text-font-size);
+  text-align: start;
 }
 .about-panel p {
   margin: 0;
-  color: var(--landing-text-muted);
-  line-height: 1.45
+  font-family: var(--about-parrafo-text-font-family);
+  color: var(--about-parrafo-text-color);
+  line-height: 1.45;
+  text-align: start;
 }
 .about-panel-details {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
-  padding-top: 18px
+  padding-top: 18px;
+  text-align: start;
 }
 .about-panel-details article {
   min-width: 0
 }
 .about-panel-details h3 {
   margin: 0 0 6px;
-  color: var(--landing-title-color);
-  font-size: 0.78rem;
-  text-transform: uppercase
+  color: var(--about-subtitle-text-color);
+  font-size:var(--about-subtitle-text-font-size);
+  text-transform: uppercase;
+  text-align: start;
 }
 .about-panel-details p,
 .about-panel-details a {
-  color: var(--landing-text-muted);
-  font-size: 0.7rem;
-  line-height: 1.4
+  color: var(--about-parrafo-details-color);
+  font-size:var(--about-parrafo-details-font-size);
+  line-height: 1.4;
+  text-align: start;
 }
 .about-panel .social-links {
   display: flex;
@@ -431,8 +437,8 @@
   height: 34px;
   place-items: center;
   border-radius: 50%;
-  color: var(--btn-text-carrito);
-  background: var(--btn-background-carrito);
+  color: var(--about-social-link-color);
+  background: var(--about-social-link-bg);
   font-size: 1rem;
   text-decoration: none
 }

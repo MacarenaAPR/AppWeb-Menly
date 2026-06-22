@@ -766,13 +766,12 @@
 .page-shell .featured-carousel .promo-item-small h3,
 .page-shell .featured-carousel .promo-item-small strong {
   margin: 0;
-  font-family: var(--landing-font-body);
-  font-size: 1rem;
-  font-weight: 900;
+  font-family: var(--font-family-base);
+  font-size: 1.2rem;
+  font-weight: 200;
   text-shadow: 0 2px 5px rgba(0, 0, 0, 0.65);
 }
 .page-shell .featured-carousel .promo-item-small strong {
-  font-size: 1.5rem;
   white-space: nowrap;
 }
 .commercial-badge {

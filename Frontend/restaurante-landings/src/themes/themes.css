@@ -69,65 +69,74 @@
     --hero-badge-image-position: center;
     --hero-badge-image-repeat: no-repeat
 }
-/* =======================================================
-   THEME 1
-======================================================= */
 
 /* =======================================================
    THEME 9
 ======================================================= */
 .theme_9 {
-    /*base*/
-    /*BTN BUTTON PRIMARY*/
-    --bg-color-primary:#BF2220;
-    --text-color-primary:#F5F5F5;
-    --border-color-primary:#ffff;
-    --box-shadow-color-primary:#fff;
-    /*BTN BUTTON Secondary*/
-    --bg-color-secondary:#BF2220;
-    --text-color-secondary:#F5F5F5;
-    --border-color-secondary:#ffff;
-    --box-shadow-color-secondary:#fff;
-    /*Landings general*/
-    --bg-general:#090909;
-    --text-color-general:#ffff;
-    --font-family-general:arial;
+    /*COLORES*/
+    --color-uno:#ffff;
+    --color-dos:#FFBC38;
+    --color-tres:#BF2220;
+    --color-cuatro:#202020;
+    --color-cinco:#090909;
+    /*font family*/
+    --font-family-general:"Arsenal SC";
     --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
     
+    /*base*/
+    /*BTN BUTTON PRIMARY*/
+    --bg-color-primary:var(--color-cinco);
+    --text-color-primary:var(--color-dos);
+    --border-color-primary:var(--color-dos);
+    --box-shadow-color-primary:#000000;
+    
+    /*BTN BUTTON Secondary*/
+    --bg-color-secondary:var(--color-dos);
+    --text-color-secondary:var(--color-cuatro);
+    --border-color-secondary:var(--color-dos);
+    --box-shadow-color-secondary:#000000;
+    
+    /*Landings general*/
+    --bg-general:var(--color-cinco);
+    --text-color-general:var(--color-uno);
+    
     /*site-header*/
-    --bg-general-site-header:#bf2220;
-    --color-border-bottom-header:#909090;
-    --color-text-header-social-span:#fff;
-    --bg-header-social:#202020;
-    --color-text-header-social-a:#fff;
-    --color-text-hover-header:#202020;
-    --color-text-brand-name:#fff;
+    --bg-general-site-header:var(--color-tres);
+    --color-border-bottom-header:var(--color-cuatro);
+    --color-text-header-social-span:var(--color-uno);
+    --bg-header-social:var(--color-cuatro);
+    --color-text-header-social-a:var(--color-uno);
+    --color-text-hover-header:var(--color-cuatro);
+    --color-text-brand-name:var(--color-uno);
     --size-text-header: 1.25rem;
     --letter-spacing-header:0.1em;
-    --font-family-header: "Bebas Neue", "Arial Black", system-ui, sans-serif;
-    /*CART-trigger carrito header*/
-    --bg-color-strong-cart-trigger:#FFBC38;
+    --font-family-header: var(--font-family-base);
     
-    --bg-color-cart-trigger:#FFBC38;
-    --border-color-cart-trigger:#FFBC38;
-    --color-text-cart-trigger:#202020;
+    /*CART-trigger carrito header*/
+    --bg-color-strong-cart-trigger:var(--color-dos);
+    --bg-color-cart-trigger:var(--color-dos);
+    --border-color-cart-trigger:var(--color-dos);
+    --color-text-cart-trigger:var(--color-cuatro);
     --shadow-cart-trigger:0 10px 24px rgba(0, 0, 0, 0.7);
     
     /*HERO*/
     /*hero-panel h1*/
     --font-size-h1-hero-panel:clamp(2.4rem, 4.5vw, 4.6rem);
-    --color-text-h1-hero-panel:#bf2220; 
+    --color-text-h1-hero-panel:var(--color-tres); 
     --letter-spacing-h1-hero-panel: 0.03em;
     --text-shadow-h1-hero-panel: 0 4px 4px #303030;
     --transform-text-h1-hero-panel:perspective(1000px) rotateZ(-3deg);
+    
     /*hero panel P*/
-    --color-text-p-hero-panel:#ffff;
+    --color-text-p-hero-panel:var(--color-uno);
     --font-size-p-hero-panel:clamp(1rem, 1.12vw, 1.04rem);
     --font-family-p-hero-panel:arial;
+    
     /*hero-theme-badge*/    
     --hero-badge-image: url("../assets/brushes/theme-9-hero-badge-brush.png");
     --hero-badge-background: transparent;
-    --hero-badge-text: #ffffff;
+    --hero-badge-text: var(--color-uno);
     --hero-badge-shadow: 0 4px 4px #202020;
     --hero-badge-rotate: -2.5deg;
     --hero-badge-radius: 0;
@@ -138,37 +147,83 @@
     --hero-badge-font-size: 1.5rem;
     --hero-badge-font-weight: 900;
     --hero-badge-transform:perspective(1000px) rotateZ(-4deg);
+    
     /*tags hero*/
-    --color-text-tags-span:#ffbc38;
+    --color-text-tags-span:var(--color-dos);
     --font-family-tags-span:arial;
     --font-size-tags-span:clamp(0.66rem, 0.92vw, 0.84rem);
+    
     /*PEDIDOS YA*/
     --color-text-partner-now:#fff;
     --color-bg-btn-pedidosya: rgba(255, 0, 0, 0.829);
-    --color-bg-btn-pedidosya-hover: #c90024;
+    --color-bg-btn-pedidosya-hover: var(--color-tres);
     --color-text-btn-pedidosya: #f5f5f5;
 
     /*destacados y promos*/
-    --color-svg-promo-tag:#ffbc38;
-    --color-text-promo-tag:#bf2220;
-    --font-family-promo-tag:arial;
-    --font-size-promo-tag:0.8rem;
+    --color-svg-promo-tag:var(--color-dos);
+    --color-text-promo-tag:var(--color-tres);
+    --font-family-promo-tag:var(--font-family-general);
+    --font-size-promo-tag:1rem;
+    
     /*commercial-badge*/
-    --bg-color-commercial-badge:#bf2220;
-    --color-text-commercial-badge:#fff;
+    --bg-color-commercial-badge:var(--color-tres);
+    --color-text-commercial-badge:var(--color-uno);
+    
     /* PRODUCTOS */
-    --product-card-background: #0f0f0f;
-    --product-card-border: #202020;
-    --product-card-text: #fff;
-    --product-card-price: #ffbc38;
+    --product-card-background: var(--color-cuatro);
+    --product-card-border: var(--color-cuatro);
+    --product-card-text: var(--color-uno);
+    --product-card-price: var(--color-dos);
+    --product-card-font-size-title:1rem;
+    --product-card-font-size-price:1.3rem;
+    /*btn agregar al carro*/
+    --btn-background-carrito: var(--color-dos);
+    --btn-borde-carrito: var(--color-dos);
+    --btn-text-carrito:var(--color-cinco);
+
+    /*MENU-SECTION*/
+    --bg-color-menu-wrapper:linear-gradient(
+                                            150deg,
+                                            rgba(255, 255, 255, 0.2) 0%,
+                                            #090909 25%,
+                                            #090909 100%);
+    --border-color-menu-wrapper:var(--color-tres);
+    --border-radius-menu-wrapper:10px;
+    --box-shadow-menu-wrapper: 0 4px 6px 0 rgba(22, 22, 22, 0.8);
+    --color-text-title-menu:var(--color-uno);
+    --letter-spacing-menu:7px;
+    --font-size-text-title-menu:clamp(2rem, 4vw, 3.4rem);
+    
+    /*menu-tab*/
+    --menu-tab-color-borde:var(--color-tres);
+    --menu-tab-color-bg:var(--color-tres);
+    --menu-tab-color-text:var(--color-uno);
+    --menu-tab-font-size-text:0.8rem;
 
     /*ABOUT BASE*/
-    --font-family-about-title:"Bebas Neue", "Arial Black", system-ui, sans-serif;
-    --font-family-about-parrafo:arial;
+    --about-panel-color-border:var(--color-cuatro);
+    --about-title-text-font-size:1.7rem;
+    --about-title-text-color:var(--color-tres);
+    --about-title-text-font-family:var(--font-family-base);
+    --about-parrafo-text-font-family:var(--font-family-general);
+    --about-parrafo-text-color:var(--color-uno);
+    --about-subtitle-text-font-size:1.2rem;
+    --about-subtitle-text-color:var(--color-dos);
+    --about-parrafo-details-font-size:0.9rem;
+    --about-parrafo-details-color:var(--color-uno);
+    --about-social-link-bg:var(--color-tres);
+    --about-social-link-color:var(--color-uno);
     /*SOCIAL ABOUT LINK*/
-    --border-color-social-hover:#bf2220;
-
+    --border-color-social-hover:var(--color-tres);
+    /*GALERIA */
+    --galeria-title-text-font-family:var(--font-family-base);
+    --galeria-title-text-color:var(--color-tres);
+    --galeria-title-text-letter-spacing:2px;
+    --galeria-title-text-font-size:1.8rem;
     
+
+
+    /*extrassssss */
     --img-principal-base-restaurante: none;
     --img-bg-formulario: linear-gradient(rgba(0,0,0,0.7), rgba(0, 0, 0, 0.11)), url(../assets/fondoFormulario/theme9.jpg);
     --img-bg-formulario-size: cover;
@@ -238,9 +293,6 @@
     --landing-title-color: var(--override-landing-title-color, var(--color-primary, #5b160d));
 
 
-
-    
-
     /* CATEGORÍAS */
     --category-background: var(--override-category-background, var(--color-primary));
     --category-border: var(--override-category-border, var(--color-primary));
@@ -251,7 +303,6 @@
     --category-active-border: var(--override-category-active-border, var(--color-secondary));
     --category-active-text: var(--override-category-active-text, var(--text-color-btn3, #ffffff));
 
-    
 
     /* MENÚ */
     --landing-bg-menu: var(--override-landing-bg-menu, var(--color-bg-info-grid, var(--color-primary, #5b160d)));

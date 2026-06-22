@@ -220,7 +220,8 @@
 .page-shell .producto-card h3 {
   margin: 0;
   color: var(--product-card-text);
-  font-size: 0.88rem;
+  font-size: var(--product-card-font-size-title);
+  font-family: var(--font-family-general);
   font-weight: 800;
   line-height: 1.25
 }
@@ -231,9 +232,10 @@
 }
 .page-shell .producto-head > span {
   display: block;
+  text-align: end;
   margin-top: 10px;
   color: var(--product-card-price);
-  font-size: 0.82rem;
+  font-size:var(--product-card-font-size-price);
   font-weight: 750
 }
 .page-shell .producto-card-actions {
