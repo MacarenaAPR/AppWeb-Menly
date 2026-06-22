@@ -232,7 +232,7 @@
                                                 #000000 0%,
                                                 #080808 40%,
                                                 #666666 85%,
-                                                #666666 100%
+                                                #666666 10%
                                             );
     --reservation-card-color-text:var(--color-uno);
     --reservation-card-color-box-shadow:0 2px 4px 0 var(--color-muted);
