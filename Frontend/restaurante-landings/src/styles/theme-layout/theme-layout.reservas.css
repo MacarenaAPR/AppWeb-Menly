@@ -155,7 +155,7 @@
   border: 1px solid var(--reservation-card-color-borde);
   border-radius: 18px;
   color: #ffffff;
-  background:var(--reservation-card-color-bg);
+  background:var(--reservation-card-color-bg),var(--img-principal-base-restaurante);
   background-position: center;
   background-size: cover;
   box-shadow: var(--reservation-card-color-box-shadow);
