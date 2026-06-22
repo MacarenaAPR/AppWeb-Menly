@@ -47,7 +47,7 @@
     --highlight-action-border: rgba(255, 255, 255, 0.7);
     --highlight-action-text: #ffffff;
     --gallery-lightbox-overlay: rgba(0, 0, 0, 0.88);
-    --landing-reservation-overlay: linear-gradient(rgba(151, 151, 151, 0.418), rgba(0, 0, 0, 0.808));
+    --landing-reservation-overlay: linear-gradient(rgba(151, 151, 151, 0.082), rgba(0, 0, 0, 0.938));
     --landing-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
     --landing-radius-large: 32px;
 
