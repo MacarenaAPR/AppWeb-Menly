@@ -76,7 +76,7 @@
 .promo-conditions,
 .promo-item-small p,
 .producto-card p {
-  color: var(--color-text-muted, var(--color-text-secondary))
+ color:var(--color-muted)
 }
 .promo-item-small strong,
 .producto-head span:not(.producto-category) {
@@ -114,7 +114,7 @@
 .producto-add-cart:hover,
 .button-secondary:hover {
   background: var(--color-accent, var(--color-primary));
-  color: var(--color-text-on-accent, #fff)
+  color: var(--color-text-cart-trigger, #fff)
 }
 .productos-list {
   display: grid;

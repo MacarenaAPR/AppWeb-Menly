@@ -50,9 +50,9 @@
   cursor: pointer;
 }
 .button-secondary {
-  background: var(--bg-color-btn1);
-  border: 1px solid var(--border-color-btn1);
-  color: var(--text-color-btn1);
+  background: var(--bg-color-secondary);
+  border: 1px solid var(--border-color-secondary);
+  color: var(--text-color-secondary);
 }
 .featured-carousel::-webkit-scrollbar {
   display: none;
@@ -79,9 +79,9 @@
   min-width: 0;
 }
 .promo-item-small strong {
-  color: var(--color-text-destacado);
-  font-size: var(--text-size-destacados);
-  font-family: var(--font-family-precios-destacados);
+  color: var(--color-text-promo-tag);
+  font-size: var(--font-size-promo-tag);
+  font-family: var(--font-family-promo-tag);
 }
 .promo-conditions {
   grid-column: 1 / -1;
@@ -107,7 +107,7 @@
   min-width: 0;
 }
 .featured-slide-image {
-  border: 1px solid var(--color-border-2);
+  border: 1px solid var(--product-card-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -177,7 +177,7 @@
 .promo-item-small {
   padding: 10px 20px;
   border-radius:  0 0 18px 18px;
-  border: 1px solid var(--color-border-2);
+  border: 1px solid var(--product-card-border);
   background: transparent;
 }
 .order-modes {
@@ -185,15 +185,7 @@
   grid-template-columns: minmax(220px, 1.1fr) repeat(4, minmax(130px, 1fr));
   align-items: stretch;
   gap: 0;
-  border: 1px solid var(--color-border-accent, var(--color-border));
-  border-radius: 18px;
   overflow: hidden;
-  background:
-    var(--hero-overlay),
-    var(--img-principal-base-restaurante),
-    var(--color-surface-translucent, var(--color-surface));
-  background-size: cover;
-  background-position: center;
 }
 .order-modes > div,
 .order-modes article {
@@ -226,7 +218,7 @@
 }
 .order-modes small {
   margin-top: 4px;
-  color: var(--color-text-muted, var(--color-text-secondary));
+  color: var(--color-muted);
 }
 
 .featured-controls {
@@ -301,7 +293,6 @@
   height: 170px;
   border: 0;
   border-radius: 0;
-  background: var(--color-surface-strong, var(--color-surface));
 }
 .featured-carousel .featured-slide-image img {
   width: 100%;

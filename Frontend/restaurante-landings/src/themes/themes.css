@@ -29,7 +29,6 @@
     --category-text: #ffffff;
     --category-active-background: #f4a52f;
     --category-active-border: #f4a52f;
-    --category-active-text: #3b2308;
     --product-card-background: #f2dfc8;
     --product-card-border: rgba(91, 22, 13, 0.18);
     --product-card-text: #5b160d;
@@ -51,10 +50,10 @@
     --landing-reservation-overlay: linear-gradient(rgba(18, 10, 6, 0.26), rgba(18, 10, 6, 0.76));
     --landing-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
     --landing-radius-large: 32px;
-    --landing-font-display: var(--font-family-precios-destacados, Georgia, serif);
+
     --landing-font-body: var(--font-family-base, "Poppins", sans-serif);
     --hero-badge-background: var(--color-primary, #5b160d);
-    --hero-badge-text: var(--color-text-on-accent, #ffffff);
+    
     --hero-badge-shadow: 0 4px 4px rgba(0, 0, 0, 0.35);
     --hero-badge-rotate: -2deg;
     --hero-badge-radius: 999px;
@@ -80,6 +79,7 @@
     --color-tres:#BF2220;
     --color-cuatro:#202020;
     --color-cinco:#090909;
+    --color-muted:#b3b3b38e;
     /*font family*/
     --font-family-general:"Arsenal SC";
     --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
@@ -131,7 +131,7 @@
     /*hero panel P*/
     --color-text-p-hero-panel:var(--color-uno);
     --font-size-p-hero-panel:clamp(1rem, 1.12vw, 1.04rem);
-    --font-family-p-hero-panel:arial;
+    --font-family-p-hero-panel:var(--font-family-general);
     
     /*hero-theme-badge*/    
     --hero-badge-image: url("../assets/brushes/theme-9-hero-badge-brush.png");
@@ -150,7 +150,7 @@
     
     /*tags hero*/
     --color-text-tags-span:var(--color-dos);
-    --font-family-tags-span:arial;
+    --font-family-tags-span:var(--font-family-general);
     --font-size-tags-span:clamp(0.66rem, 0.92vw, 0.84rem);
     
     /*PEDIDOS YA*/
@@ -199,6 +199,10 @@
     --menu-tab-color-bg:var(--color-tres);
     --menu-tab-color-text:var(--color-uno);
     --menu-tab-font-size-text:0.8rem;
+    /*menu-tab-active*/
+    --menu-tab-active-color-borde:var(--color-cuatro);
+    --menu-tab-active-color-bg:var(--color-cuatro);
+    --menu-tab-active-color-tex:var(--color-uno);
 
     /*ABOUT BASE*/
     --about-panel-color-border:var(--color-cuatro);
@@ -222,57 +226,38 @@
     --galeria-title-text-color:var(--color-tres);
     --galeria-title-text-letter-spacing:2px;
     --galeria-title-text-font-size:1.8rem;
-    
-
-
+     /*RESERVACION Y SOLICITUDES ESPECIALES*/
+    --reservation-card-color-bg: linear-gradient(
+                                                180deg,
+                                                #000000 0%,
+                                                #080808 40%,
+                                                #666666 85%,
+                                                #666666 100%
+                                            );
+    --reservation-card-color-text:var(--color-uno);
+    --reservation-card-color-box-shadow:0 2px 4px 0 var(--color-muted);
+    --reservation-card-color-borde:var(--color-cuatro);
+    --reservation-action-card-color-bg:none;
+    --reservation-action-card-color-borde:var(--color-muted);
+    --reservation-action-card-color-text:var(--color-uno);
+    --reservation-action-card-color-box-shadow:var(--color-muted);
+    --action-card-i-color-bg:none;
+    --action-card-i-color-text:var(--color-uno);
     /*extrassssss */
     --img-principal-base-restaurante: none;
     --color-bg: var(--color-cinco);/*utilizado en background de landings en page shell*/
     --color-bg-primary: var(--color-tres); /*utilizado en footer como bg*/
-    
-    
-
-  
-    --color-text-info-grid-p: #f5f5f5;
-   
-    --bg-color-btn1: rgb(15, 15, 15);
-    --border-color-btn1: rgba(255, 0, 0, 0.3);
-    --text-color-btn1: #f5f5f5;
-
-
-    --bg-color-btn2: rgba(179, 0, 0, 0.829);
-    --text-color-btn2: #f5f5f5;
-    --bg-color-btn3: rgba(54, 0, 0, 0.829);
-    --text-color-btn3: #f5f5f5;
-    --bg-div-destacado: #070000;
-    --color-text-destacado: #ffd247;
-    --text-size-destacados: 2rem;
-    --font-family-precios-destacados: "Metal Mania", cursive, system-ui, sans-serif;
-    
-   
     --color-text-primary: #f5f5f5;
     --color-text-secondary: rgba(255, 255, 255, 0.781);
-    --color-surface: #0e0000;
-    --color-primary: #BF2220;
-    --color-secondary: #BF2220;
-    --color-border: rgba(255, 31, 31, 0.28);
-    --color-border-2: rgba(49, 21, 21, 0.568);
+    --color-surface:var(--color-cinco);
+    --color-primary: var(--color-tres);
+    --color-secondary: var(--color-tres);
+    --color-border: var(--color-cuatro);
+    --color-text-display: var(--color-uno);
+    --color-surface-translucent: rgba(73, 73, 73, 0.9);
+    --color-border-accent: rgba(27, 27, 27, 0.22);
+    --color-accent: var(--color-dos);
 
-    --color-text-display: #f7f4ee;
-    --color-text-muted: rgba(247, 244, 238, 0.72);
-    --color-surface-translucent: rgba(14, 15, 18, 0.9);
-    --color-border-accent: rgba(233, 179, 101, 0.22);
-    --color-accent: #d99035;
-    --color-accent-strong: #f2b35b;
-    --color-accent-secondary: #9f7b4b;
-    --hero-overlay: linear-gradient(90deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.66) 46%, rgba(0, 0, 0, 0.14));
-    --shadow-card: 0 22px 64px rgba(0, 0, 0, 0.34);
-    --promo-overlay-soft: color-mix(in srgb, var(--color-accent, var(--color-primary)) 18%, transparent);
-    --promo-overlay-color: color-mix(in srgb, var(--color-canvas, var(--color-bg)) 80%, var(--color-accent, var(--color-primary)) 20%)
-;
-    --color-surface-strong: #111317;
-    --color-text-on-accent: #160d04;
-    
 }
 /* =======================================================
    MAPEO PAGE SHELL
@@ -285,7 +270,7 @@
     --landing-text-main: var(--override-landing-text-main, var(--text-color-general, #32231f));
     --landing-text-muted: var(--override-landing-text-muted, var(--color-text-secondary, #715f58));
     --landing-border-color: var(--override-landing-border-color, var(--color-border, rgba(50, 35, 31, 0.18)));
-    --landing-font-display: var(--font-family-precios-destacados, Georgia, serif);
+    
     --landing-font-body: var(--font-family-base, "Poppins", sans-serif);
 
     /* HERO */
@@ -301,7 +286,7 @@
     /* CATEGORÍA ACTIVA */
     --category-active-background: var(--override-category-active-background, var(--color-secondary));
     --category-active-border: var(--override-category-active-border, var(--color-secondary));
-    --category-active-text: var(--override-category-active-text, var(--text-color-btn3, #ffffff));
+   
 
 
     /* MENÚ */

@@ -45,7 +45,7 @@
 }
 .cart-whatsapp-header span {
   color: var(--color-primary);
-  font-family: var(--font-family-precios-destacados);
+  font-family: var(--font-family-base);
   font-size: 1.5rem;
   font-weight: 800
 }
@@ -204,7 +204,7 @@
   border-radius: 999px;
   font-size: 0.78rem;
   background: var(--bg-color-strong-cart-trigger);
-  color: var(--color-text-on-accent, #fff)
+  color: var(--color-text-cart-trigger)
 }
 .page-shell .cart-trigger-header {
   min-width: auto;
