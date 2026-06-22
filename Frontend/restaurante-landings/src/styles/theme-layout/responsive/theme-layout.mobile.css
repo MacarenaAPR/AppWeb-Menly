@@ -30,9 +30,7 @@
   .menu-section,
   .cart-whatsapp-panel,
   .menu-bubble,
-  .reserve-wrapper,
   .gallery-panel,
-  .highlights-grid,
   .reserva-card {
     width: 100%;
     max-width: 100%;
@@ -360,31 +358,11 @@
   .promo-item-small h3 {
     font-size: clamp(1rem, 4vw, 1.25rem);
   }
-  .highlights-grid {
-    border-radius: 18px;
-  }
-
-  .about-card {
-    max-width: 100%;
-    text-align: left;
-  }
-
-  .about-card p,
-  .info-box p,
   .reserva-header p {
     font-size: clamp(0.84rem, 2.9vw, 0.95rem);
     line-height: 1.5;
   }
 
-  .info-grid {
-    gap: 10px;
-  }
-
-  .info-box {
-    align-items: flex-start;
-    gap: 8px;
-    text-align: left;
-  }
   .menu-section {
     gap: 12px;
   }
@@ -749,14 +727,6 @@
     grid-row: 2;
   }
 
-  .page-shell .quick-benefits {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: calc(100% - 28px);
-    margin-top: -24px;
-    border-radius: 18px;
-  }
-
   .page-shell .promo-panel,
   .page-shell .menu-wrapper,
   .reservation-showcase {
@@ -772,13 +742,8 @@
     padding-inline: 10px;
   }
 
-  .page-shell .action-cards,
-  .page-shell .location-card {
+  .page-shell .action-cards {
     grid-template-columns: 1fr;
-  }
-
-  .page-shell .restaurant-info-section {
-    min-height: 0;
   }
 
   .page-shell .gallery-grid {
@@ -801,28 +766,14 @@
     padding-bottom: 68px;
   }
 
-  .page-shell .footer-contact,
-  .page-shell .footer-social {
-    align-items: flex-start;
-    justify-content: flex-start;
-    text-align: left;
-  }
 }
 @media (max-width: 640px) {
-  .restaurant-info-section .about-summary {
-    padding: 22px 18px;
-  }
-
   .action-cards {
     grid-template-columns: 1fr;
   }
 
   .action-card {
     min-height: auto;
-  }
-
-  .location-card {
-    padding: 18px;
   }
 
   .landing-modal-backdrop {
@@ -890,20 +841,6 @@
   .hero-actions .button-primary,
   .hero-actions .button-secondary {
     flex: 1 1 140px;
-  }
-
-  .quick-benefits {
-    grid-template-columns: 1fr 1fr;
-    padding: 0;
-  }
-
-  .quick-benefits article {
-    min-height: 54px;
-    padding: 10px;
-  }
-
-  .quick-benefits span {
-    font-size: 0.78rem;
   }
 
   .promo-slide {

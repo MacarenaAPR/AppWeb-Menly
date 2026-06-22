@@ -211,10 +211,12 @@
     --about-subtitle-text-color:var(--color-dos);
     --about-parrafo-details-font-size:0.9rem;
     --about-parrafo-details-color:var(--color-uno);
+    
+    /*SOCIAL ABOUT LINK*/
     --about-social-link-bg:var(--color-tres);
     --about-social-link-color:var(--color-uno);
-    /*SOCIAL ABOUT LINK*/
     --border-color-social-hover:var(--color-tres);
+    
     /*GALERIA */
     --galeria-title-text-font-family:var(--font-family-base);
     --galeria-title-text-color:var(--color-tres);
@@ -225,14 +227,12 @@
 
     /*extrassssss */
     --img-principal-base-restaurante: none;
-    --img-bg-formulario: linear-gradient(rgba(0,0,0,0.7), rgba(0, 0, 0, 0.11)), url(../assets/fondoFormulario/theme9.jpg);
-    --img-bg-formulario-size: cover;
-    --color-bg: #090909;
-    --color-glow: rgba(255, 0, 0, 0.18);
-    --texture-bg: radial-gradient(circle,rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    --color-bg-primary: #BF2220;
-    --color-bg-secondary: rgba(255, 0, 0, 0.3);
-    --color-bg-info-grid: rgba(0, 0, 0, 0.82);
+    --color-bg: var(--color-cinco);/*utilizado en background de landings en page shell*/
+    --color-bg-primary: var(--color-tres); /*utilizado en footer como bg*/
+    
+    
+
+  
     --color-text-info-grid-p: #f5f5f5;
    
     --bg-color-btn1: rgb(15, 15, 15);

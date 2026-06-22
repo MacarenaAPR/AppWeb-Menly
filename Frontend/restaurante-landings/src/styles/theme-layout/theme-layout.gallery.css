@@ -48,22 +48,17 @@
 }
 /* Legacy: conservado para compatibilidad */
 .menu-wrapper,
-.highlights-grid,
-.gallery-panel,
-.reserve-wrapper {
+.gallery-panel {
   border: 1px solid var(--color-border-accent, var(--color-border));
   border-radius: 18px;
   background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 72%, transparent);
   box-shadow: var(--shadow-card, none);
 }
-.about-card h2,
 .gallery-panel h2,
 .reserva-header h2 {
   color: var(--color-text-display, var(--color-text-primary));
   letter-spacing: 0;
 }
-.about-card p,
-.info-box p,
 .gallery-empty,
 .reserva-header p {
   color: var(--color-text-muted, var(--color-text-secondary));

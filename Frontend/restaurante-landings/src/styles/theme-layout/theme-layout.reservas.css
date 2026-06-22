@@ -5,45 +5,10 @@
 /* Tarjetas de acción */
 /* Formularios */
 /* Información */
-.about-card,
-.info-box {
-  background: transparent;
-  border: none;
-  border-radius: 0
-}
-.about-card h2,
-.info-box h3 {
-  margin: 0;
-  color: var(--color-primary);
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase
-}
-.info-box p {
-  color: var(--color-text-info-grid-p);
-  line-height: 1.55;
-  margin: 4px 0 0;
-  font-size: 0.84rem
-}
-.info-box a {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--color-primary);
-  text-decoration: none;
-  font-size: 0.82rem
-}
 .reserva-section {
   display: grid
 }
-.reserva-card {
-  padding: 28px;
-  border-radius: 24px;
-  background-image:var(--img-bg-formulario);
-  background-position: center;
-  background-size: var(--img-bg-formulario-size);
-  border: 1px solid var(--color-border)
-}
+
 .reserva-header span {
   color: var(--color-primary);
   font-weight: 700;
@@ -98,36 +63,6 @@
   position: absolute
 }
 /* Legacy: conservado para compatibilidad */
-.page-shell .restaurant-info-section {
-  display: grid;
-  grid-template-columns: 1fr;
-  min-width: 0;
-  min-height: 520px;
-  border: 1px solid var(--landing-border-color);
-  border-radius: 22px;
-  background:
-    linear-gradient(
-      color-mix(in srgb, var(--landing-bg-card) 82%, transparent),
-      color-mix(in srgb, var(--landing-bg-card) 92%, transparent)
-    ),
-    var(--about-bg);
-  background-position: center;
-  background-size: cover;
-  overflow: hidden
-}
-.page-shell .about-summary {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: clamp(26px, 4vw, 48px)
-}
-.page-shell .about-summary h2 {
-  margin: 8px 0 14px;
-  color: var(--landing-text-main)
-}
-.page-shell .about-summary p {
-  color: var(--landing-text-muted)
-}
 .page-shell .action-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -145,47 +80,6 @@
 .page-shell .action-card small {
   color: inherit;
   opacity: 0.78
-}
-.page-shell .location-card {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  padding: 14px;
-  border-top: 1px solid var(--landing-border-color)
-}
-.page-shell .info-box {
-  border-color: var(--landing-border-color);
-  background: color-mix(in srgb, var(--landing-bg-card) 86%, transparent)
-}
-.restaurant-info-section {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
-  align-items: stretch;
-  gap: 0;
-  min-height: auto;
-  overflow: hidden;
-  border: 1px solid var(--color-border-accent, var(--color-border));
-  border-radius: 22px;
-  background:
-    linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--color-canvas, var(--color-bg)) 94%, transparent) 0%,
-      color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 86%, transparent) 56%,
-      color-mix(in srgb, var(--color-canvas, var(--color-bg)) 74%, transparent) 100%
-    ),
-    var(--about-bg),
-    var(--color-canvas, var(--color-bg));
-  background-position: center right;
-  background-size: cover;
-  background-repeat: no-repeat
-}
-.restaurant-info-section .about-summary {
-  max-width: none;
-  padding: clamp(24px, 4vw, 42px)
-}
-.restaurant-info-section .about-summary p {
-  max-width: 62ch;
-  margin-bottom: 0
 }
 .action-cards {
   display: grid;
@@ -238,65 +132,6 @@
   color: var(--color-text-muted, var(--color-text-secondary));
   font-size: 0.86rem;
   line-height: 1.45
-}
-.location-card {
-  display: grid;
-  gap: 0;
-  padding: clamp(20px, 3vw, 34px);
-  background: color-mix(in srgb, var(--color-canvas, var(--color-bg)) 78%, transparent);
-  border-left: 1px solid var(--color-border-accent, var(--color-border));
-  backdrop-filter: blur(3px)
-}
-.location-card .info-box {
-  align-items: flex-start;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--color-border-accent, var(--color-border))
-}
-.location-card .info-box:first-child {
-  padding-top: 0
-}
-.location-card .info-box:last-child {
-  padding-bottom: 0;
-  border-bottom: 0
-}
-.location-card .info-box a {
-  color: var(--color-accent, var(--color-primary));
-  font-weight: 800
-}
-.highlights-grid {
-  order: 3;
-  display: grid;
-  gap: 0;
-  overflow: hidden;
-  border-radius: 0;
-  background-repeat: no-repeat;
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
-  grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1.4fr);
-  min-height: 260px;
-  background:
-    var(--hero-overlay),
-    var(--about-bg);
-  background-position: center;
-  background-size: cover
-}
-.info-grid {
-  display: grid;
-  gap: 0;
-  background:var(--color-bg-info-grid);
-  border-top: 1px solid var(--color-border);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 18px
-}
-.info-box {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 14px;
-  align-items: center;
-  min-width: 0;
-  border-color: var(--color-border-accent, var(--color-border));
-  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 76%, transparent)
 }
 .page-shell .page-content > .reservation-showcase {
   order: 4

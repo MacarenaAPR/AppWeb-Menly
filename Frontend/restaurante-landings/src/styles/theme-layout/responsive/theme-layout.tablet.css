@@ -6,15 +6,11 @@
   .hero-panel,
   .promo-panel,
   .gallery-grid,
-  .info-grid,
   .product-modal,
   .promo-slide {
     grid-template-columns: 1fr;
   }
 
-  .info-grid {
-    gap: 18px;
-  }
 
   .product-modal {
     overflow-y: auto;
@@ -105,17 +101,6 @@
   }
 }
 @media (max-width: 900px) {
-  .restaurant-info-section {
-    grid-template-columns: 1fr;
-    border-radius: 18px;
-  }
-
-  .location-card {
-    border-left: 0;
-    border-top: 1px solid var(--color-border-accent, var(--color-border));
-  }
-}
-@media (max-width: 900px) {
   .page-content {
     width: min(100% - 24px, 1180px);
     gap: 18px;
@@ -123,14 +108,8 @@
 
   .promo-panel,
   .order-modes,
-  .highlights-grid,
   .landing-footer {
     grid-template-columns: 1fr;
-  }
-
-  .quick-benefits {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: -34px;
   }
 
   .order-modes article {
@@ -138,16 +117,7 @@
     border-top: 1px solid var(--color-border-accent, var(--color-border));
   }
 
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
 
-  .footer-contact,
-  .footer-social {
-    justify-content: flex-start;
-    align-items: flex-start;
-    text-align: left;
-  }
 }
 @media (max-width: 900px) {
   .promo-card-large .promo-slide {

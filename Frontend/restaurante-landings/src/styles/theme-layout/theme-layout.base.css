@@ -44,11 +44,6 @@ main {
   transform: scale(1.08)
 }
 
-.reserve-wrapper {
-  order: 4;
-  display: grid;
-  gap: 24px
-}
 .whatsapp-floating-btn {
   position: fixed;
   right: 20px;
