@@ -99,16 +99,18 @@ main {
 }
 
 .page-shell .button-primary {
-  background: var(--bg-color-primary);
-  color: var(--text-color-primary);
-  box-shadow:  0 2px 4px 0 var(--box-shadow-color-primary);
-  border: 1px solid var(--border-color-primary)
+  background: var(--btn-primary-color-bg);
+  color: var(--btn-primary-color-text);
+  box-shadow:  0 2px 4px 0 var(--btn-primary-color-box-shadow);
+  border: 1px solid var(--btn-primary-color-border);
+  font-family:var(--font-family-btns)
 }
 .page-shell .button-secondary {
-  background: var(--bg-color-secondary);
-  color: var(--text-color-secondary);
-  box-shadow:  0 2px 4px 0 var(--box-shadow-color-secondary);
-  border: 1px solid var(--border-color-secondary)
+  background: var(--btn-secondary-color-bg);
+  color: var(--btn-secondary-color-text);
+  box-shadow:  0 2px 4px 0 var(--btn-secondary-color-box-shadow);
+  border: 1px solid var(--btn-secondary-color-border);
+  font-family:var(--font-family-btns)
 }
 .restaurant-details-column {
   display: flex;

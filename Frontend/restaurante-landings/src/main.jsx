@@ -5,6 +5,7 @@ import './index.css'
 import './themes/themes.css'
 import './styles/theme-layout.css'
 import './themes/theme-1.css'
+import './themes/theme_8.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById("root")).render(

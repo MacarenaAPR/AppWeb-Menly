@@ -113,8 +113,12 @@
 }
 .producto-add-cart:hover,
 .button-secondary:hover {
-  background: var(--color-accent, var(--color-primary));
-  color: var(--color-text-cart-trigger, #fff)
+  background: var(--btn-secondary-hover-color-bg);
+  color: var(--color-text-cart-trigger)
+}
+.button-primary:hover {
+  background: var(--btn-primary-hover-color-bg);
+  color: var(--color-text-cart-trigger)
 }
 .productos-list {
   display: grid;

@@ -9,6 +9,7 @@ import { getSlugFromHostname } from "../utils/getSlugFromHostname";
 import { getOptimizedImageUrl } from "../utils/images";
 import { GiFireBowl } from "react-icons/gi";
 import { TiShoppingCart } from "react-icons/ti";
+import { MdOutlineShoppingBag } from "react-icons/md";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 const MENU_CACHE_TTL = 60 * 5 * 1000;
@@ -1071,31 +1072,7 @@ export default function Home() {
                   rel="noreferrer"
                   className="partner-pill pedidosya-pill"
                 >
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M7 8V6.5C7 3.9 9.1 2 12 2s5 1.9 5 4.5V8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M5 8h14l-1 13H6L5 8Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M13 10l-4 5h3l-1 4 4-5h-3l1-4Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-
+                  <MdOutlineShoppingBag />
                   PedidosYa
                 </a>
               </div>

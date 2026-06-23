@@ -50,9 +50,9 @@
   cursor: pointer;
 }
 .button-secondary {
-  background: var(--bg-color-secondary);
-  border: 1px solid var(--border-color-secondary);
-  color: var(--text-color-secondary);
+  background: var(--btn-secondary-color-bg);
+  border: 1px solid var(--btn-secondary-color-border);
+  color: var(--btn-secondary-color-text);
 }
 .featured-carousel::-webkit-scrollbar {
   display: none;

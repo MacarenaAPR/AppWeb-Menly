@@ -24,6 +24,11 @@
   color: var(--color-text-btn-pedidosya);
   transition: all 0.2s ease;
   min-height: 36px;
+  text-align: center;
+  align-items: center;
+  font-family: arial;
+  font-weight: 600;
+  gap:3px
 }
 
 
@@ -245,5 +250,4 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
-
 

@@ -80,19 +80,22 @@
     /*font family*/
     --font-family-general:"Arsenal SC";
     --font-family-base: "Cormorant Unicase", "Arial Black", system-ui, sans-serif;
-    
+    --font-family-btns:"Arsenal SC";
     /*base*/
     /*BTN BUTTON PRIMARY reserva*/
-    --bg-color-primary:var(--color-uno);
-    --text-color-primary:var(--color-seis);
-    --border-color-primary:var(--color-uno);
-    --box-shadow-color-primary:#000000;
+    --btn-primary-color-bg:var(--color-uno);
+    --btn-primary-color-text:var(--color-seis);
+    --btn-primary-color-border:var(--color-uno);
+    --btn-primary-color-box-shadow:#000000;
+    --btn-primary-hover-color-bg:var(--color-tres);
+    
     
     /*BTN BUTTON Secondary ver menu*/
-    --bg-color-secondary:var(--color-dos);
-    --text-color-secondary:var(--color-seis);
-    --border-color-secondary:var(--color-dos);
-    --box-shadow-color-secondary:#000000;
+    --btn-secondary-color-bg:var(--color-dos);
+    --btn-secondary-color-text:var(--color-seis);
+    --btn-secondary-color-border:var(--color-dos);
+    --btn-secondary-color-box-shadow:#000000;
+    --btn-secondary-hover-color-bg:var(--color-cuatro);
     
     /*Landings general*/
     --bg-general:var(--color-cinco);
@@ -274,16 +277,16 @@
     
     /*base*/
     /*BTN BUTTON PRIMARY*/
-    --bg-color-primary:var(--color-cinco);
-    --text-color-primary:var(--color-dos);
-    --border-color-primary:var(--color-dos);
-    --box-shadow-color-primary:#000000;
+    --btn-primary-color-bg:var(--color-cinco);
+    --btn-primary-color-text:var(--color-dos);
+    --btn-primary-color-border:var(--color-dos);
+    --btn-primary-color-box-shadow:#000000;
     
     /*BTN BUTTON Secondary*/
-    --bg-color-secondary:var(--color-dos);
-    --text-color-secondary:var(--color-cuatro);
-    --border-color-secondary:var(--color-dos);
-    --box-shadow-color-secondary:#000000;
+    --btn-secondary-color-bg:var(--color-dos);
+    --btn-secondary-color-text:var(--color-cuatro);
+    --btn-secondary-color-border:var(--color-dos);
+    --btn-secondary-color-box-shadow:#000000;
     
     /*Landings general*/
     --bg-general:var(--color-cinco);
