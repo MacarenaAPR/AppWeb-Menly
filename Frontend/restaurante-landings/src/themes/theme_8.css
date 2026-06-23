@@ -29,6 +29,18 @@
     100% 100%,
     0 100%
   );
+  --theme-8-hero-left-clip: polygon(
+    0% 0,
+    70% 0%,
+    85% 100%,
+    0% 100%
+  );
+  --theme-8-hero-right-clip: polygon(
+    0% 0,
+    100% 0,
+    100% 100%,
+    30% 100%
+  );
   --theme-8-hero-transition: 280ms ease;
 }
 
@@ -42,6 +54,15 @@
   position: relative;
   z-index: 1;
   overflow: hidden;
+  transition: clip-path var(--theme-8-hero-transition);
+}
+
+.page-shell.theme_8 .hero-visual-left {
+  clip-path: var(--theme-8-hero-left-clip);
+}
+
+.page-shell.theme_8 .hero-visual-right {
+  clip-path: var(--theme-8-hero-right-clip);
 }
 
 .page-shell.theme_8 .hero-visual img {
@@ -126,6 +147,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-shell.theme_8 .hero-visual,
   .page-shell.theme_8 .hero-visual img,
   .page-shell.theme_8 .hero-copy {
     transition: none;
