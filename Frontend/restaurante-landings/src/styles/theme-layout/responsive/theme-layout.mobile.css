@@ -842,27 +842,86 @@
   .page-shell .site-header {
     display: flex;
     min-height: 64px;
-    padding: 7px 14px;
+    padding: 7px 112px 7px 14px;
+    overflow: visible;
   }
 
   .page-shell .mobile-menu-toggle {
-    display: flex;
-    order: 3;
+    display: inline-flex;
+    order: 1;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
     border-color: var(--landing-border-color);
     background: var(--landing-bg-card);
+    color: var(--landing-text-main);
+    box-shadow: none;
+  }
+
+  .page-shell .mobile-menu-toggle span {
+    display: block;
+    background: currentColor;
   }
 
   .page-shell .brand-block {
-    order: 1;
+    order: 2;
   }
 
   .page-shell .header-actions {
-    order: 2;
-    margin-left: auto;
+    order: 3;
+    margin-left: 0;
+    gap: 0;
   }
 
   .header-social {
     display: none;
+  }
+
+  .whatsapp-floating-btn,
+  .cart-trigger-floating,
+  .page-shell .cart-trigger-header {
+    position: fixed;
+    top: 10px;
+    bottom: auto;
+    z-index: 90;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 999px;
+  }
+
+  .whatsapp-floating-btn {
+    right: 12px;
+  }
+
+  .cart-trigger-floating,
+  .page-shell .cart-trigger-header {
+    right: 62px;
+    gap: 0;
+  }
+
+  .whatsapp-floating-btn span,
+  .cart-trigger-floating span,
+  .page-shell .cart-trigger-header span {
+    display: none;
+  }
+
+  .cart-trigger-floating strong,
+  .page-shell .cart-trigger-header strong {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    display: inline-grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    line-height: 1;
   }
 
   .page-shell .site-nav {
@@ -994,9 +1053,9 @@
   }
 
   .page-shell .cart-trigger-header {
-    min-width: 92px;
-    min-height: 36px;
-    padding: 7px 10px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
     font-size: 0.76rem;
   }
 
