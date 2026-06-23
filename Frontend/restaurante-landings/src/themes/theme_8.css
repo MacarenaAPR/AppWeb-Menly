@@ -18,10 +18,10 @@
     transparent
   );
   --theme-8-hero-center-clip: polygon(
-    8% 0,
-    92% 0,
-    100% 100%,
-    0 100%
+    16% 0,
+    83% -2%,
+    96% 100%,
+    7% 100%
   );
   --theme-8-hero-tablet-clip: polygon(
     5% 0,
@@ -32,7 +32,7 @@
   --theme-8-hero-left-clip: polygon(
     0% 0,
     70% 0%,
-    85% 100%,
+    100% 100%,
     0% 100%
   );
   --theme-8-hero-right-clip: polygon(
