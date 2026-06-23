@@ -68,7 +68,205 @@
     --hero-badge-image-position: center;
     --hero-badge-image-repeat: no-repeat
 }
+.theme_1 {
+    /*COLORES*/
+    --color-uno:#a14013;
+    --color-dos:#F0A23A;
+    --color-tres:#4B0D05;
+    --color-cuatro:#EBD8C3;
+    --color-cinco:#fff6E9;
+    --color-muted:#b3b3b38e;
+    /*font family*/
+    --font-family-general:"Arsenal SC";
+    --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
+    --font-family-btns:"Bebas Neue";
+    /*base*/
+    /*BTN BUTTON PRIMARY reserva*/
+    --btn-primary-color-bg:var(--color-cuatro);
+    --btn-primary-color-text:var(--color-tres);
+    --btn-primary-color-border:var(--color-cuatro);
+    --btn-primary-color-box-shadow:#000000;
+    
+    /*BTN BUTTON Secondary menu*/
+    --btn-secondary-color-bg:var(--color-tres);
+    --btn-secondary-color-text:var(--color-cuatro);
+    --btn-secondary-color-border:var(--color-tres);
+    --btn-secondary-color-box-shadow:#000000;
+    
+    /*Landings general*/
+    --bg-general:var(--color-cinco);
+    --text-color-general:var(--color-uno);
+    
+    /*site-header*/
+    --bg-general-site-header:var(--color-tres);
+    --color-border-bottom-header:var(--color-cuatro);
+    --color-text-header-social-span:var(--color-uno);
+    --bg-header-social:var(--color-cuatro);
+    --color-text-header-social-a:var(--color-uno);
+    --color-text-hover-header:var(--color-cuatro);
+    --color-text-brand-name:var(--color-uno);
+    --size-text-header: 1.25rem;
+    --letter-spacing-header:0.1em;
+    --font-family-header: var(--font-family-base);
+    
+    /*CART-trigger carrito header*/
+    --bg-color-strong-cart-trigger:var(--color-dos);
+    --bg-color-cart-trigger:var(--color-dos);
+    --border-color-cart-trigger:var(--color-dos);
+    --color-text-cart-trigger:var(--color-cuatro);
+    --shadow-cart-trigger:0 10px 24px rgba(0, 0, 0, 0.7);
+    
+    /*HERO*/
+     /*hero-panel h1 - mobile*/
+    --hero-panel-h1-color-text:var(--color-tres);
+    --hero-panel-p-color-text:var(--color-uno);
+    --hero-panel-h1-shadow-text:0 3px 14px rgba(0, 0, 0, 0.62);
+    /*hero-panel h1*/
+    --font-size-h1-hero-panel:clamp(2.4rem, 4.5vw, 4.6rem);
+    --color-text-h1-hero-panel:var(--color-tres); 
+    --letter-spacing-h1-hero-panel: 0.03em;
+    --text-shadow-h1-hero-panel: 0 4px 4px #303030;
+    --transform-text-h1-hero-panel:none;
+    
+    /*hero panel P*/
+    --color-text-p-hero-panel:var(--color-uno);
+    --font-size-p-hero-panel:clamp(1rem, 1.12vw, 1.04rem);
+    --font-family-p-hero-panel:var(--font-family-general);
+    
+    /*hero-theme-badge*/    
+    --hero-badge-image: none;
+    --hero-badge-background: transparent;
+    --hero-badge-text: var(--color-uno);
+    --hero-badge-shadow: none;
+    --hero-badge-rotate: 0deg;
+    --hero-badge-radius: 0;
+    --hero-badge-padding: 8px 58px;
+    --hero-badge-letter-spacing: 0.24em;
+    --hero-badge-text-transform: uppercase ;
+    --hero-badge-font-family: "Bebas Neue", "Arial Black", sans-serif;
+    --hero-badge-font-size: 1.5rem;
+    --hero-badge-font-weight: 900;
+    --hero-badge-transform:none;
+    
+    /*tags hero*/
+    --color-text-tags-span:var(--color-uno);
+    --font-family-tags-span:var(--font-family-general);
+    --font-size-tags-span:clamp(0.66rem, 0.92vw, 0.84rem);
+    
+    /*PEDIDOS YA*/
+    --color-text-partner-now:var(--color-uno);
+    --color-bg-btn-pedidosya: rgba(255, 0, 0, 0.829);
+    --color-bg-btn-pedidosya-hover: var(--color-tres);
+    --color-text-btn-pedidosya: #f5f5f5;
 
+    /*destacados y promos*/
+    --color-svg-promo-tag:var(--color-dos);
+    --color-text-promo-tag:var(--color-tres);
+    --font-family-promo-tag:var(--font-family-general);
+    --font-size-promo-tag:1rem;
+    
+    /*commercial-badge*/
+    --bg-color-commercial-badge:var(--color-tres);
+    --color-text-commercial-badge:var(--color-uno);
+    --commercial-badge-font-family:var(--font-family-btns);
+    
+    /* PRODUCTOS */
+    --product-card-background: var(--color-cuatro);
+    --product-card-border: var(--color-cuatro);
+    --product-card-text: var(--color-uno);
+    --product-card-price: var(--color-dos);
+    --product-card-font-size-title:1rem;
+    --product-card-font-size-price:1.3rem;
+
+    /*PRODUCTO MODAL*/
+    --product-modal-p-color-text:var(--color-uno);
+    --producto-modal-cart-modal-qty-color-text:var(--color-dos);
+    /*btn agregar al carro*/
+    --btn-background-carrito: var(--color-dos);
+    --btn-borde-carrito: var(--color-dos);
+    --btn-text-carrito:var(--color-cinco);
+
+    /*MENU-SECTION*/
+    --bg-color-menu-wrapper:linear-gradient(
+                                            150deg,
+                                            var(--color-cuatro) 0%,
+                                            var(--color-uno) 25%,
+                                            var(--color-tres) 100%);
+    --border-color-menu-wrapper:var(--color-cuatro);
+    --border-radius-menu-wrapper:10px;
+    --box-shadow-menu-wrapper: 0 4px 6px 0 rgba(22, 22, 22, 0.8);
+    --color-text-title-menu:var(--color-cinco);
+    --letter-spacing-menu:7px;
+    --font-size-text-title-menu:clamp(2rem, 4vw, 3.4rem);
+    
+    /*menu-tab*/
+    --menu-tab-color-borde:var(--color-tres);
+    --menu-tab-color-bg:var(--color-tres);
+    --menu-tab-color-text:var(--color-cuatro);
+    --menu-tab-font-size-text:0.8rem;
+    /*menu-tab-active*/
+    --menu-tab-active-color-borde:var(--color-cuatro);
+    --menu-tab-active-color-bg:var(--color-cuatro);
+    --menu-tab-active-color-tex:var(--color-uno);
+
+    /*ABOUT BASE*/
+    --about-panel-color-border:var(--color-cuatro);
+    --about-title-text-font-size:1.7rem;
+    --about-title-text-color:var(--color-tres);
+    --about-title-text-font-family:var(--font-family-base);
+    --about-parrafo-text-font-family:var(--font-family-general);
+    --about-parrafo-text-color:var(--color-uno);
+    --about-subtitle-text-font-size:1.2rem;
+    --about-subtitle-text-color:var(--color-dos);
+    --about-parrafo-details-font-size:0.9rem;
+    --about-parrafo-details-color:var(--color-uno);
+    
+    /*SOCIAL ABOUT LINK*/
+    --about-social-link-bg:var(--color-uno);
+    --about-social-link-color:var(--color-cuatro);
+    --border-color-social-hover:var(--color-tres);
+    
+    /*GALERIA */
+    --galeria-title-text-font-family:var(--font-family-base);
+    --galeria-title-text-color:var(--color-tres);
+    --galeria-title-text-letter-spacing:2px;
+    --galeria-title-text-font-size:1.8rem;
+     /*RESERVACION Y SOLICITUDES ESPECIALES*/
+    --reservation-card-color-bg: linear-gradient(
+                                                180deg,
+                                                #000000 0%,
+                                                #080808 40%,
+                                                #666666 85%,
+                                                #666666 10%
+                                            );
+    --reservation-card-color-text:var(--color-uno);
+    --reservation-card-color-box-shadow:0 2px 4px 0 var(--color-muted);
+    --reservation-card-color-borde:var(--color-cuatro);
+    --reservation-action-card-color-bg:none;
+    --reservation-action-card-color-borde:var(--color-muted);
+    --reservation-action-card-color-text:var(--color-uno);
+    --reservation-action-card-color-box-shadow:var(--color-muted);
+    --action-card-i-color-bg:none;
+    --action-card-i-color-text:var(--color-uno);
+
+    /*RESERVA MODAL*/
+    --modal-reserva-color-text:var(--color-uno);
+    /*extrassssss */
+    --img-principal-base-restaurante: none;
+    --color-bg: var(--color-cinco);/*utilizado en background de landings en page shell*/
+    --color-bg-primary: var(--color-cuatro); /*utilizado en footer como bg*/
+    --color-text-primary: #f5f5f5;
+    --color-text-secondary: rgba(255, 255, 255, 0.781);
+    --color-surface:var(--color-cinco);
+    --color-primary: var(--color-tres);
+    --color-secondary: var(--color-tres);
+    --color-border: var(--color-cuatro);
+    --color-text-display: var(--color-uno);
+    --color-surface-translucent: rgba(73, 73, 73, 0.9);
+    --color-border-accent: rgba(27, 27, 27, 0.22);
+    --color-accent: var(--color-dos);
+
+}
 .theme_8 {
     /*COLORES*/
     --color-uno:#8E2800;
