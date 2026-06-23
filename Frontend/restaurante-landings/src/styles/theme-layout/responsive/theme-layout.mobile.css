@@ -847,7 +847,7 @@
   }
 
   .page-shell .mobile-menu-toggle {
-    display: inline-flex;
+    display: none;
     order: 1;
     align-items: center;
     justify-content: center;
@@ -867,11 +867,11 @@
   }
 
   .page-shell .brand-block {
-    order: 2;
+    order: 1;
   }
 
   .page-shell .header-actions {
-    order: 3;
+    order: 2;
     margin-left: 0;
     gap: 0;
   }
@@ -954,33 +954,140 @@
     text-align: left;
   }
 
-  .page-shell .hero-panel {
-    display: grid;
+  .page-shell .page-content > .hero-panel {
+    display: block !important;
     grid-template-columns: minmax(0, 1fr) !important;
-    min-height: auto;
+    position: relative !important;
+    height: clamp(320px, 92vw, 360px) !important;
+    min-height: clamp(320px, 92vw, 400px) !important;
+    padding: 0 !important;
+    isolation: isolate;
     overflow-x: hidden;
+    overflow-y: hidden;
+    background: var(--landing-bg-section);
   }
 
   .page-shell .hero-visual-left {
     display: none !important;
   }
 
-  .page-shell .hero-visual-right {
-    display: grid !important;
-    grid-row: 1 !important;
-    min-width: 0;
-    min-height: 250px;
+  .page-shell .hero-panel > .hero-visual.hero-visual-right {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    clip-path: none !important;
+    filter: none !important;
   }
 
-  .page-shell .hero-copy {
-    grid-row: 2 !important;
+  .page-shell .hero-panel > .hero-visual.hero-visual-right::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.52) 58%, rgba(0, 0, 0, 0.82) 100%),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.48) 0%, transparent 56%);
+    pointer-events: none;
+  }
+
+  .page-shell .hero-panel > .hero-visual.hero-visual-right img {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center;
+  }
+
+  .page-shell .hero-panel > .hero-copy {
+    position: relative !important;
+    z-index: 3 !important;
+    width: 100% !important;
+    height: 100% !important;
     min-width: 0;
-    padding: 34px 24px 28px;
-    clip-path: none;
+    margin: 0 !important;
+    padding: clamp(28px, 8vw, 40px) 20px 12px !important;
+    justify-content: flex-end !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+    color: var(--color-uno, #fff);
+    background: transparent !important;
+    clip-path: none !important;
+    filter: none !important;
+  }
+
+  .page-shell .hero-theme-badge {
+    margin-bottom: 6px;
+    align-self: flex-start;
+  }
+
+  .page-shell .hero-panel h1 {
+    margin: 0 0 6px;
+    max-width: min(78vw, 330px);
+    font-size: clamp(2.25rem, 12vw, 3.45rem);
+    line-height: 0.88;
+    text-align: left;
+    text-shadow: 0 3px 14px rgba(0, 0, 0, 0.62);
+  }
+
+  .page-shell .hero-panel p {
+    max-width: min(76vw, 300px);
+    margin: 0 0 12px;
+    color: var(--color-uno, #fff);
+    font-size: clamp(0.8rem, 3.2vw, 0.98rem);
+    line-height: 1.35;
+    text-align: left;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.68);
+  }
+
+  .page-shell .hero-actions {
+    display: flex;
+    width: 100%;
+    margin: 4px 0 10px;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: nowrap;
+  }
+
+  .page-shell .hero-actions .button-primary,
+  .page-shell .hero-actions .button-secondary {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 42px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
   }
 
   .hero-tags {
     width: 100%;
+    margin: 0;
+    padding-top: 0;
+    mask-image: none;
+  }
+
+  .hero-tags-track {
+    animation-duration: 22s;
+  }
+
+  .hero-tags-group {
+    gap: 20px;
+    padding-right: 20px;
+  }
+
+  .hero-tags span {
+    color: var(--color-uno, #fff);
+    font-size: clamp(0.56rem, 2.2vw, 0.68rem);
+    line-height: 1;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.72);
   }
 
   .page-shell .featured-carousel {
