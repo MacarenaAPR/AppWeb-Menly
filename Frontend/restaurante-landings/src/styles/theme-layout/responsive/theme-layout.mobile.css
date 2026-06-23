@@ -715,7 +715,6 @@
   .page-shell .landing-footer {
     grid-template-columns: 1fr;
     gap: 20px;
-    padding-bottom: 68px;
   }
 
 }
@@ -735,7 +734,7 @@
 
   .landing-modal {
     width: 100%;
-    max-height: calc(100vh - 24px);
+    max-height: calc(100vh - 50px);
     border-radius: 18px;
   }
 
