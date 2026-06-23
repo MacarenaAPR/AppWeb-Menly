@@ -127,6 +127,11 @@
     --letter-spacing-h1-hero-panel: 0.03em;
     --text-shadow-h1-hero-panel: 0 4px 4px #303030;
     --transform-text-h1-hero-panel:none;
+
+    /*hero-panel h1 - mobile*/
+    --hero-panel-h1-color-text:var(--color-dos);
+    --hero-panel-p-color-text:var(--color-seis);
+    --hero-panel-h1-shadow-text:0 3px 14px rgba(255, 255, 255, 0.62);
     
     /*hero panel P*/
     --color-text-p-hero-panel:var(--color-cuatro);
@@ -274,7 +279,7 @@
     /*font family*/
     --font-family-general:"Arsenal SC";
     --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
-    --font-family-btns:"Bebas Neue"
+    --font-family-btns:"Bebas Neue";
     /*base*/
     /*BTN BUTTON PRIMARY*/
     --btn-primary-color-bg:var(--color-cinco);
@@ -312,6 +317,10 @@
     --shadow-cart-trigger:0 10px 24px rgba(0, 0, 0, 0.7);
     
     /*HERO*/
+     /*hero-panel h1 - mobile*/
+    --hero-panel-h1-color-text:var(--color-tres);
+    --hero-panel-p-color-text:var(--color-uno);
+    --hero-panel-h1-shadow-text:0 3px 14px rgba(0, 0, 0, 0.62);
     /*hero-panel h1*/
     --font-size-h1-hero-panel:clamp(2.4rem, 4.5vw, 4.6rem);
     --color-text-h1-hero-panel:var(--color-tres); 

@@ -1034,14 +1034,16 @@
     max-width: min(78vw, 330px);
     font-size: clamp(2.25rem, 12vw, 3.45rem);
     line-height: 0.88;
+    font-weight: 700;
+    color:var(--hero-panel-h1-color-text);
     text-align: left;
-    text-shadow: 0 3px 14px rgba(0, 0, 0, 0.62);
+    text-shadow: var(--hero-panel-h1-shadow-text);
   }
 
   .page-shell .hero-panel p {
     max-width: min(76vw, 300px);
     margin: 0 0 12px;
-    color: var(--color-uno, #fff);
+    color: var(--hero-panel-p-color-text);
     font-size: clamp(0.8rem, 3.2vw, 0.98rem);
     line-height: 1.35;
     text-align: left;
@@ -1081,10 +1083,11 @@
   .hero-tags-group {
     gap: 20px;
     padding-right: 20px;
+    margin:10px;
   }
 
   .hero-tags span {
-    color: var(--color-uno, #fff);
+    color: var(--hero-panel-p-color-text);
     font-size: clamp(0.56rem, 2.2vw, 0.68rem);
     line-height: 1;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.72);
