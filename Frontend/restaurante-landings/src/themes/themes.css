@@ -274,7 +274,7 @@
     /*font family*/
     --font-family-general:"Arsenal SC";
     --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
-    
+    --font-family-btns:"Bebas Neue"
     /*base*/
     /*BTN BUTTON PRIMARY*/
     --btn-primary-color-bg:var(--color-cinco);

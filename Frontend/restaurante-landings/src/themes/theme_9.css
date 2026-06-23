@@ -146,7 +146,6 @@
     overflow-x: hidden;
   }
 
-  .page-shell.theme_9 .hero-visual-left,
   .page-shell.theme_9 .hero-visual-right {
     display: grid;
     min-width: 0;
@@ -156,15 +155,15 @@
   }
 
   .page-shell.theme_9 .hero-visual-left {
-    grid-row: 1;
+    display: none;
   }
 
   .page-shell.theme_9 .hero-visual-right {
-    grid-row: 2;
+    grid-row: 1;
   }
 
   .page-shell.theme_9 .hero-copy {
-    grid-row: 3;
+    grid-row: 2;
     width: 100%;
     min-width: 0;
     margin-inline: 0;
