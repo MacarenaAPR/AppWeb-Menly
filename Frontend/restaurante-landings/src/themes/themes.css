@@ -181,6 +181,10 @@
     --product-card-price: var(--color-dos);
     --product-card-font-size-title:0.9rem;
     --product-card-font-size-price:1.2rem;
+
+    /*PRODUCTO MODAL*/
+    --product-modal-p-color-text:var(--color-uno);
+    --producto-modal-cart-modal-qty-color-text:var(--color-dos);
     /*btn agregar al carro*/
     --btn-background-carrito: var(--color-dos);
     --btn-borde-carrito: var(--color-dos);
@@ -249,6 +253,9 @@
     --reservation-action-card-color-box-shadow:var(--color-muted);
     --action-card-i-color-bg:none;
     --action-card-i-color-text:var(--color-cinco);
+
+    /*RESERVA MODAL*/
+    --modal-reserva-color-text:var(--color-cuatro);
     /*extrassssss */
     --img-principal-base-restaurante: none;
     --color-bg: var(--color-cinco);/*utilizado en background de landings en page shell*/
@@ -376,6 +383,10 @@
     --product-card-price: var(--color-dos);
     --product-card-font-size-title:1rem;
     --product-card-font-size-price:1.3rem;
+
+    /*PRODUCTO MODAL*/
+    --product-modal-p-color-text:var(--color-uno);
+    --producto-modal-cart-modal-qty-color-text:var(--color-dos);
     /*btn agregar al carro*/
     --btn-background-carrito: var(--color-dos);
     --btn-borde-carrito: var(--color-dos);
@@ -443,6 +454,9 @@
     --reservation-action-card-color-box-shadow:var(--color-muted);
     --action-card-i-color-bg:none;
     --action-card-i-color-text:var(--color-uno);
+
+    /*RESERVA MODAL*/
+    --modal-reserva-color-text:var(--color-uno);
     /*extrassssss */
     --img-principal-base-restaurante: none;
     --color-bg: var(--color-cinco);/*utilizado en background de landings en page shell*/

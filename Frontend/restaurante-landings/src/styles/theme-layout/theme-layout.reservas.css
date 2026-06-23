@@ -37,7 +37,7 @@
 .reserva-form label {
   display: grid;
   gap: 8px;
-  color: var(--color-text-primary);
+  color: var(--modal-reserva-color-text);
   font-weight: 700
 }
 .reserva-form label span {

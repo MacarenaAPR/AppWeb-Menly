@@ -366,7 +366,7 @@ export default function Menu({
                     className="producto-add-cart product-modal-add"
                     onClick={() => onAddToCart?.(selectedProduct, cantidadProducto)}
                   >
-                    Agregar al carrito
+                    Agregar
                   </button>
                 </div>
               )}

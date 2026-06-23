@@ -256,6 +256,7 @@
   border-radius: 999px;
   background: var(--btn-background-carrito);
   color: var(--btn-text-carrito);
+  font-family: var(--font-family-btns);
   position: static;
   justify-self: center;
   width: auto;
