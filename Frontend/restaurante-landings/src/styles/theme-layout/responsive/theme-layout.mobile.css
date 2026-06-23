@@ -679,19 +679,6 @@
     display: none;
   }
 
-  .hero-visual-left {
-    display: none;
-  }
-
-  .hero-visual-right {
-    grid-row: 1;
-    min-height: 240px;
-  }
-
-  .page-shell .hero-copy {
-    grid-row: 2;
-  }
-
   .page-shell .promo-panel,
   .page-shell .menu-wrapper,
   .reservation-showcase {
@@ -910,21 +897,25 @@
 
   .page-shell .hero-panel {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) !important;
     min-height: auto;
+    overflow-x: hidden;
   }
 
-  .hero-visual-left {
-    display: none;
+  .page-shell .hero-visual-left {
+    display: none !important;
   }
 
-  .hero-visual-right {
-    grid-row: 1;
+  .page-shell .hero-visual-right {
+    display: grid !important;
+    grid-row: 1 !important;
+    min-width: 0;
     min-height: 250px;
   }
 
   .page-shell .hero-copy {
-    grid-row: 2;
+    grid-row: 2 !important;
+    min-width: 0;
     padding: 34px 24px 28px;
     clip-path: none;
   }

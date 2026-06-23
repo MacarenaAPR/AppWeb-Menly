@@ -154,16 +154,7 @@
     filter: none;
   }
 
-  .page-shell.theme_9 .hero-visual-left {
-    display: none;
-  }
-
-  .page-shell.theme_9 .hero-visual-right {
-    grid-row: 1;
-  }
-
   .page-shell.theme_9 .hero-copy {
-    grid-row: 2;
     width: 100%;
     min-width: 0;
     margin-inline: 0;

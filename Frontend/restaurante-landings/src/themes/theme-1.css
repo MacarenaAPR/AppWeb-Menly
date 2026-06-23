@@ -53,19 +53,6 @@
   }
 }
 @media (max-width: 800px) {
-
-  .page-shell.theme_1 .theme-one-primary-visual {
-    display: block;
-    grid-row: 1;
-    min-height: 250px;
-    clip-path: var(--theme-1-hero-mobile-clip);
-    filter: var(--theme-1-hero-mobile-shadow);
-  }
-
-  .page-shell.theme_1 .hero-visual-right {
-    display: none;
-  }
-
   .page-shell.theme_1 .hero-copy {
     margin-inline: 0;
     padding-inline: 24px;
