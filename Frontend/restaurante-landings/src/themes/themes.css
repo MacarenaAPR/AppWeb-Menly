@@ -68,6 +68,7 @@
     --hero-badge-image-position: center;
     --hero-badge-image-repeat: no-repeat
 }
+
 .theme_8 {
     /*COLORES*/
     --color-uno:#8E2800;
@@ -173,7 +174,8 @@
     /*commercial-badge*/
     --bg-color-commercial-badge:var(--color-tres);
     --color-text-commercial-badge:var(--color-cinco);
-    
+    --commercial-badge-font-family:var(--font-family-btns);
+
     /* PRODUCTOS */
     --product-card-background: var(--color-uno);
     --product-card-border: var(--color-uno);
@@ -272,9 +274,7 @@
     --color-accent: var(--color-cinco);
 
 }
-/* =======================================================
-   THEME 9
-======================================================= */
+
 .theme_9 {
     /*COLORES*/
     --color-uno:#ffff;
@@ -375,6 +375,7 @@
     /*commercial-badge*/
     --bg-color-commercial-badge:var(--color-tres);
     --color-text-commercial-badge:var(--color-uno);
+    --commercial-badge-font-family:var(--font-family-btns);
     
     /* PRODUCTOS */
     --product-card-background: var(--color-cuatro);

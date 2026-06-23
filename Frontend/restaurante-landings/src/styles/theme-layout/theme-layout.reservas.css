@@ -179,6 +179,7 @@
   margin: 0 auto;
   color: #ffffff;
   font-size: 1rem;
+  font-family: var(--font-family-general);
   font-weight: 750;
   line-height: 1.5;
   text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7)

@@ -474,7 +474,7 @@
 .page-shell .featured-carousel .promo-item-small h3,
 .page-shell .featured-carousel .promo-item-small strong {
   margin: 0;
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-general);
   font-size: 1.2rem;
   font-weight: 200;
   text-shadow: 0 2px 5px rgba(0, 0, 0, 0.65);
@@ -493,6 +493,7 @@
   color: var(--color-text-commercial-badge);
   font-size: 0.7rem;
   font-weight: 900;
+  font-family: var(--commercial-badge-font-family);
   letter-spacing: 0.035em;
   text-transform: uppercase;
   box-shadow: var(--landing-shadow);
@@ -503,6 +504,7 @@
   min-height: 32px;
   padding: 6px 12px;
   border: 1px solid var(--highlight-action-border);
+  font-family: var(--font-family-btns)!important;
   border-radius: 999px;
   background: var(--highlight-action-background);
   color: var(--highlight-action-text);
