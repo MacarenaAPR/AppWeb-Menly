@@ -3,10 +3,13 @@ import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
 import { authFetch } from "../api";
 
-const ESTADOS_PEDIDO = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
+const ESTADOS_PEDIDO = ["recibido", "pendiente_confirmacion", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
+const ESTADOS_PEDIDO_ESPECIAL = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado", "completado"];
 const PEDIDOS_POLLING_MS = 30000;
 
 const estadoLabels = {
+  recibido: "Pedido recibido",
+  pendiente_confirmacion: "Pendiente de confirmacion",
   pendiente: "Pendiente",
   confirmado: "Confirmado",
   en_preparacion: "En preparacion",
@@ -215,9 +218,14 @@ export default function PedidosDashboard() {
     setError("");
     setMensaje("");
 
+    const esCambioSoloEstado =
+      tipo === "whatsapp" &&
+      Object.keys(datos || {}).length === 1 &&
+      Object.prototype.hasOwnProperty.call(datos, "estado");
+
     const endpoint =
       tipo === "whatsapp"
-        ? `/mi-restaurante/pedidos/whatsapp/${id}/`
+        ? `/mi-restaurante/pedidos/whatsapp/${id}/${esCambioSoloEstado ? "estado/" : ""}`
         : `/mi-restaurante/pedidos/especiales/${id}/`;
 
     try {
@@ -517,40 +525,48 @@ export default function PedidosDashboard() {
           ) : (
             <>
               <section className="reservas-stats pedidos-stats">
-                <div className="reserva-stat-card">
-                  <div className="stat-icon"><i className="bi bi-whatsapp"></i></div>
-                  <div>
-                    <h3>{formatearMoneda(metricas.canales?.whatsapp?.venta_real_hoy ?? 0)}</h3>
-                    <p>Venta diaria WSP</p>
-                    <small>{metricas.canales?.whatsapp?.pedidos_creados_hoy ?? 0} pedidos</small>
+                {whatsappActivo && (
+                  <div className="reserva-stat-card">
+                    <div className="stat-icon"><i className="bi bi-whatsapp"></i></div>
+                    <div>
+                      <h3>{formatearMoneda(metricas.canales?.whatsapp?.venta_real_hoy ?? 0)}</h3>
+                      <p>Venta diaria WSP</p>
+                      <small>{metricas.canales?.whatsapp?.pedidos_creados_hoy ?? 0} pedidos</small>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="reserva-stat-card">
-                  <div className="stat-icon"><i className="bi bi-calendar-heart"></i></div>
-                  <div>
-                    <h3>{formatearMoneda(metricas.ventas?.venta_especiales_mes ?? 0)}</h3>
-                    <p>Pedidos especiales mes</p>
-                    <small>{metricas.canales?.especiales?.pedidos_creados_mes ?? 0} pedidos</small>
+                {especialesActivo && (
+                  <div className="reserva-stat-card">
+                    <div className="stat-icon"><i className="bi bi-calendar-heart"></i></div>
+                    <div>
+                      <h3>{formatearMoneda(metricas.ventas?.venta_especiales_mes ?? 0)}</h3>
+                      <p>Pedidos especiales mes</p>
+                      <small>{metricas.canales?.especiales?.pedidos_creados_mes ?? 0} pedidos</small>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="reserva-stat-card">
-                  <div className="stat-icon"><i className="bi bi-cash-stack"></i></div>
-                  <div>
-                    <h3>{formatearMoneda(metricas.ventas?.venta_real_mes ?? 0)}</h3>
-                    <p>Venta total mes</p>
-                    <small>{metricas.pedidos?.pedidos_finalizados_mes ?? 0} pedidos</small>
-                  </div>
-                </div>
+                {whatsappActivo && (
+                  <>
+                    <div className="reserva-stat-card">
+                      <div className="stat-icon"><i className="bi bi-cash-stack"></i></div>
+                      <div>
+                        <h3>{formatearMoneda(metricas.ventas?.venta_real_mes ?? 0)}</h3>
+                        <p>Venta total mes</p>
+                        <small>{metricas.pedidos?.pedidos_finalizados_mes ?? 0} pedidos</small>
+                      </div>
+                    </div>
 
-                <div className="reserva-stat-card">
-                  <div className="stat-icon"><i className="bi bi-x-circle"></i></div>
-                  <div>
-                    <h3>{metricas.pedidos?.pedidos_cancelados_mes ?? 0} pedidos</h3>
-                    <p>Cancelados mes</p>
-                  </div>
-                </div>
+                    <div className="reserva-stat-card">
+                      <div className="stat-icon"><i className="bi bi-x-circle"></i></div>
+                      <div>
+                        <h3>{metricas.pedidos?.pedidos_cancelados_mes ?? 0} pedidos</h3>
+                        <p>Cancelados mes</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </section>
 
               <section className="reservas-tools">
@@ -633,7 +649,7 @@ export default function PedidosDashboard() {
                                 <i className="bi bi-eye"></i>
                               </button>
                               <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("whatsapp", pedido.id, { estado: e.target.value })}>
-                                {ESTADOS_PEDIDO.concat("completado").map((estado) => (
+                                {ESTADOS_PEDIDO.map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
@@ -686,7 +702,7 @@ export default function PedidosDashboard() {
                                 <i className="bi bi-pencil-square"></i>
                               </button>
                               <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("especial", pedido.id, { estado: e.target.value })}>
-                                {ESTADOS_PEDIDO.map((estado) => (
+                                {ESTADOS_PEDIDO_ESPECIAL.map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>

@@ -5,7 +5,7 @@ import MainMenu from "../componentes/Main-menu";
 import Card from "../componentes/card-metric";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { authFetch } from "../api";
+import { authFetch, readApiResponse } from "../api";
 import { FaMotorcycle } from "react-icons/fa6";
 import { AiOutlineShop } from "react-icons/ai";
 import { TbShoppingBag } from "react-icons/tb";
@@ -69,11 +69,7 @@ export default function Dashboard() {
       const response = await authFetch("/mi-restaurante/notificaciones/?leida=false", {
         cache: "no-store",
       });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result?.error || "No se pudieron cargar las notificaciones");
-      }
+      const result = await readApiResponse(response, "No se pudieron cargar las notificaciones");
 
       setNotificaciones(result.results || []);
       actualizarContadorNotificaciones(result.pendientes ?? 0);
@@ -105,21 +101,13 @@ export default function Dashboard() {
       const detalleResponse = await authFetch(`/mi-restaurante/notificaciones/${notificacionId}/`, {
         cache: "no-store",
       });
-      const detalleData = await detalleResponse.json();
-
-      if (!detalleResponse.ok) {
-        throw new Error(detalleData?.error || "No se pudo cargar el detalle");
-      }
+      const detalleData = await readApiResponse(detalleResponse, "No se pudo cargar el detalle");
 
       const marcarResponse = await authFetch(
         `/mi-restaurante/notificaciones/${notificacionId}/marcar-leida/`,
         { method: "PATCH" }
       );
-      const marcarData = await marcarResponse.json();
-
-      if (!marcarResponse.ok) {
-        throw new Error(marcarData?.error || "No se pudo marcar como leída");
-      }
+      const marcarData = await readApiResponse(marcarResponse, "No se pudo marcar como leida");
 
       setNotificacionDetalle(marcarData.notificacion || detalleData);
       setNotificaciones((prev) => prev.filter((item) => item.id !== notificacionId));
@@ -134,9 +122,7 @@ export default function Dashboard() {
   const fetchClicks = async () => {
     try {
       const response = await authFetch("/mi-restaurante/productos-mas-clickeados/");
-      const data = await response.json();
-
-      if (!response.ok) return;
+      const data = await readApiResponse(response, "No se pudieron cargar los productos mas clickeados");
 
       setProductosClickeados(data || []);
     } catch {
@@ -152,11 +138,7 @@ export default function Dashboard() {
       const response = await authFetch("/dashboard/ultimos-pedidos/", {
         cache: "no-store",
       });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result?.error || "No se pudieron cargar los ultimos pedidos");
-      }
+      const result = await readApiResponse(response, "No se pudieron cargar los ultimos pedidos.");
 
       setUltimosPedidos(result || []);
     } catch (err) {
@@ -172,9 +154,7 @@ export default function Dashboard() {
       const response = await authFetch("/mi-restaurante/metricas/resumen/", {
         cache: "no-store",
       });
-      const result = await response.json();
-
-      if (!response.ok) return;
+      const result = await readApiResponse(response, "No se pudieron cargar las metricas.");
 
       setMetricasPedidos(result);
     } catch {
@@ -196,11 +176,7 @@ export default function Dashboard() {
           cache: "no-store",
         });
 
-        if (!response.ok) {
-          throw new Error("Error al cargar datos");
-        }
-
-        const result = await response.json();
+        const result = await readApiResponse(response, "Error al cargar datos");
 
         if (slug !== result.restaurante.slug) {
           navigate(`/dashboard/${result.restaurante.slug}`, { replace: true });
@@ -216,7 +192,11 @@ export default function Dashboard() {
           })
         );
         fetchClicks();
-        fetchUltimosPedidos();
+        if (result.restaurante?.carrito_whatsapp_activo === true) {
+          fetchUltimosPedidos();
+        } else {
+          setUltimosPedidos([]);
+        }
         fetchMetricasPedidos();
       } catch {
         setError("No se pudieron cargar los datos");
@@ -254,6 +234,8 @@ export default function Dashboard() {
   }. Recuerda regularizar tu pago para mantener activo el servicio. Si ya realizaste el pago, ignora este mensaje.`;
   const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
   const ventaTotalMes = metricasPedidos?.ventas?.venta_real_mes ?? 0;
+  const reservasActivas = restaurante?.reservas_activas === true;
+  const carritoWhatsappActivo = restaurante?.carrito_whatsapp_activo === true;
 
   const iconoPedido = (tipoEntrega) => {
     if (tipoEntrega === "delivery") return <FaMotorcycle/>;
@@ -391,22 +373,27 @@ export default function Dashboard() {
                                     <p>Ver carta</p>
                                   </button>
                                 </div>
-                                <Card
-                                    icons = {"bi bi-calendar2-check"}
-                                    metrica={data?.resumen?.reservas_hoy ?? 0}
-                                    titulo="Reservas para hoy"
-                                    btnto={`/dashboard/${restaurante.slug}/reservas`}
-                                />
-                                <Card
-                                    icons = {"bi bi-cash-stack"}
-                                    metrica={formatearMoneda(ventaTotalMes)}
-                                    titulo="Venta total del mes"
-                                    btnto={`/dashboard/${restaurante.slug}/pedidos`}
-                                />
+                                {reservasActivas && (
+                                  <Card
+                                      icons = {"bi bi-calendar2-check"}
+                                      metrica={data?.resumen?.reservas_hoy ?? 0}
+                                      titulo="Reservas para hoy"
+                                      btnto={`/dashboard/${restaurante.slug}/reservas`}
+                                  />
+                                )}
+                                {carritoWhatsappActivo && (
+                                  <Card
+                                      icons = {"bi bi-cash-stack"}
+                                      metrica={formatearMoneda(ventaTotalMes)}
+                                      titulo="Venta total del mes"
+                                      btnto={`/dashboard/${restaurante.slug}/pedidos`}
+                                  />
+                                )}
                             </div>
                             
                         </div>
                         <div className="body-ultimos-cliks">
+                            {carritoWhatsappActivo && (
                             <div className="div-ultimos-cambios">
                                 <p><i className="bi bi-receipt-cutoff"></i> Últimos pedidos</p>
                                 <div className="reports-cambios">
@@ -436,6 +423,7 @@ export default function Dashboard() {
                                     <i className="bi bi-arrow-right-short"></i>
                                 </button>
                             </div>
+                            )}
                             <div className="clicks">
                               <p>
                                 <i className="bi bi-fork-knife"></i> Platos más clickeados
