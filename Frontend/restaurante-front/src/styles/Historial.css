@@ -641,6 +641,21 @@
 }
 
 @media (max-width: 768px) {
+  .historial-page :where(h1, h2, h3, h4, h5, h6, strong, .section-title, .card-title, .modal-title),
+  .historial-modal :where(h1, h2, h3, h4, h5, h6, strong, .modal-title) {
+    color: #fff;
+  }
+
+  .historial-page :where(p, span, label, small, li, dt, dd, .historial-empty),
+  .historial-modal :where(p, span, label, small, li, dt, dd) {
+    color: #a8b3c7;
+  }
+
+  .historial-page :where(.historial-breadcrumb strong, .historial-detail-btn, .historial-col:nth-child(1) p),
+  .historial-modal :where(header p) {
+    color: #f8761d;
+  }
+
   .historial-shell,
   .historial-main,
   .historial-page {

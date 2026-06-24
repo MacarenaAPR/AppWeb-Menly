@@ -702,6 +702,27 @@
 }
 
 @media (max-width: 768px) {
+    .body-main1 :where(h1, h2, h3, h4, h5, h6, strong, .section-title, .card-title, .metric-title, .report-title, .modal-title) {
+        color: #fff;
+    }
+
+    .body-main1 :where(p, span, label, small, li, dt, dd, .empty-text) {
+        color: #a8b3c7;
+    }
+
+    .body-main1 :where(.fecha, .bienvenidos h5, .btn-ver-historial p) {
+        color: #F06B0C;
+    }
+
+    .notificaciones-burbuja,
+    .notificaciones-burbuja-text,
+    .notificaciones-burbuja strong {
+        color: whitesmoke;
+    }
+
+    .notificaciones-burbuja-icon {
+        color: #F06B0C;
+    }
     
     .header-logo-bienvenido {
         height: auto;

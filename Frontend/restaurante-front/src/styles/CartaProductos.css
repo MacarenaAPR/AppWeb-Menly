@@ -806,6 +806,21 @@ scroll-behavior: smooth;
 }
 
 @media (max-width: 768px) {
+    .body-main :where(h1, h2, h3, h4, h5, h6, strong, .section-title, .card-title, .modal-title),
+    .carta-productos-page :where(h1, h2, h3, h4, h5, h6, strong, .section-title, .card-title) {
+        color: #fff;
+    }
+
+    .body-main :where(p, span, label, small, li, dt, dd),
+    .carta-productos-page :where(p, span, label, small, li, dt, dd) {
+        color: #a8b3c7;
+    }
+
+    .body-main :where(.a-active, .price-text-card, .price, .precio),
+    .carta-productos-page :where(.a-active, .price-text-card, .price, .precio, .view-mode-toggle button.active, .availability-filter-toggle button.active) {
+        color: #f8761d;
+    }
+
     .header-name-search h1 {
         color: #fff;
         font-size: 24px;

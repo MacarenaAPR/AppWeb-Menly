@@ -366,6 +366,19 @@ export default function PedidosDashboard() {
     }
   };
 
+  const actualizarEstadoDetalleWhatsapp = async (estado) => {
+    if (!detalle || detalle.tipo !== "whatsapp") return;
+
+    const actualizado = await actualizarPedido("whatsapp", detalle.pedido.id, { estado });
+
+    if (actualizado) {
+      setDetalle((actual) => actual
+        ? { ...actual, pedido: { ...actual.pedido, estado } }
+        : actual
+      );
+    }
+  };
+
   const abrirCrearEspecial = () => {
     setPedidoEditando(null);
     setFormEspecial(formEspecialInicial);
@@ -725,6 +738,24 @@ export default function PedidosDashboard() {
                       <div><dt>Direccion</dt><dd>{detalle.pedido.direccion_entrega}</dd></div>
                     )}
                     <div><dt>Estado</dt><dd>{estadoLabels[detalle.pedido.estado] || detalle.pedido.estado}</dd></div>
+                    {detalle.tipo === "whatsapp" && (
+                      <div className="pedido-detalle-estado-mobile">
+                        <dt>Cambiar estado</dt>
+                        <dd>
+                          <select
+                            className="pedido-estado-select"
+                            value={detalle.pedido.estado}
+                            onChange={(e) => actualizarEstadoDetalleWhatsapp(e.target.value)}
+                          >
+                            {ESTADOS_PEDIDO.map((estado) => (
+                              <option key={estado} value={estado}>
+                                {estadoLabels[estado]}
+                              </option>
+                            ))}
+                          </select>
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt>Fecha</dt>
                       <dd>

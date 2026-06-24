@@ -505,6 +505,21 @@
 }
 
 @media (max-width: 860px) {
+  .metricas-page :where(h1, h2, h3, h4, h5, h6, strong, .section-title, .card-title, .metric-title, .report-title, .modal-title),
+  .metricas-modal :where(h1, h2, h3, h4, h5, h6, strong, .modal-title) {
+    color: #fff;
+  }
+
+  .metricas-page :where(p, span, label, small, li, dt, dd, .metricas-empty),
+  .metricas-modal :where(p, span, label, small, li, dt, dd) {
+    color: #a8b3c7;
+  }
+
+  .metricas-page :where(.metricas-header span, .metricas-panel-header span, .metricas-card-icon, .metricas-report-btn),
+  .metricas-modal :where(.metricas-modal-header span) {
+    color: #f8761d;
+  }
+
   .metricas-page {
     padding: 16px;
   }

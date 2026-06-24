@@ -272,6 +272,18 @@ textarea::placeholder {
 }
 
 @media (max-width: 768px) {
+  .body-main :where(h1, h2, h3, h4, h5, h6, strong, .section-title, .card-title, .modal-title) {
+    color: #fff;
+  }
+
+  .body-main :where(p, span, label, small, li, dt, dd, .text-posicion p) {
+    color: #a8b3c7;
+  }
+
+  .body-main :where(.a-active, .p-header) {
+    color: #f8761d;
+  }
+
   .body-contenido1 {
     flex-direction: column;
   }

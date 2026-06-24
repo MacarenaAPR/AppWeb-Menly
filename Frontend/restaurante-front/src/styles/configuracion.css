@@ -1095,6 +1095,18 @@
 }
 
 @media (max-width: 768px) {
+  .config-page :where(h1, h2, h3, h4, h5, h6, strong, .section-title, .card-title, .modal-title) {
+    color: #fff;
+  }
+
+  .config-page :where(p, span, label, small, li, dt, dd, .help-text, .muted) {
+    color: #a8b3c7;
+  }
+
+  .config-page :where(.config-sidebar button.active, .config-header strong, .plan-label, .info-plan-card strong) {
+    color: #f8761d;
+  }
+
   .config-page {
     padding: 14px;
   }

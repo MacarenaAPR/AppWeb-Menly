@@ -682,6 +682,40 @@
 }
 
 @media (max-width: 768px) {
+  .reservas-page :where(h1, h2, h3, h4, h5, h6, strong, .section-title, .card-title, .metric-title, .report-title, .modal-title),
+  .modal-reserva :where(h1, h2, h3, h4, h5, h6, strong, .modal-title) {
+    color: #fff;
+  }
+
+  .reservas-page :where(p, span, label, small, li, dt, dd, .empty-state),
+  .modal-reserva :where(p, span, label, small, li, dt, dd) {
+    color: #a8b3c7;
+  }
+
+  .reservas-page :where(.breadcrumb-reservas strong, .tab.active, .precio, .price, .fecha-cell i, .hora-cell i),
+  .modal-reserva :where(.pedido-detalle-subtitle, .pedido-item-row span, .solicitud-pedido-fields span, .solicitud-pedido-descripcion span) {
+    color: #f8761d;
+  }
+
+  .reservas-page .estado-badge.confirmada,
+  .reservas-page .estado-badge.aceptada,
+  .reservas-page .estado-badge.completada {
+    color: #22c55e;
+  }
+
+  .reservas-page .estado-badge.pendiente {
+    color: #f59e0b;
+  }
+
+  .reservas-page .estado-badge.en_revision {
+    color: #60a5fa;
+  }
+
+  .reservas-page .estado-badge.cancelada,
+  .reservas-page .estado-badge.rechazada {
+    color: #ef4444;
+  }
+
   .solicitudes-page .modal-reserva-bg {
     padding: 14px;
     place-items: center;
@@ -1594,6 +1628,10 @@
   margin: 0;
 }
 
+.pedido-detalle-estado-mobile {
+  display: none;
+}
+
 .pedido-info-list div {
   display: flex;
   justify-content: space-between;
@@ -2397,5 +2435,34 @@
     min-height: 38px;
     padding: 8px 12px;
     font-weight: 800;
+  }
+}
+
+@media (max-width: 768px) {
+  .pedido-detalle-estado-mobile {
+    display: flex;
+  }
+
+  .pedido-detalle-estado-mobile dd {
+    width: min(180px, 100%);
+  }
+
+  .pedido-detalle-estado-mobile .pedido-estado-select {
+    width: 100%;
+    min-height: 36px;
+    border: 1px solid #1e2d3d;
+    border-radius: 8px;
+    background: #0d1720;
+    color: #e2e8f0;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    color-scheme: dark;
+  }
+
+  .pedido-detalle-estado-mobile .pedido-estado-select:focus {
+    outline: none;
+    border-color: #f8761d;
+    box-shadow: 0 0 0 3px rgba(248, 118, 29, 0.14);
   }
 }
