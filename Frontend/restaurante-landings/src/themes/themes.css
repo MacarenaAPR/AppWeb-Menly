@@ -318,7 +318,7 @@
     --brand-tag-text-size:0.5rem;
     --brand-name-text-size:0.8rem;
     --brand-name-text-color:var(--color-cinco);
-    --brand-name-text-transform:none;
+    --brand-name-text-transform:uppercase;
     /*CART-trigger carrito header*/
     --bg-color-strong-cart-trigger:var(--color-dos);
     --bg-color-cart-trigger:var(--color-dos);
@@ -524,6 +524,11 @@
     --size-text-header: 1.1rem;
     --letter-spacing-header:0em;
     --font-family-header: var(--font-family-general);
+    --brand-tag-font-family:var(--font-family-general);
+    --brand-tag-text-size:0.6rem;
+    --brand-name-text-size:0.9rem;
+    --brand-name-text-color:var(--color-seis);
+    --brand-name-text-transform:Uppercase;
     
     /*CART-trigger carrito header*/
     --bg-color-strong-cart-trigger:var(--color-dos);
@@ -727,6 +732,11 @@
     --size-text-header: 1.25rem;
     --letter-spacing-header:0.1em;
     --font-family-header: var(--font-family-base);
+    --brand-tag-font-family:var(--font-family-general);
+    --brand-tag-text-size:0.7rem;
+    --brand-name-text-size:1rem;
+    --brand-name-text-color:var(--color-uno);
+    --brand-name-text-transform:Uppercase;
     
     /*CART-trigger carrito header*/
     --bg-color-strong-cart-trigger:var(--color-dos);
