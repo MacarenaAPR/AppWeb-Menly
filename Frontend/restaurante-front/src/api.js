@@ -38,46 +38,6 @@ export const buildMenuUrl = (slug) => {
   return `https://${normalizedSlug}.menly.cl/#menu`;
 };
 
-const extraerMensajePayload = (payload, fallback) => {
-  if (!payload) return fallback;
-  if (typeof payload === "string") return payload || fallback;
-  if (payload.error || payload.detail) return payload.error || payload.detail;
-
-  const valores = Object.values(payload).flat?.() || [];
-  const primerMensaje = valores.find((valor) => typeof valor === "string");
-  return primerMensaje || fallback;
-};
-
-export async function readApiResponse(response, fallback = "No se pudo completar la solicitud.") {
-  const contentType = response.headers.get("content-type") || "";
-  const debugInfo = {
-    url: response.url,
-    status: response.status,
-    contentType,
-  };
-
-  if (!contentType.includes("application/json")) {
-    const rawText = await response.text();
-    console.warn("[Menly API] Respuesta no JSON", {
-      ...debugInfo,
-      rawText,
-    });
-    throw new Error(response.ok ? fallback : "El servidor devolvio una respuesta inesperada.");
-  }
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.warn("[Menly API] Respuesta HTTP con error", {
-      ...debugInfo,
-      payload: data,
-    });
-    throw new Error(extraerMensajePayload(data, fallback));
-  }
-
-  return data;
-}
-
 export function limpiarSesionYRedirigir() {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");

@@ -1,5 +1,4 @@
 import django
-import secrets
 from django.db import models
 from cloudinary.models import CloudinaryField
 from django.core.exceptions import ValidationError
@@ -401,23 +400,22 @@ class PedidoWhatsApp(models.Model):
         (TIPO_PARA_LLEVAR, "Para llevar"),
     ]
 
-    ESTADO_RECIBIDO = "recibido"
-    ESTADO_PENDIENTE_CONFIRMACION = "pendiente_confirmacion"
-    ESTADO_PENDIENTE = ESTADO_PENDIENTE_CONFIRMACION
+    ESTADO_PENDIENTE = "pendiente"
     ESTADO_CONFIRMADO = "confirmado"
     ESTADO_EN_PREPARACION = "en_preparacion"
     ESTADO_LISTO = "listo"
     ESTADO_ENTREGADO = "entregado"
     ESTADO_CANCELADO = "cancelado"
+    ESTADO_COMPLETADO = "completado"
 
     ESTADOS = [
-        (ESTADO_RECIBIDO, "Pedido recibido"),
-        (ESTADO_PENDIENTE_CONFIRMACION, "Pendiente de confirmacion"),
+        (ESTADO_PENDIENTE, "Pendiente"),
         (ESTADO_CONFIRMADO, "Confirmado"),
         (ESTADO_EN_PREPARACION, "En preparación"),
         (ESTADO_LISTO, "Listo"),
         (ESTADO_ENTREGADO, "Entregado"),
         (ESTADO_CANCELADO, "Cancelado"),
+        (ESTADO_COMPLETADO, "Completado"),
     ]
 
     restaurante = models.ForeignKey(
@@ -432,10 +430,8 @@ class PedidoWhatsApp(models.Model):
     direccion_entrega = models.TextField(blank=True, null=True)
     productos_snapshot = models.JSONField()
     total = models.DecimalField(max_digits=10, decimal_places=0)
-    tracking_token = models.CharField(max_length=32, unique=True, editable=False, db_index=True)
-    estado = models.CharField(max_length=30, choices=ESTADOS, default=ESTADO_RECIBIDO)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_actualizacion_estado = models.DateTimeField(default=timezone.now)
     mensaje_whatsapp_generado = models.TextField()
     whatsapp_destino = models.CharField(max_length=30)
 
@@ -454,67 +450,6 @@ class PedidoWhatsApp(models.Model):
 
     def __str__(self):
         return f"Pedido WhatsApp #{self.numero_pedido} - {self.restaurante.nombre_empresa}"
-
-    @staticmethod
-    def generar_tracking_token():
-        return secrets.token_urlsafe(12)
-
-    def save(self, *args, **kwargs):
-        if not self.tracking_token:
-            for _ in range(8):
-                token = self.generar_tracking_token()
-                if not PedidoWhatsApp.objects.filter(tracking_token=token).exists():
-                    self.tracking_token = token
-                    break
-
-        if not self.tracking_token:
-            raise ValidationError("No se pudo generar un token de seguimiento unico.")
-
-        estado_cambio = self._state.adding
-        if not self._state.adding and self.pk:
-            estado_anterior = (
-                PedidoWhatsApp.objects
-                .filter(pk=self.pk)
-                .values_list("estado", flat=True)
-                .first()
-            )
-            estado_cambio = estado_anterior != self.estado
-
-        if estado_cambio:
-            self.fecha_actualizacion_estado = timezone.now()
-            update_fields = kwargs.get("update_fields")
-            if update_fields is not None:
-                kwargs["update_fields"] = set(update_fields) | {"fecha_actualizacion_estado"}
-
-        super().save(*args, **kwargs)
-
-
-class HistorialEstadoPedidoWhatsApp(models.Model):
-    pedido = models.ForeignKey(
-        PedidoWhatsApp,
-        on_delete=models.CASCADE,
-        related_name="historial_estados"
-    )
-    estado_anterior = models.CharField(max_length=30, blank=True)
-    estado_nuevo = models.CharField(max_length=30)
-    fecha = models.DateTimeField(auto_now_add=True)
-    usuario = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
-        related_name="historial_estados_pedidos_whatsapp"
-    )
-    observacion = models.TextField(blank=True)
-
-    class Meta:
-        ordering = ["-fecha"]
-        indexes = [
-            models.Index(fields=["pedido", "-fecha"], name="histpedw_pedido_fecha_idx"),
-        ]
-
-    def __str__(self):
-        return f"Pedido WhatsApp #{self.pedido.numero_pedido}: {self.estado_anterior} -> {self.estado_nuevo}"
 
 
 class PedidoEspecial(models.Model):

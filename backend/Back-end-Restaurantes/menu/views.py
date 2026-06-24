@@ -9,7 +9,7 @@ from django.core.mail import send_mail
 from django.core.validators import validate_email
 from .serializers import CustomTokenObtainPairSerializer,ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer
 from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
-from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoWhatsAppEstadoUpdateSerializer, PedidoWhatsAppSeguimientoPublicoSerializer, PedidoEspecialSerializer
+from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoEspecialSerializer
 from .serializers import ReporteMetricaSerializer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from .serializers import serializar_plan_restaurante
@@ -1282,7 +1282,7 @@ class CrearPedidoWhatsAppPublicoView(APIView):
 
         serializer = PedidoWhatsAppCreateSerializer(
             data=request.data,
-            context={"restaurante": restaurante, "request": request}
+            context={"restaurante": restaurante}
         )
 
         if serializer.is_valid():
@@ -1294,17 +1294,6 @@ class CrearPedidoWhatsAppPublicoView(APIView):
             return Response(serializer.to_representation(pedido), status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class SeguimientoPedidoWhatsAppPublicoView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request, tracking_token):
-        pedido = get_object_or_404(
-            PedidoWhatsApp.objects.select_related("restaurante"),
-            tracking_token=tracking_token
-        )
-        return Response(PedidoWhatsAppSeguimientoPublicoSerializer(pedido).data)
 
 
 def get_perfil_solicitudes_especiales(request):
@@ -1541,32 +1530,13 @@ class PedidoWhatsAppDetalleDashboardView(APIView):
             pedido,
             data=request.data,
             partial=True,
-            context={"restaurante": pedido.restaurante, "request": request}
+            context={"restaurante": pedido.restaurante}
         )
 
         if serializer.is_valid():
             pedido = serializer.save()
             return Response({
                 "message": "Pedido WhatsApp actualizado correctamente.",
-                "pedido": PedidoWhatsAppDashboardSerializer(pedido).data,
-            })
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class PedidoWhatsAppEstadoDashboardView(PedidoWhatsAppDetalleDashboardView):
-    def patch(self, request, pedido_id):
-        pedido = self.get_pedido(request, pedido_id)
-        serializer = PedidoWhatsAppEstadoUpdateSerializer(
-            pedido,
-            data=request.data,
-            context={"usuario": request.user},
-        )
-
-        if serializer.is_valid():
-            pedido = serializer.save()
-            return Response({
-                "message": "Estado del pedido actualizado correctamente.",
                 "pedido": PedidoWhatsAppDashboardSerializer(pedido).data,
             })
 

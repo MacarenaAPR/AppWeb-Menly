@@ -9,7 +9,7 @@ from rest_framework import status
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, PedidoWhatsApp, PedidoEspecial, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host
@@ -2125,123 +2125,6 @@ class SeguridadCriticaTests(BaseTestCase):
         ids = [pedido["id"] for pedido in response.data["results"]]
         self.assertIn(pedido_hoy.id, ids)
         self.assertNotIn(pedido_ayer.id, ids)
-
-    def test_pedido_whatsapp_publico_crea_tracking_y_link_en_mensaje(self):
-        self.restaurante.carrito_whatsapp_activo = True
-        self.restaurante.whatsapp = "56999999999"
-        self.restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
-
-        response = self.client.post(
-            f"/api/pedidos-whatsapp/{self.restaurante.slug}/",
-            {
-                "nombre_cliente": "Cliente Tracking",
-                "telefono_cliente": "912345678",
-                "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
-                "productos": [
-                    {"producto_id": self.producto.id, "cantidad": 2},
-                ],
-            },
-            format="json",
-            HTTP_ORIGIN="http://localhost:5173",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn("tracking_token", response.data)
-        self.assertIn("tracking_url", response.data)
-        self.assertIn(
-            f"http://localhost:5173/seguimiento/pedido/{response.data['tracking_token']}",
-            response.data["mensaje_whatsapp"],
-        )
-        self.assertTrue(
-            PedidoWhatsApp.objects.filter(tracking_token=response.data["tracking_token"]).exists()
-        )
-
-    def test_seguimiento_publico_devuelve_solo_payload_seguro(self):
-        pedido = PedidoWhatsApp.objects.create(
-            restaurante=self.restaurante,
-            numero_pedido=1,
-            nombre_cliente="Cliente Publico",
-            telefono_cliente="999999999",
-            tipo_entrega=PedidoWhatsApp.TIPO_DELIVERY,
-            direccion_entrega="Calle segura 123",
-            productos_snapshot=[
-                {
-                    "producto_id": self.producto.id,
-                    "nombre": "Coca Cola",
-                    "cantidad": 1,
-                    "precio_unitario": 1500,
-                    "subtotal": 1500,
-                }
-            ],
-            total=1500,
-            mensaje_whatsapp_generado="Pedido publico",
-            whatsapp_destino="56999999999",
-        )
-
-        response = self.client.get(
-            f"/api/public/pedidos/seguimiento/{pedido.tracking_token}/"
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["numero_pedido"], pedido.numero_pedido)
-        self.assertEqual(response.data["estado"], PedidoWhatsApp.ESTADO_RECIBIDO)
-        self.assertEqual(response.data["items"][0]["nombre"], "Coca Cola")
-        self.assertNotIn("id", response.data)
-        self.assertNotIn("nombre_cliente", response.data)
-        self.assertNotIn("telefono_cliente", response.data)
-        self.assertNotIn("tracking_token", response.data)
-
-    def test_estado_pedido_whatsapp_se_actualiza_con_historial_y_tenant(self):
-        pedido = PedidoWhatsApp.objects.create(
-            restaurante=self.restaurante,
-            numero_pedido=1,
-            nombre_cliente="Cliente Estado",
-            telefono_cliente="999999999",
-            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
-            productos_snapshot=[],
-            total=3000,
-            mensaje_whatsapp_generado="Pedido estado",
-            whatsapp_destino="56999999999",
-        )
-        dueno_otro = User.objects.create_user(
-            username="dueno-otro@test.com",
-            email="dueno-otro@test.com",
-            password="123456",
-        )
-        UsuarioRestaurante.objects.create(
-            user=dueno_otro,
-            restaurante=self.otro_restaurante,
-            rol="dueno",
-            activo=True,
-        )
-
-        self.client.force_authenticate(user=dueno_otro)
-        response_otro = self.client.patch(
-            f"/api/pedidos-whatsapp/{pedido.id}/estado/",
-            {"estado": PedidoWhatsApp.ESTADO_EN_PREPARACION},
-            format="json",
-        )
-        self.assertEqual(response_otro.status_code, status.HTTP_404_NOT_FOUND)
-
-        self.client.force_authenticate(user=self.dueno)
-        response = self.client.patch(
-            f"/api/pedidos-whatsapp/{pedido.id}/estado/",
-            {"estado": PedidoWhatsApp.ESTADO_EN_PREPARACION},
-            format="json",
-        )
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        pedido.refresh_from_db()
-        self.assertEqual(pedido.estado, PedidoWhatsApp.ESTADO_EN_PREPARACION)
-        self.assertEqual(
-            HistorialEstadoPedidoWhatsApp.objects.filter(
-                pedido=pedido,
-                estado_anterior=PedidoWhatsApp.ESTADO_RECIBIDO,
-                estado_nuevo=PedidoWhatsApp.ESTADO_EN_PREPARACION,
-                usuario=self.dueno,
-            ).count(),
-            1,
-        )
 
     def test_historial_pedidos_whatsapp_lista_solo_pedidos_anteriores(self):
         self.restaurante.carrito_whatsapp_activo = True

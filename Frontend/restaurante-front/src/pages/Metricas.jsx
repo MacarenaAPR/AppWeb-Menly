@@ -4,7 +4,7 @@ import Chart from "react-apexcharts";
 import jsPDF from "jspdf";
 
 import MainMenu from "../componentes/Main-menu";
-import { authFetch, readApiResponse } from "../api";
+import { authFetch } from "../api";
 import "../styles/Metricas.css";
 
 const planFallback = { id: null, nombre: "Básico", slug: "basico" };
@@ -27,20 +27,8 @@ const ventaWhatsappReporte = (reporte) =>
 const ventaEspecialesReporte = (reporte) =>
   reporte?.venta_especiales ?? reporte?.resumen_canales?.especiales?.venta_real ?? 0;
 
-const MODULOS_ACTIVOS_DEFAULT = {
-  reservasActivas: true,
-  especialesActivas: true,
-  whatsappActivo: true,
-};
-
-const normalizarModulos = (modulos = {}) => ({
-  ...MODULOS_ACTIVOS_DEFAULT,
-  ...modulos,
-});
-
-const descargarPdfAnual = (reporte, modulosParam) => {
+const descargarPdfAnual = (reporte) => {
   if (!reporte) return;
-  const modulos = normalizarModulos(modulosParam);
 
   const pdf = new jsPDF("p", "mm", "a4");
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -135,15 +123,11 @@ const descargarPdfAnual = (reporte, modulosParam) => {
   y += 12;
 
   addTitle("Resumen anual");
-  if (modulos.whatsappActivo) {
-    addText("Venta total", formatearMoneda(reporte.venta_total_anual));
-    addText("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)));
-    addText("Pedidos totales", reporte.pedidos_total_anual ?? 0);
-    addText("Pedidos cancelados", reporte.pedidos_cancelados_anual ?? 0);
-  }
-  if (modulos.especialesActivas) {
-    addText("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)));
-  }
+  addText("Venta total", formatearMoneda(reporte.venta_total_anual));
+  addText("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)));
+  addText("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)));
+  addText("Pedidos totales", reporte.pedidos_total_anual ?? 0);
+  addText("Pedidos cancelados", reporte.pedidos_cancelados_anual ?? 0);
   addText("Mes mayor venta", `${reporte.mes_mayor_venta?.nombre_mes || "-"} · ${formatearMoneda(reporte.mes_mayor_venta?.total)}`);
   addText("Mes menor venta", `${reporte.mes_menor_venta?.nombre_mes || "-"} · ${formatearMoneda(reporte.mes_menor_venta?.total)}`);
   addText("Producto más vendido", productoTexto(reporte.producto_mas_vendido_anual));
@@ -183,9 +167,8 @@ const descargarPdfAnual = (reporte, modulosParam) => {
   pdf.save(`reporte-anual-menly-${reporte.anio}.pdf`);
 };
 
-const descargarPdfMensualGuardado = (reporte, modulosParam) => {
+const descargarPdfMensualGuardado = (reporte) => {
   if (!reporte) return;
-  const modulos = normalizarModulos(modulosParam);
 
   const pdf = new jsPDF("p", "mm", "a4");
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -221,15 +204,11 @@ const descargarPdfMensualGuardado = (reporte, modulosParam) => {
   y += 12;
   pdf.setFontSize(10);
   line("Mes", reporte.mes || "Mes actual");
-  if (modulos.whatsappActivo) {
-    line("Venta total", formatearMoneda(reporte.venta_total));
-    line("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)));
-    line("Pedidos totales", reporte.pedidos_total ?? 0);
-    line("Pedidos cancelados", reporte.pedidos_cancelados ?? 0);
-  }
-  if (modulos.especialesActivas) {
-    line("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)));
-  }
+  line("Venta total", formatearMoneda(reporte.venta_total));
+  line("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)));
+  line("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)));
+  line("Pedidos totales", reporte.pedidos_total ?? 0);
+  line("Pedidos cancelados", reporte.pedidos_cancelados ?? 0);
   line("Día mayor venta", `Día ${reporte.dia_mayor_venta?.dia || "-"} · ${formatearMoneda(reporte.dia_mayor_venta?.total)}`);
   line("Día menor venta", `Día ${reporte.dia_menor_venta?.dia || "-"} · ${formatearMoneda(reporte.dia_menor_venta?.total)}`);
   line("Producto más vendido", productoTexto(reporte.producto_mas_vendido));
@@ -286,14 +265,8 @@ function MetricCard({ icon, label, value, hint }) {
   );
 }
 
-function ResumenMensualChart({ whatsappMes, especialesMes, modulos }) {
-  const mostrarWhatsapp = modulos?.whatsappActivo === true;
-  const mostrarEspeciales = modulos?.especialesActivas === true;
-  const maximo = Math.max(
-    mostrarWhatsapp ? whatsappMes : 0,
-    mostrarEspeciales ? especialesMes : 0,
-    1,
-  );
+function ResumenMensualChart({ whatsappMes, especialesMes }) {
+  const maximo = Math.max(whatsappMes, especialesMes, 1);
 
   return (
     <section className="metricas-panel">
@@ -304,26 +277,22 @@ function ResumenMensualChart({ whatsappMes, especialesMes, modulos }) {
         </div>
       </div>
       <div className="metricas-bars">
-        {mostrarWhatsapp && (
-          <div className="metricas-bar-row">
-            <span>WhatsApp</span>
-            <div><i style={{ width: `${(whatsappMes / maximo) * 100}%` }} /></div>
-            <strong>{whatsappMes}</strong>
-          </div>
-        )}
-        {mostrarEspeciales && (
-          <div className="metricas-bar-row">
-            <span>Especiales</span>
-            <div><i style={{ width: `${(especialesMes / maximo) * 100}%` }} /></div>
-            <strong>{especialesMes}</strong>
-          </div>
-        )}
+        <div className="metricas-bar-row">
+          <span>WhatsApp</span>
+          <div><i style={{ width: `${(whatsappMes / maximo) * 100}%` }} /></div>
+          <strong>{whatsappMes}</strong>
+        </div>
+        <div className="metricas-bar-row">
+          <span>Especiales</span>
+          <div><i style={{ width: `${(especialesMes / maximo) * 100}%` }} /></div>
+          <strong>{especialesMes}</strong>
+        </div>
       </div>
     </section>
   );
 }
 
-function MetricasBasicas({ metricas, modulos }) {
+function MetricasBasicas({ metricas }) {
   const ventaMensual = metricas?.ventas?.venta_real_mes || 0;
   const pedidosMes = metricas?.pedidos?.pedidos_creados_mes || 0;
   const pedidosEspecialesMes = metricas?.canales?.especiales?.pedidos_creados_mes || 0;
@@ -331,19 +300,11 @@ function MetricasBasicas({ metricas, modulos }) {
   return (
     <>
       <section className="metricas-grid">
-        {modulos.whatsappActivo && (
-          <>
-            <MetricCard icon="bi bi-currency-dollar" label="Venta mensual total" value={formatearMoneda(ventaMensual)} />
-            <MetricCard icon="bi bi-bag-check" label="Pedidos del mes" value={pedidosMes} />
-          </>
-        )}
-        {modulos.especialesActivas && (
-          <MetricCard icon="bi bi-calendar-heart" label="Pedidos especiales del mes" value={pedidosEspecialesMes} />
-        )}
+        <MetricCard icon="bi bi-currency-dollar" label="Venta mensual total" value={formatearMoneda(ventaMensual)} />
+        <MetricCard icon="bi bi-bag-check" label="Pedidos del mes" value={pedidosMes} />
+        <MetricCard icon="bi bi-calendar-heart" label="Pedidos especiales del mes" value={pedidosEspecialesMes} />
       </section>
-      {(modulos.whatsappActivo || modulos.especialesActivas) && (
-        <ResumenMensualChart whatsappMes={pedidosMes} especialesMes={pedidosEspecialesMes} modulos={modulos} />
-      )}
+      <ResumenMensualChart whatsappMes={pedidosMes} especialesMes={pedidosEspecialesMes} />
       <section className="metricas-upgrade">
         <i className="bi bi-stars"></i>
         <p>Tu plan actual es Básico. Accede a más métricas con Pro.</p>
@@ -352,7 +313,7 @@ function MetricasBasicas({ metricas, modulos }) {
   );
 }
 
-function ProductosMasVendidos({ productos, unidad = "vendidos" }) {
+function ProductosMasVendidos({ productos }) {
   return (
     <section className="metricas-panel">
       <div className="metricas-panel-header">
@@ -369,7 +330,7 @@ function ProductosMasVendidos({ productos, unidad = "vendidos" }) {
             <div key={producto.id || producto.nombre}>
               <span>{index + 1}</span>
               <strong>{producto.nombre}</strong>
-              <small>{producto.cantidad ?? producto.clicks ?? 0} {unidad}</small>
+              <small>{producto.cantidad ?? producto.clicks ?? 0} vendidos</small>
             </div>
           ))
         )}
@@ -378,12 +339,9 @@ function ProductosMasVendidos({ productos, unidad = "vendidos" }) {
   );
 }
 
-function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guardando, modulos }) {
-  const modulosVisibles = normalizarModulos(modulos);
-
+function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guardando }) {
   const descargarPdf = () => {
     if (!reporte) return;
-    const modulosReporte = modulosVisibles;
 
     const pdf = new jsPDF("p", "mm", "a4");
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -504,21 +462,13 @@ function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guar
     y += 12;
 
     ensureSpace(44);
-    if (modulosReporte.whatsappActivo) {
-      addKeyValue("Venta mensual total", formatearMoneda(reporte.venta_total), margin, y);
-      addKeyValue("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)), margin + 94, y);
-    }
+    addKeyValue("Venta mensual total", formatearMoneda(reporte.venta_total), margin, y);
+    addKeyValue("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)), margin + 94, y);
     y += 18;
-    if (modulosReporte.especialesActivas) {
-      addKeyValue("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)), margin, y);
-    }
-    if (modulosReporte.whatsappActivo) {
-      addKeyValue("Pedidos totales", reporte.pedidos_total ?? 0, margin + 94, y);
-    }
+    addKeyValue("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)), margin, y);
+    addKeyValue("Pedidos totales", reporte.pedidos_total ?? 0, margin + 94, y);
     y += 18;
-    if (modulosReporte.whatsappActivo) {
-      addKeyValue("Pedidos cancelados", reporte.pedidos_cancelados ?? 0, margin, y);
-    }
+    addKeyValue("Pedidos cancelados", reporte.pedidos_cancelados ?? 0, margin, y);
     addKeyValue("Día de mayor venta", `Día ${reporte.dia_mayor_venta?.dia || "-"} · ${formatearMoneda(reporte.dia_mayor_venta?.total)}`, margin + 94, y);
     y += 18;
     addKeyValue("Día de menor venta", `Día ${reporte.dia_menor_venta?.dia || "-"} · ${formatearMoneda(reporte.dia_menor_venta?.total)}`, margin, y);
@@ -690,23 +640,13 @@ function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guar
         ) : reporte ? (
           <>
             <section className="metricas-reporte-grid">
-              {modulosVisibles.whatsappActivo && (
-                <>
-                  <MetricCard icon="bi bi-currency-dollar" label="Venta mensual" value={formatearMoneda(reporte.venta_total)} />
-                  <MetricCard icon="bi bi-whatsapp" label="Venta WhatsApp" value={formatearMoneda(ventaWhatsappReporte(reporte))} />
-                </>
-              )}
-              {modulosVisibles.especialesActivas && (
-                <MetricCard icon="bi bi-calendar-heart" label="Venta especiales" value={formatearMoneda(ventaEspecialesReporte(reporte))} />
-              )}
+              <MetricCard icon="bi bi-currency-dollar" label="Venta mensual" value={formatearMoneda(reporte.venta_total)} />
+              <MetricCard icon="bi bi-whatsapp" label="Venta WhatsApp" value={formatearMoneda(ventaWhatsappReporte(reporte))} />
+              <MetricCard icon="bi bi-calendar-heart" label="Venta especiales" value={formatearMoneda(ventaEspecialesReporte(reporte))} />
               <MetricCard icon="bi bi-graph-up-arrow" label="Día mayor venta" value={`Día ${reporte.dia_mayor_venta?.dia || "-"}`} hint={formatearMoneda(reporte.dia_mayor_venta?.total)} />
               <MetricCard icon="bi bi-graph-down-arrow" label="Día menor venta" value={`Día ${reporte.dia_menor_venta?.dia || "-"}`} hint={formatearMoneda(reporte.dia_menor_venta?.total)} />
-              {modulosVisibles.whatsappActivo && (
-                <>
-                  <MetricCard icon="bi bi-bag-check" label="Pedidos totales" value={reporte.pedidos_total} />
-                  <MetricCard icon="bi bi-x-circle" label="Cancelados" value={reporte.pedidos_cancelados} />
-                </>
-              )}
+              <MetricCard icon="bi bi-bag-check" label="Pedidos totales" value={reporte.pedidos_total} />
+              <MetricCard icon="bi bi-x-circle" label="Cancelados" value={reporte.pedidos_cancelados} />
               <MetricCard icon="bi bi-trophy" label="Más vendido" value={productoTexto(reporte.producto_mas_vendido)} />
               <MetricCard icon="bi bi-box" label="Menos vendido" value={productoTexto(reporte.producto_menos_vendido)} />
             </section>
@@ -752,8 +692,7 @@ function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guar
   );
 }
 
-function ReporteAnualModal({ reporte, loading, error, onClose, onGuardar, guardando, modulos }) {
-  const modulosVisibles = normalizarModulos(modulos);
+function ReporteAnualModal({ reporte, loading, error, onClose, onGuardar, guardando }) {
   const ventasPorMes = reporte?.ventas_por_mes || [];
   const chartOptions = useMemo(() => ({
     chart: {
@@ -815,7 +754,7 @@ function ReporteAnualModal({ reporte, loading, error, onClose, onGuardar, guarda
                 <i className="bi bi-save"></i>
                 {guardando ? "Guardando..." : "Guardar reporte"}
               </button>
-              <button className="metricas-report-btn" type="button" onClick={() => descargarPdfAnual(reporte, modulosVisibles)}>
+              <button className="metricas-report-btn" type="button" onClick={() => descargarPdfAnual(reporte)}>
                 <i className="bi bi-download"></i>
                 Descargar PDF
               </button>
@@ -830,17 +769,11 @@ function ReporteAnualModal({ reporte, loading, error, onClose, onGuardar, guarda
         ) : reporte ? (
           <>
             <section className="metricas-reporte-grid">
-              {modulosVisibles.whatsappActivo && (
-                <>
-                  <MetricCard icon="bi bi-currency-dollar" label="Venta anual" value={formatearMoneda(reporte.venta_total_anual)} />
-                  <MetricCard icon="bi bi-whatsapp" label="Venta WhatsApp" value={formatearMoneda(ventaWhatsappReporte(reporte))} />
-                  <MetricCard icon="bi bi-bag-check" label="Pedidos totales" value={reporte.pedidos_total_anual} />
-                  <MetricCard icon="bi bi-x-circle" label="Cancelados" value={reporte.pedidos_cancelados_anual} />
-                </>
-              )}
-              {modulosVisibles.especialesActivas && (
-                <MetricCard icon="bi bi-calendar-heart" label="Venta especiales" value={formatearMoneda(ventaEspecialesReporte(reporte))} />
-              )}
+              <MetricCard icon="bi bi-currency-dollar" label="Venta anual" value={formatearMoneda(reporte.venta_total_anual)} />
+              <MetricCard icon="bi bi-whatsapp" label="Venta WhatsApp" value={formatearMoneda(ventaWhatsappReporte(reporte))} />
+              <MetricCard icon="bi bi-calendar-heart" label="Venta especiales" value={formatearMoneda(ventaEspecialesReporte(reporte))} />
+              <MetricCard icon="bi bi-bag-check" label="Pedidos totales" value={reporte.pedidos_total_anual} />
+              <MetricCard icon="bi bi-x-circle" label="Cancelados" value={reporte.pedidos_cancelados_anual} />
               <MetricCard icon="bi bi-graph-up-arrow" label="Mes mayor venta" value={reporte.mes_mayor_venta?.nombre_mes || "-"} hint={formatearMoneda(reporte.mes_mayor_venta?.total)} />
               <MetricCard icon="bi bi-graph-down-arrow" label="Mes menor venta" value={reporte.mes_menor_venta?.nombre_mes || "-"} hint={formatearMoneda(reporte.mes_menor_venta?.total)} />
               <MetricCard icon="bi bi-trophy" label="Más vendido" value={productoTexto(reporte.producto_mas_vendido_anual)} />
@@ -883,34 +816,25 @@ function ReporteAnualModal({ reporte, loading, error, onClose, onGuardar, guarda
   );
 }
 
-function MetricasPro({ metricas, productos, onOpenReporteMensual, onOpenReporteAnual, modulos }) {
+function MetricasPro({ metricas, productos, onOpenReporteMensual, onOpenReporteAnual }) {
   const productoDia = metricas?.productos?.mas_vendido_hoy;
   const productoMes = metricas?.productos?.mas_vendido_mes;
-  const mostrarReportes = modulos.whatsappActivo;
 
   return (
     <>
       <section className="metricas-grid">
         <MetricCard icon="bi bi-eye" label="Visitas" value={metricas?.productos?.clicks_total || 0} hint="Clicks en productos" />
-        {modulos.whatsappActivo && (
-          <>
-            <MetricCard icon="bi bi-bag-check" label="Pedidos creados mes" value={metricas?.pedidos?.pedidos_creados_mes || 0} />
-            <MetricCard icon="bi bi-x-circle" label="Pedidos cancelados" value={metricas?.pedidos?.pedidos_cancelados_mes || 0} />
-          </>
-        )}
-        {modulos.reservasActivas && (
-          <MetricCard icon="bi bi-calendar2-check" label="Reservas programadas mes" value={metricas?.reservas?.reservas_programadas_mes || 0} />
-        )}
+        <MetricCard icon="bi bi-bag-check" label="Pedidos creados mes" value={metricas?.pedidos?.pedidos_creados_mes || 0} />
+        <MetricCard icon="bi bi-calendar2-check" label="Reservas programadas mes" value={metricas?.reservas?.reservas_programadas_mes || 0} />
+        <MetricCard icon="bi bi-x-circle" label="Pedidos cancelados" value={metricas?.pedidos?.pedidos_cancelados_mes || 0} />
       </section>
-      {modulos.whatsappActivo && (
-        <section className="metricas-grid">
-          <MetricCard icon="bi bi-cash-stack" label="Venta diaria" value={formatearMoneda(metricas?.ventas?.venta_real_hoy || 0)} />
-          <MetricCard icon="bi bi-graph-up-arrow" label="Venta semanal" value={formatearMoneda(metricas?.ventas?.venta_real_semana || 0)} />
-          <MetricCard icon="bi bi-calendar3" label="Venta mensual" value={formatearMoneda(metricas?.ventas?.venta_real_mes || 0)} />
-        </section>
-      )}
+      <section className="metricas-grid">
+        <MetricCard icon="bi bi-cash-stack" label="Venta diaria" value={formatearMoneda(metricas?.ventas?.venta_real_hoy || 0)} />
+        <MetricCard icon="bi bi-graph-up-arrow" label="Venta semanal" value={formatearMoneda(metricas?.ventas?.venta_real_semana || 0)} />
+        <MetricCard icon="bi bi-calendar3" label="Venta mensual" value={formatearMoneda(metricas?.ventas?.venta_real_mes || 0)} />
+      </section>
       <section className="metricas-two-columns">
-        {modulos.whatsappActivo && <ProductosMasVendidos productos={productos} />}
+        <ProductosMasVendidos productos={productos} />
         <section className="metricas-panel">
           <div className="metricas-panel-header">
             <div>
@@ -919,27 +843,17 @@ function MetricasPro({ metricas, productos, onOpenReporteMensual, onOpenReporteA
             </div>
           </div>
           <div className="metricas-report-list">
-            {modulos.whatsappActivo && (
-              <>
             <p><strong>Producto del día:</strong> {productoDia?.nombre || "Sin datos"} ({productoDia?.cantidad || 0})</p>
             <p><strong>Producto del mes:</strong> {productoMes?.nombre || "Sin datos"} ({productoMes?.cantidad || 0})</p>
-              </>
-            )}
-            {modulos.reservasActivas && (
-              <p><strong>Reservas pendientes futuras:</strong> {metricas?.reservas?.reservas_pendientes_futuras || 0}</p>
-            )}
-            {mostrarReportes && (
-              <>
-                <button className="metricas-report-btn" type="button" onClick={onOpenReporteMensual}>
-                  <i className="bi bi-bar-chart"></i>
-                  Ver reporte mensual
-                </button>
-                <button className="metricas-report-btn" type="button" onClick={onOpenReporteAnual}>
-                  <i className="bi bi-calendar3"></i>
-                  Ver reporte anual
-                </button>
-              </>
-            )}
+            <p><strong>Reservas pendientes futuras:</strong> {metricas?.reservas?.reservas_pendientes_futuras || 0}</p>
+            <button className="metricas-report-btn" type="button" onClick={onOpenReporteMensual}>
+              <i className="bi bi-bar-chart"></i>
+              Ver reporte mensual
+            </button>
+            <button className="metricas-report-btn" type="button" onClick={onOpenReporteAnual}>
+              <i className="bi bi-calendar3"></i>
+              Ver reporte anual
+            </button>
           </div>
         </section>
       </section>
@@ -947,7 +861,7 @@ function MetricasPro({ metricas, productos, onOpenReporteMensual, onOpenReporteA
   );
 }
 
-function MetricasFullPro({ metricas, productos, onOpenReporteMensual, onOpenReporteAnual, modulos }) {
+function MetricasFullPro({ metricas, productos, onOpenReporteMensual, onOpenReporteAnual }) {
   const herramientasIa = [
     "IA para promociones",
     "IA para mejorar fotografías",
@@ -963,7 +877,6 @@ function MetricasFullPro({ metricas, productos, onOpenReporteMensual, onOpenRepo
         productos={productos}
         onOpenReporteMensual={onOpenReporteMensual}
         onOpenReporteAnual={onOpenReporteAnual}
-        modulos={modulos}
       />
       <section className="metricas-panel">
         <div className="metricas-panel-header">
@@ -986,7 +899,7 @@ function MetricasFullPro({ metricas, productos, onOpenReporteMensual, onOpenRepo
   );
 }
 
-function ReportesGuardados({ refreshKey, modulos }) {
+function ReportesGuardados({ refreshKey }) {
   const [reportes, setReportes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -1006,7 +919,8 @@ function ReportesGuardados({ refreshKey, modulos }) {
       const response = await authFetch(`/metricas/reportes/${params.toString() ? `?${params}` : ""}`, {
         cache: "no-store",
       });
-      const data = await readApiResponse(response, "No se pudieron cargar los reportes.");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "No se pudieron cargar los reportes.");
       setReportes(data || []);
     } catch (requestError) {
       setReportes([]);
@@ -1025,7 +939,8 @@ function ReportesGuardados({ refreshKey, modulos }) {
     setError("");
     try {
       const response = await authFetch(`/metricas/reportes/${id}/`, { cache: "no-store" });
-      const data = await readApiResponse(response, "No se pudo cargar el detalle.");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "No se pudo cargar el detalle.");
       setDetalle(data);
     } catch (requestError) {
       setError(requestError.message || "No se pudo cargar el detalle.");
@@ -1036,10 +951,10 @@ function ReportesGuardados({ refreshKey, modulos }) {
 
   const descargarReporte = (reporte) => {
     if (reporte.tipo === "anual") {
-      descargarPdfAnual(reporte.datos, modulos);
+      descargarPdfAnual(reporte.datos);
       return;
     }
-    descargarPdfMensualGuardado(reporte.datos, modulos);
+    descargarPdfMensualGuardado(reporte.datos);
   };
 
   const periodoReporte = (reporte) => reporte.tipo === "anual" ? reporte.periodo_anio : reporte.periodo_mes;
@@ -1142,28 +1057,21 @@ export default function MetricasDashboard() {
         authFetch("/mi-restaurante/productos-mas-clickeados/", { cache: "no-store" }),
       ]);
 
-      const restauranteData = await readApiResponse(restauranteResponse, "No se pudo cargar el restaurante.");
+      const restauranteData = await restauranteResponse.json();
+      if (!restauranteResponse.ok) throw new Error(restauranteData?.error || "No se pudo cargar el restaurante.");
 
       if (slug && slug !== restauranteData.restaurante.slug) {
         navigate(`/dashboard/${restauranteData.restaurante.slug}/metricas`, { replace: true });
         return;
       }
 
-      const metricasData = await readApiResponse(metricasResponse, "No se pudieron cargar las metricas.");
+      const metricasData = await metricasResponse.json();
+      if (!metricasResponse.ok) throw new Error(metricasData?.error || "No se pudieron cargar las metricas.");
 
-      let productosData = [];
-      try {
-        productosData = await readApiResponse(productosResponse, "No se pudieron cargar los productos.");
-      } catch (productosError) {
-        console.warn("[Menly API] Productos de metricas no disponibles", productosError);
-      }
+      const productosData = await productosResponse.json();
       setRestaurante(restauranteData.restaurante);
       setMetricas(metricasData);
-      setProductos(
-        restauranteData.restaurante?.carrito_whatsapp_activo === true
-          ? (metricasData?.productos?.top_por_cantidad || [])
-          : (productosResponse.ok ? productosData || [] : [])
-      );
+      setProductos(metricasData?.productos?.top_por_cantidad || (productosResponse.ok ? productosData || [] : []));
     } catch (requestError) {
       setError(requestError.message || "No se pudieron cargar las metricas.");
     } finally {
@@ -1182,7 +1090,11 @@ export default function MetricasDashboard() {
 
     try {
       const response = await authFetch("/metricas/reporte-mensual/", { cache: "no-store" });
-      const data = await readApiResponse(response, "No se pudo cargar el reporte mensual.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo cargar el reporte mensual.");
+      }
 
       setReporteMensual(data);
     } catch (requestError) {
@@ -1205,7 +1117,11 @@ export default function MetricasDashboard() {
 
     try {
       const response = await authFetch("/metricas/reporte-anual/", { cache: "no-store" });
-      const data = await readApiResponse(response, "No se pudo cargar el reporte anual.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo cargar el reporte anual.");
+      }
 
       setReporteAnual(data);
     } catch (requestError) {
@@ -1284,7 +1200,8 @@ export default function MetricasDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      await readApiResponse(response, "No se pudo guardar el reporte.");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "No se pudo guardar el reporte.");
       setReportesRefreshKey((prev) => prev + 1);
     } catch (requestError) {
       const mensaje = requestError.message || "No se pudo guardar el reporte.";
@@ -1296,15 +1213,6 @@ export default function MetricasDashboard() {
   };
 
   const plan = restaurante?.plan || planFallback;
-  const modulos = useMemo(() => ({
-    reservasActivas: restaurante?.reservas_activas === true,
-    especialesActivas: restaurante?.solicitudes_especiales_activas === true,
-    whatsappActivo: restaurante?.carrito_whatsapp_activo === true,
-  }), [
-    restaurante?.reservas_activas,
-    restaurante?.solicitudes_especiales_activas,
-    restaurante?.carrito_whatsapp_activo,
-  ]);
   const vista = useMemo(() => {
     if (plan.slug === "full_pro") {
       return (
@@ -1313,7 +1221,6 @@ export default function MetricasDashboard() {
           productos={productos}
           onOpenReporteMensual={abrirReporteMensual}
           onOpenReporteAnual={abrirReporteAnual}
-          modulos={modulos}
         />
       );
     }
@@ -1324,12 +1231,11 @@ export default function MetricasDashboard() {
           productos={productos}
           onOpenReporteMensual={abrirReporteMensual}
           onOpenReporteAnual={abrirReporteAnual}
-          modulos={modulos}
         />
       );
     }
-    return <MetricasBasicas metricas={metricas || {}} modulos={modulos} />;
-  }, [metricas, modulos, plan.slug, productos]);
+    return <MetricasBasicas metricas={metricas || {}} />;
+  }, [metricas, plan.slug, productos]);
 
   if (loading) return <p className="reservas-loading">Cargando metricas...</p>;
 
@@ -1347,8 +1253,8 @@ export default function MetricasDashboard() {
           {error ? <p className="reservas-error">{error}</p> : (
             <>
               {vista}
-              {["pro", "full_pro"].includes(plan.slug) && modulos.whatsappActivo && (
-                <ReportesGuardados refreshKey={reportesRefreshKey} modulos={modulos} />
+              {["pro", "full_pro"].includes(plan.slug) && (
+                <ReportesGuardados refreshKey={reportesRefreshKey} />
               )}
             </>
           )}
@@ -1361,7 +1267,6 @@ export default function MetricasDashboard() {
             onClose={cerrarReporteMensual}
             onGuardar={() => guardarReporte("mensual", reporteMensual)}
             guardando={guardandoReporte}
-            modulos={modulos}
           />
         )}
         {reporteAnualAbierto && (
@@ -1372,7 +1277,6 @@ export default function MetricasDashboard() {
             onClose={cerrarReporteAnual}
             onGuardar={() => guardarReporte("anual", reporteAnual)}
             guardando={guardandoReporte}
-            modulos={modulos}
           />
         )}
       </main>
