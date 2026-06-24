@@ -235,6 +235,11 @@
   flex-wrap: wrap;
 }
 
+.carta-productos-mobile-search,
+.carta-productos-mobile-selects {
+  display: none;
+}
+
 .view-mode-toggle,
 .availability-filter-toggle {
   display: inline-flex;
@@ -807,9 +812,63 @@ scroll-behavior: smooth;
         line-height: 1.1;
     }
 
+    .carta-productos-page,
+    .carta-productos-page * {
+        box-sizing: border-box;
+    }
+
+    .carta-productos-page {
+        overflow-x: hidden;
+    }
+
+    .carta-productos-page .body-header {
+        gap: 10px;
+    }
+
+    .header-name-search .div-input-search {
+        display: none;
+    }
+
+    .carta-productos-mobile-search {
+        display: block;
+        width: 100%;
+        margin: 8px 0 0;
+    }
+
+    .carta-productos-mobile-search .div-input-search {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+    }
+
     .carta-productos-toolbar {
         justify-content: flex-start;
         gap: 8px;
+    }
+
+    .carta-productos-mobile-selects {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 8px;
+        width: 100%;
+    }
+
+    .carta-productos-mobile-selects .mobile-menly-select {
+        width: 100%;
+        min-width: 0;
+        height: 36px;
+        border: 1px solid #1e2d3d;
+        border-radius: 8px;
+        background: #09131d;
+        color: #e2e8f0;
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .view-mode-toggle,
+    .availability-filter-toggle {
+        display: none;
     }
 
     .availability-filter-toggle {
@@ -827,8 +886,11 @@ scroll-behavior: smooth;
     }
 
     .btn-add {
-        width: 100%;
-        max-width: 240px;
+        width: auto;
+        max-width: 190px;
+        min-height: 34px;
+        padding: 7px 11px;
+        font-size: 12px;
         justify-content: center;
     }
 

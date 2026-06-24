@@ -734,6 +734,76 @@
         flex-direction: column;
     }
 
+    .clicks {
+        width: 100%;
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .div-clicks {
+        gap: 6px;
+    }
+
+    .click-item {
+        grid-template-columns: 26px 36px minmax(0, 1fr) minmax(42px, auto);
+        gap: 8px;
+        padding: 7px 8px;
+        min-height: 52px;
+        align-items: center;
+    }
+
+    .click-rank {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+    }
+
+    .click-img {
+        width: 34px;
+        height: 34px;
+    }
+
+    .click-info {
+        min-width: 0;
+        gap: 2px;
+    }
+
+    .click-info strong {
+        font-size: 12px;
+        line-height: 1.15;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .click-info p {
+        font-size: 10px;
+        line-height: 1.1;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .click-total {
+        margin-right: 0;
+        align-items: flex-end;
+        text-align: right;
+        gap: 1px;
+    }
+
+    .click-total strong {
+        font-size: 13px;
+        line-height: 1;
+    }
+
+    .click-total span {
+        font-size: 9px;
+        line-height: 1;
+    }
+
     .notificaciones-burbuja {
         top: 10px;
         right: 10px;

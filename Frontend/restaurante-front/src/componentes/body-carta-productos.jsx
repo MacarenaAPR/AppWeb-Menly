@@ -358,7 +358,51 @@ export default function CartaProducto(){
                       <button className="button-arrow" onClick={() => scroll("right")}>{">"}</button>
                     </div>
 
+                    <div className="carta-productos-mobile-search">
+                      <div className="div-input-search">
+                        <span className="input-group-text">
+                          <i className="bi bi-search"></i>
+                        </span>
+                        <input
+                          className="form-control form-control-sm"
+                          type="text"
+                          placeholder="Buscar producto..."
+                          value={busqueda}
+                          onChange={(e) => {
+                            setBusqueda(e.target.value);
+                            setPaginaActual(1);
+                          }}
+                        />
+                      </div>
+                    </div>
+
                     <div className="carta-productos-toolbar">
+                      <div className="carta-productos-mobile-selects">
+                        <select
+                          className="mobile-menly-select"
+                          value={viewMode}
+                          onChange={(event) => setViewMode(event.target.value)}
+                          aria-label="Seleccionar vista de productos"
+                        >
+                          <option value="cards">Tarjetas</option>
+                          <option value="list">Lista</option>
+                        </select>
+
+                        <select
+                          className="mobile-menly-select"
+                          value={filtroDisponibilidad}
+                          onChange={(event) => {
+                            setFiltroDisponibilidad(event.target.value);
+                            setPaginaActual(1);
+                          }}
+                          aria-label="Filtrar por disponibilidad"
+                        >
+                          <option value="todos">Todos</option>
+                          <option value="disponibles">Disponibles</option>
+                          <option value="no_disponibles">No disponibles</option>
+                        </select>
+                      </div>
+
                       <div className="view-mode-toggle" aria-label="Cambiar vista de productos">
                         <button
                           type="button"

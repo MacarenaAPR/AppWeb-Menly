@@ -597,8 +597,21 @@ export default function SolicitudesEspecialesDashboard() {
 
           {mostrarFormulario && (
           <div className="modal-reserva-bg">
-            <form className="modal-reserva" onSubmit={guardarSolicitud}>
-              <h2>{modoModal === "crear" ? "Crear solicitud" : "Modificar solicitud"}</h2>
+            <form className="modal-reserva solicitud-modal" onSubmit={guardarSolicitud}>
+              <header className="solicitud-modal-header">
+                <div>
+                  <h2>{modoModal === "crear" ? "Crear solicitud" : "Modificar solicitud"}</h2>
+                  <p>Datos de la solicitud especial</p>
+                </div>
+                <button
+                  className="modal-close-btn"
+                  type="button"
+                  aria-label="Cerrar modal"
+                  onClick={() => setMostrarFormulario(false)}
+                >
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </header>
 
               <input
                 type="text"
@@ -672,51 +685,87 @@ export default function SolicitudesEspecialesDashboard() {
           {solicitudPedido && (
           <div className="modal-reserva-bg">
             <form className="modal-reserva pedido-form-modal" onSubmit={convertirEnPedidoEspecial}>
-              <h2>Convertir en pedido especial</h2>
-              <p className="pedido-detalle-subtitle">
-                {solicitudPedido.nombre} {solicitudPedido.apellido}
-              </p>
+              <header className="pedido-modal-header solicitud-pedido-header">
+                <div>
+                  <h2>Convertir en pedido especial</h2>
+                  <p className="pedido-detalle-subtitle">
+                    {solicitudPedido.nombre} {solicitudPedido.apellido}
+                  </p>
+                </div>
+                <button
+                  className="modal-close-btn"
+                  type="button"
+                  aria-label="Cerrar modal"
+                  onClick={() => setSolicitudPedido(null)}
+                >
+                  <i className="bi bi-x-lg"></i>
+                </button>
+              </header>
 
-              <input
-                type="date"
-                value={formPedidoEspecial.fecha_entrega}
-                onChange={(e) => setFormPedidoEspecial({ ...formPedidoEspecial, fecha_entrega: e.target.value })}
-                required
-              />
+              <section className="solicitud-pedido-fields">
+                <label>
+                  <span>Fecha de entrega</span>
+                  <input
+                    type="date"
+                    value={formPedidoEspecial.fecha_entrega}
+                    onChange={(e) => setFormPedidoEspecial({ ...formPedidoEspecial, fecha_entrega: e.target.value })}
+                    required
+                  />
+                </label>
+                <div className="solicitud-pedido-descripcion">
+                  <span>Nombre / descripción del pedido</span>
+                  <p>{solicitudPedido.descripcion_solicitud || "Pedido especial"}</p>
+                </div>
+              </section>
 
               <div className="pedido-items-form">
+                <div className="pedido-items-header">
+                  <h3>Items del pedido</h3>
+                  <button type="button" className="export-btn solicitud-add-item-btn" onClick={agregarItemPedido}>
+                    <i className="bi bi-plus-lg"></i>
+                    Agregar item
+                  </button>
+                </div>
+
                 {formPedidoEspecial.items.map((item, index) => (
                   <div className="pedido-item-row" key={index}>
-                    <input
-                      type="text"
-                      placeholder="Item"
-                      value={item.nombre}
-                      onChange={(e) => actualizarItemPedido(index, "nombre", e.target.value)}
-                      required
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.cantidad}
-                      onChange={(e) => actualizarItemPedido(index, "cantidad", e.target.value)}
-                      required
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      value={item.precio_unitario}
-                      onChange={(e) => actualizarItemPedido(index, "precio_unitario", e.target.value)}
-                      required
-                    />
-                    <button type="button" className="delete" onClick={() => quitarItemPedido(index)}>
+                    <label className="pedido-item-producto">
+                      <span>Producto / Item</span>
+                      <input
+                        type="text"
+                        placeholder="Producto / Item"
+                        value={item.nombre}
+                        onChange={(e) => actualizarItemPedido(index, "nombre", e.target.value)}
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>Cantidad</span>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Cantidad"
+                        value={item.cantidad}
+                        onChange={(e) => actualizarItemPedido(index, "cantidad", e.target.value)}
+                        required
+                      />
+                    </label>
+                    <label>
+                      <span>Valor unitario</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Valor unitario"
+                        value={item.precio_unitario}
+                        onChange={(e) => actualizarItemPedido(index, "precio_unitario", e.target.value)}
+                        required
+                      />
+                    </label>
+                    <button type="button" className="delete pedido-item-delete" onClick={() => quitarItemPedido(index)}>
                       <i className="bi bi-trash"></i>
                     </button>
                   </div>
                 ))}
-                <button type="button" className="export-btn" onClick={agregarItemPedido}>
-                  <i className="bi bi-plus-lg"></i>
-                  Agregar item
-                </button>
               </div>
 
               <div className="modal-actions">

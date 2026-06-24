@@ -263,6 +263,18 @@ export default function ReservasDashboard() {
     return <p className="reservas-loading">Cargando reservas...</p>;
   }
 
+  const filtroReservaMobile = filtroFecha === "hoy" ? "hoy" : filtroEstado;
+  const handleFiltroReservaMobile = (valor) => {
+    if (valor === "hoy") {
+      setFiltroFecha("hoy");
+      setFiltroEstado("todas");
+      return;
+    }
+
+    setFiltroFecha("todas");
+    setFiltroEstado(valor);
+  };
+
   return (
     <div className="body">
       <main className="container-fluid" id="main">
@@ -323,6 +335,19 @@ export default function ReservasDashboard() {
             </section>
 
             <section className="reservas-tools">
+                <select
+                    className="mobile-menly-select reservas-mobile-filter"
+                    value={filtroReservaMobile}
+                    onChange={(event) => handleFiltroReservaMobile(event.target.value)}
+                    aria-label="Filtrar reservas"
+                >
+                    <option value="todas">Todas</option>
+                    <option value="hoy">Hoy</option>
+                    <option value="confirmada">Confirmadas</option>
+                    <option value="pendiente">Pendientes</option>
+                    <option value="cancelada">Canceladas</option>
+                </select>
+
                 <div className="tabs-row">
                 <button
                     className={`tab ${filtroFecha === "todas" && filtroEstado === "todas" ? "active" : ""}`}
@@ -576,9 +601,19 @@ export default function ReservasDashboard() {
         
         </section>
         {mostrarFormulario && (
-            <div className="modal-reserva-bg">
-                <form className="modal-reserva" onSubmit={guardarReserva}>
-                    <h2>{modoModal === "crear" ? "Crear reserva" : "Modificar reserva"}</h2>
+            <div className="modal-reserva-bg reserva-modal-bg">
+                <form className="modal-reserva reserva-modal" onSubmit={guardarReserva}>
+                    <header className="reserva-modal-header">
+                        <h2>{modoModal === "crear" ? "Crear reserva" : "Modificar reserva"}</h2>
+                        <button
+                            className="reserva-modal-close"
+                            type="button"
+                            aria-label="Cerrar modal"
+                            onClick={() => setMostrarFormulario(false)}
+                        >
+                            <i className="bi bi-x-lg"></i>
+                        </button>
+                    </header>
 
                     <input
                         type="text"

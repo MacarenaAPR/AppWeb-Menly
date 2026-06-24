@@ -541,6 +541,28 @@ export default function PedidosDashboard() {
               </section>
 
               <section className="reservas-tools">
+                <div className="pedidos-mobile-controls">
+                  <select
+                    className="mobile-menly-select pedidos-mobile-select"
+                    value={tabActiva}
+                    onChange={(event) => setTabActiva(event.target.value)}
+                    aria-label="Seleccionar tipo de pedidos"
+                  >
+                    {whatsappActivo && (
+                      <option value="whatsapp">Pedidos por WhatsApp ({pedidosWhatsapp.length})</option>
+                    )}
+                    {especialesActivo && (
+                      <option value="especiales">Pedidos especiales ({pedidosEspeciales.length})</option>
+                    )}
+                  </select>
+                  {especialesActivo && (
+                    <button className="crear-reserva-btn" type="button" onClick={abrirCrearEspecial}>
+                      <i className="bi bi-plus-lg"></i>
+                      Nuevo pedido especial
+                    </button>
+                  )}
+                </div>
+
                 <div className="tabs-row pedidos-tabs">
                   {whatsappActivo && (
                     <button className={`tab ${tabActiva === "whatsapp" ? "active" : ""}`} onClick={() => setTabActiva("whatsapp")}>

@@ -260,6 +260,16 @@ export default function Historial() {
             </button>
           </div>
 
+          <select
+            className="mobile-menly-select historial-mobile-panel-select"
+            value={panelActivo}
+            onChange={(event) => handlePanelChange(event.target.value)}
+            aria-label="Seleccionar sección de bitácora"
+          >
+            <option value="movimientos">Bitácora de movimientos</option>
+            <option value="pedidos">Bitácora de pedidos</option>
+          </select>
+
           <div className="historial-actions">
             <div className="historial-search">
               <i className="bi bi-search"></i>
@@ -273,36 +283,50 @@ export default function Historial() {
           </div>
 
           {panelActivo === "movimientos" ? (
-            <div className="historial-tabs">
-              <button
-                className={filtro === "TODOS" ? "active" : ""}
-                onClick={() => handleFiltroChange("TODOS")}
+            <>
+              <select
+                className="mobile-menly-select historial-mobile-filter-select"
+                value={filtro}
+                onChange={(event) => handleFiltroChange(event.target.value)}
+                aria-label="Filtrar movimientos"
               >
-                <i className="bi bi-grid"></i>
-                Todos
-              </button>
+                <option value="TODOS">Todos</option>
+                <option value="EDITADO">Editado</option>
+                <option value="ELIMINADO">Eliminado</option>
+                <option value="CREADO">Creado</option>
+              </select>
 
-              <button
-                className={filtro === "EDITADO" ? "active" : ""}
-                onClick={() => handleFiltroChange("EDITADO")}
-              >
-                Editado
-              </button>
+              <div className="historial-tabs">
+                <button
+                  className={filtro === "TODOS" ? "active" : ""}
+                  onClick={() => handleFiltroChange("TODOS")}
+                >
+                  <i className="bi bi-grid"></i>
+                  Todos
+                </button>
 
-              <button
-                className={filtro === "ELIMINADO" ? "active" : ""}
-                onClick={() => handleFiltroChange("ELIMINADO")}
-              >
-                Eliminado
-              </button>
+                <button
+                  className={filtro === "EDITADO" ? "active" : ""}
+                  onClick={() => handleFiltroChange("EDITADO")}
+                >
+                  Editado
+                </button>
 
-              <button
-                className={filtro === "CREADO" ? "active" : ""}
-                onClick={() => handleFiltroChange("CREADO")}
-              >
-                Creado
-              </button>
-            </div>
+                <button
+                  className={filtro === "ELIMINADO" ? "active" : ""}
+                  onClick={() => handleFiltroChange("ELIMINADO")}
+                >
+                  Eliminado
+                </button>
+
+                <button
+                  className={filtro === "CREADO" ? "active" : ""}
+                  onClick={() => handleFiltroChange("CREADO")}
+                >
+                  Creado
+                </button>
+              </div>
+            </>
           ) : (
             <div className="historial-pedidos-filters">
               <select
