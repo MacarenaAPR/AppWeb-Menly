@@ -169,7 +169,7 @@ export default function Dashboard() {
 
   const fetchMetricasPedidos = async () => {
     try {
-      const response = await authFetch("/mi-restaurante/pedidos/metricas/", {
+      const response = await authFetch("/mi-restaurante/metricas/resumen/", {
         cache: "no-store",
       });
       const result = await response.json();
@@ -253,10 +253,7 @@ export default function Dashboard() {
       : `en ${suscripcion?.dias_restantes} días`
   }. Recuerda regularizar tu pago para mantener activo el servicio. Si ya realizaste el pago, ignora este mensaje.`;
   const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
-  const ventaTotalMes =
-    metricasPedidos?.resumen?.venta_total_mes ??
-    ((metricasPedidos?.whatsapp?.venta_mensual_total || 0) +
-      (metricasPedidos?.especiales?.total_mensual || 0));
+  const ventaTotalMes = metricasPedidos?.ventas?.venta_real_mes ?? 0;
 
   const iconoPedido = (tipoEntrega) => {
     if (tipoEntrega === "delivery") return <FaMotorcycle/>;

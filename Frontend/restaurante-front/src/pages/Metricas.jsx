@@ -283,9 +283,9 @@ function ResumenMensualChart({ whatsappMes, especialesMes }) {
 }
 
 function MetricasBasicas({ metricas }) {
-  const ventaMensual = metricas?.whatsapp?.venta_mensual_total || 0;
-  const pedidosMes = metricas?.whatsapp?.pedidos_mes || 0;
-  const pedidosEspecialesMes = metricas?.especiales?.pedidos_mes || 0;
+  const ventaMensual = metricas?.ventas?.venta_real_mes || 0;
+  const pedidosMes = metricas?.pedidos?.pedidos_creados_mes || 0;
+  const pedidosEspecialesMes = metricas?.canales?.especiales?.pedidos_creados_mes || 0;
 
   return (
     <>
@@ -320,7 +320,7 @@ function ProductosMasVendidos({ productos }) {
             <div key={producto.id || producto.nombre}>
               <span>{index + 1}</span>
               <strong>{producto.nombre}</strong>
-              <small>{producto.clicks ?? producto.cantidad ?? 0} interacciones</small>
+              <small>{producto.cantidad ?? producto.clicks ?? 0} vendidos</small>
             </div>
           ))
         )}
@@ -800,21 +800,21 @@ function ReporteAnualModal({ reporte, loading, error, onClose, onGuardar, guarda
 }
 
 function MetricasPro({ metricas, productos, onOpenReporteMensual, onOpenReporteAnual }) {
-  const productoDia = metricas?.whatsapp?.producto_mas_vendido_dia;
-  const productoMes = metricas?.whatsapp?.producto_mas_vendido_mes;
+  const productoDia = metricas?.productos?.mas_vendido_hoy;
+  const productoMes = metricas?.productos?.mas_vendido_mes;
 
   return (
     <>
       <section className="metricas-grid">
-        <MetricCard icon="bi bi-eye" label="Visitas" value={metricas?.visitas?.clicks_productos_total || 0} hint="Clicks en productos" />
-        <MetricCard icon="bi bi-bag-check" label="Pedidos del mes" value={metricas?.whatsapp?.pedidos_mes || 0} />
-        <MetricCard icon="bi bi-calendar2-check" label="Reservas del mes" value={metricas?.reservas?.reservas_mes || 0} />
-        <MetricCard icon="bi bi-x-circle" label="Pedidos cancelados" value={(metricas?.whatsapp?.pedidos_cancelados || 0) + (metricas?.especiales?.pedidos_cancelados || 0)} />
+        <MetricCard icon="bi bi-eye" label="Visitas" value={metricas?.productos?.clicks_total || 0} hint="Clicks en productos" />
+        <MetricCard icon="bi bi-bag-check" label="Pedidos creados mes" value={metricas?.pedidos?.pedidos_creados_mes || 0} />
+        <MetricCard icon="bi bi-calendar2-check" label="Reservas programadas mes" value={metricas?.reservas?.reservas_programadas_mes || 0} />
+        <MetricCard icon="bi bi-x-circle" label="Pedidos cancelados" value={metricas?.pedidos?.pedidos_cancelados_mes || 0} />
       </section>
       <section className="metricas-grid">
-        <MetricCard icon="bi bi-cash-stack" label="Venta diaria" value={formatearMoneda(metricas?.whatsapp?.venta_diaria_total)} />
-        <MetricCard icon="bi bi-graph-up-arrow" label="Venta semanal" value={formatearMoneda(metricas?.whatsapp?.venta_semanal_total)} />
-        <MetricCard icon="bi bi-calendar3" label="Venta mensual" value={formatearMoneda(metricas?.whatsapp?.venta_mensual_total)} />
+        <MetricCard icon="bi bi-cash-stack" label="Venta diaria" value={formatearMoneda(metricas?.ventas?.venta_real_hoy || 0)} />
+        <MetricCard icon="bi bi-graph-up-arrow" label="Venta semanal" value={formatearMoneda(metricas?.ventas?.venta_real_semana || 0)} />
+        <MetricCard icon="bi bi-calendar3" label="Venta mensual" value={formatearMoneda(metricas?.ventas?.venta_real_mes || 0)} />
       </section>
       <section className="metricas-two-columns">
         <ProductosMasVendidos productos={productos} />
@@ -828,7 +828,7 @@ function MetricasPro({ metricas, productos, onOpenReporteMensual, onOpenReporteA
           <div className="metricas-report-list">
             <p><strong>Producto del día:</strong> {productoDia?.nombre || "Sin datos"} ({productoDia?.cantidad || 0})</p>
             <p><strong>Producto del mes:</strong> {productoMes?.nombre || "Sin datos"} ({productoMes?.cantidad || 0})</p>
-            <p><strong>Reservas pendientes:</strong> {metricas?.reservas?.reservas_pendientes || 0}</p>
+            <p><strong>Reservas pendientes futuras:</strong> {metricas?.reservas?.reservas_pendientes_futuras || 0}</p>
             <button className="metricas-report-btn" type="button" onClick={onOpenReporteMensual}>
               <i className="bi bi-bar-chart"></i>
               Ver reporte mensual
@@ -1036,7 +1036,7 @@ export default function MetricasDashboard() {
     try {
       const [restauranteResponse, metricasResponse, productosResponse] = await Promise.all([
         authFetch("/mi-restaurante/", { cache: "no-store" }),
-        authFetch("/mi-restaurante/pedidos/metricas/", { cache: "no-store" }),
+        authFetch("/mi-restaurante/metricas/resumen/", { cache: "no-store" }),
         authFetch("/mi-restaurante/productos-mas-clickeados/", { cache: "no-store" }),
       ]);
 
@@ -1054,7 +1054,7 @@ export default function MetricasDashboard() {
       const productosData = await productosResponse.json();
       setRestaurante(restauranteData.restaurante);
       setMetricas(metricasData);
-      setProductos(productosResponse.ok ? productosData || [] : []);
+      setProductos(metricasData?.productos?.top_por_cantidad || (productosResponse.ok ? productosData || [] : []));
     } catch (requestError) {
       setError(requestError.message || "No se pudieron cargar las metricas.");
     } finally {

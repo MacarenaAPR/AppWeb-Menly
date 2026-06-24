@@ -42,7 +42,7 @@
   font-family: var(--font-family-header);
   font-weight: 950;
   letter-spacing: 0;
-  text-transform: uppercase
+  text-transform: var(--brand-name-text-transform)
 }
 .brand-tag {
   font-size: 0.72rem;

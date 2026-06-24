@@ -520,34 +520,34 @@ export default function PedidosDashboard() {
                 <div className="reserva-stat-card">
                   <div className="stat-icon"><i className="bi bi-whatsapp"></i></div>
                   <div>
-                    <h3>{formatearMoneda(metricas.resumen?.venta_diaria_wsp ?? metricas.whatsapp?.venta_diaria_total)}</h3>
+                    <h3>{formatearMoneda(metricas.canales?.whatsapp?.venta_real_hoy ?? 0)}</h3>
                     <p>Venta diaria WSP</p>
-                    <small>{metricas.resumen?.pedidos_wsp_hoy ?? metricas.whatsapp?.pedidos_diarios ?? 0} pedidos</small>
+                    <small>{metricas.canales?.whatsapp?.pedidos_creados_hoy ?? 0} pedidos</small>
                   </div>
                 </div>
 
                 <div className="reserva-stat-card">
                   <div className="stat-icon"><i className="bi bi-calendar-heart"></i></div>
                   <div>
-                    <h3>{formatearMoneda(metricas.resumen?.venta_especiales_mes ?? metricas.especiales?.total_mensual)}</h3>
+                    <h3>{formatearMoneda(metricas.ventas?.venta_especiales_mes ?? 0)}</h3>
                     <p>Pedidos especiales mes</p>
-                    <small>{metricas.resumen?.pedidos_especiales_mes ?? metricas.especiales?.pedidos_mes ?? 0} pedidos</small>
+                    <small>{metricas.canales?.especiales?.pedidos_creados_mes ?? 0} pedidos</small>
                   </div>
                 </div>
 
                 <div className="reserva-stat-card">
                   <div className="stat-icon"><i className="bi bi-cash-stack"></i></div>
                   <div>
-                    <h3>{formatearMoneda(metricas.resumen?.venta_total_mes)}</h3>
+                    <h3>{formatearMoneda(metricas.ventas?.venta_real_mes ?? 0)}</h3>
                     <p>Venta total mes</p>
-                    <small>{metricas.resumen?.pedidos_total_mes ?? 0} pedidos</small>
+                    <small>{metricas.pedidos?.pedidos_finalizados_mes ?? 0} pedidos</small>
                   </div>
                 </div>
 
                 <div className="reserva-stat-card">
                   <div className="stat-icon"><i className="bi bi-x-circle"></i></div>
                   <div>
-                    <h3>{metricas.resumen?.pedidos_cancelados_mes ?? ((metricas.whatsapp?.pedidos_cancelados || 0) + (metricas.especiales?.pedidos_cancelados || 0))} pedidos</h3>
+                    <h3>{metricas.pedidos?.pedidos_cancelados_mes ?? 0} pedidos</h3>
                     <p>Cancelados mes</p>
                   </div>
                 </div>

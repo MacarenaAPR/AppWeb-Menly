@@ -9,7 +9,7 @@ from rest_framework import status
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, PedidoWhatsApp, PedidoEspecial
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, PedidoWhatsApp, PedidoEspecial, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host
@@ -2180,6 +2180,7 @@ class SeguridadCriticaTests(BaseTestCase):
             tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
             productos_snapshot=[
                 {
+                    "producto_id": self.producto.id,
                     "nombre": "Hamburguesa",
                     "cantidad": 2,
                     "precio_unitario": 5000,
@@ -2187,6 +2188,7 @@ class SeguridadCriticaTests(BaseTestCase):
                 }
             ],
             total=10000,
+            estado=PedidoWhatsApp.ESTADO_ENTREGADO,
             mensaje_whatsapp_generado="Pedido hoy",
             whatsapp_destino="999999999",
         )
@@ -2238,6 +2240,7 @@ class SeguridadCriticaTests(BaseTestCase):
             ],
             total=20000,
             fecha_entrega=hoy.date(),
+            estado=PedidoEspecial.ESTADO_ENTREGADO,
         )
         pedido_especial_cancelado = PedidoEspecial.objects.create(
             restaurante=self.restaurante,
@@ -2262,9 +2265,201 @@ class SeguridadCriticaTests(BaseTestCase):
         self.assertEqual(resumen["pedidos_wsp_hoy"], 2)
         self.assertEqual(resumen["venta_especiales_mes"], int(pedido_especial.total))
         self.assertEqual(resumen["pedidos_especiales_mes"], 2)
-        self.assertEqual(resumen["venta_total_mes"], 32000)
-        self.assertEqual(resumen["pedidos_total_mes"], 5)
+        self.assertEqual(resumen["venta_total_mes"], 30000)
+        self.assertEqual(resumen["pedidos_total_mes"], 2)
+        self.assertEqual(resumen["pedidos_creados_mes"], 5)
+        self.assertEqual(resumen["pedidos_finalizados_mes"], 2)
         self.assertEqual(resumen["pedidos_cancelados_mes"], 2)
+        self.assertEqual(response.data["ventas"]["venta_real_mes"], 30000)
+        self.assertEqual(response.data["pedidos"]["pedidos_activos"], 1)
+        self.assertEqual(response.data["productos"]["mas_vendido_mes"]["producto_id"], self.producto.id)
+
+    def test_metricas_resumen_venta_real_excluye_pendientes_y_cancelados(self):
+        hoy = timezone.localtime(timezone.now()).date()
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Pendiente",
+            telefono_cliente="111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=5000,
+            estado=PedidoWhatsApp.ESTADO_PENDIENTE,
+            mensaje_whatsapp_generado="Pendiente",
+            whatsapp_destino="111",
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Cancelado",
+            telefono_cliente="222",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=7000,
+            estado=PedidoWhatsApp.ESTADO_CANCELADO,
+            mensaje_whatsapp_generado="Cancelado",
+            whatsapp_destino="222",
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=3,
+            nombre_cliente="Entregado",
+            telefono_cliente="333",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=10000,
+            estado=PedidoWhatsApp.ESTADO_ENTREGADO,
+            mensaje_whatsapp_generado="Entregado",
+            whatsapp_destino="333",
+        )
+        PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Especial completado",
+            telefono_cliente="444",
+            email_cliente="especial@test.com",
+            descripcion_original="Especial",
+            items=[],
+            total=20000,
+            fecha_entrega=hoy,
+            estado="completado",
+        )
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.get("/api/mi-restaurante/metricas/resumen/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["ventas"]["venta_real_mes"], 30000)
+        self.assertEqual(response.data["pedidos"]["pedidos_creados_mes"], 4)
+        self.assertEqual(response.data["pedidos"]["pedidos_finalizados_mes"], 2)
+        self.assertEqual(response.data["pedidos"]["pedidos_cancelados_mes"], 1)
+
+    def test_reportes_mensual_y_anual_incluyen_whatsapp_y_especiales_finalizados(self):
+        plan, _ = Plan.objects.get_or_create(
+            slug="pro",
+            defaults={"nombre": "Pro"},
+        )
+        self.restaurante.plan = plan
+        self.restaurante.save(update_fields=["plan"])
+        hoy = timezone.localtime(timezone.now()).date()
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="WSP",
+            telefono_cliente="111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=10000,
+            estado=PedidoWhatsApp.ESTADO_ENTREGADO,
+            mensaje_whatsapp_generado="WSP",
+            whatsapp_destino="111",
+        )
+        PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Especial",
+            telefono_cliente="222",
+            email_cliente="especial@test.com",
+            descripcion_original="Especial",
+            items=[],
+            total=20000,
+            fecha_entrega=hoy,
+            estado=PedidoEspecial.ESTADO_ENTREGADO,
+        )
+
+        self.client.force_authenticate(user=self.dueno)
+        mensual = self.client.get("/api/metricas/reporte-mensual/")
+        anual = self.client.get("/api/metricas/reporte-anual/")
+
+        self.assertEqual(mensual.status_code, status.HTTP_200_OK)
+        self.assertEqual(anual.status_code, status.HTTP_200_OK)
+        self.assertEqual(mensual.data["venta_total"], 30000)
+        self.assertEqual(mensual.data["desglose_por_canal"]["whatsapp"]["venta_real"], 10000)
+        self.assertEqual(mensual.data["desglose_por_canal"]["especiales"]["venta_real"], 20000)
+        self.assertEqual(anual.data["venta_total_anual"], 30000)
+        self.assertEqual(anual.data["desglose_por_canal"]["whatsapp"]["venta_real"], 10000)
+        self.assertEqual(anual.data["desglose_por_canal"]["especiales"]["venta_real"], 20000)
+
+    def test_productos_vendidos_salen_solo_de_pedidos_finalizados(self):
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Entregado",
+            telefono_cliente="111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{
+                "producto_id": self.producto.id,
+                "nombre": self.producto.nombre,
+                "cantidad": 2,
+                "precio_unitario": 1500,
+                "subtotal": 3000,
+            }],
+            total=3000,
+            estado=PedidoWhatsApp.ESTADO_ENTREGADO,
+            mensaje_whatsapp_generado="Entregado",
+            whatsapp_destino="111",
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Pendiente",
+            telefono_cliente="222",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{
+                "nombre": "Producto pendiente",
+                "cantidad": 99,
+                "precio_unitario": 100,
+                "subtotal": 9900,
+            }],
+            total=9900,
+            estado=PedidoWhatsApp.ESTADO_PENDIENTE,
+            mensaje_whatsapp_generado="Pendiente",
+            whatsapp_destino="222",
+        )
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.get("/api/mi-restaurante/metricas/resumen/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        top = response.data["productos"]["top_por_cantidad"]
+        self.assertEqual(len(top), 1)
+        self.assertEqual(top[0]["producto_id"], self.producto.id)
+        self.assertEqual(top[0]["cantidad"], 2)
+
+    def test_reservas_creadas_y_programadas_se_calculan_distinto(self):
+        hoy = timezone.localtime(timezone.now()).date()
+        proximo_mes = (hoy.replace(day=28) + timedelta(days=8)).replace(day=5)
+        Reserva.objects.create(
+            restaurante=self.restaurante,
+            nombre_cliente="Creada este mes programada futuro",
+            telefono="111",
+            email="cliente@test.com",
+            fecha=proximo_mes,
+            hora=time(20, 0),
+            cantidad_personas=2,
+            estado="pendiente",
+        )
+        reserva_programada_mes = Reserva.objects.create(
+            restaurante=self.restaurante,
+            nombre_cliente="Programada este mes creada antes",
+            telefono="222",
+            email="cliente2@test.com",
+            fecha=hoy,
+            hora=time(21, 0),
+            cantidad_personas=2,
+            estado="pendiente",
+        )
+        mes_anterior = hoy.replace(day=1) - timedelta(days=1)
+        Reserva.objects.filter(id=reserva_programada_mes.id).update(
+            fecha_creacion=timezone.make_aware(datetime.combine(mes_anterior, time(12, 0)))
+        )
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.get("/api/mi-restaurante/metricas/resumen/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["reservas"]["reservas_creadas_mes"], 1)
+        self.assertEqual(response.data["reservas"]["reservas_programadas_mes"], 1)
 
     def test_reserva_publica_rechaza_modulo_reservas_inactivo(self):
         fecha_reserva = date.today() + timedelta(days=2)
