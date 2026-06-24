@@ -250,6 +250,7 @@
   min-width: 0
 }
 .about-panel-details h3 {
+  font-family: var(--about-subtitle-text-font-family);
   margin: 0 0 6px;
   color: var(--about-subtitle-text-color);
   font-size:var(--about-subtitle-text-font-size);

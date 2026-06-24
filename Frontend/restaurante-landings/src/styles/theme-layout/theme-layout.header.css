@@ -94,6 +94,7 @@
 }
 .page-shell .brand-tag {
   color: var(--color-text-brand-name);
+  font-family: var(--brand-tag-font-family);
 }
 
 .page-shell .site-nav {
@@ -115,7 +116,8 @@
   font-weight: 850;
   border-radius: 0;
   letter-spacing: var(--letter-spacing-header);
-  text-transform: uppercase
+  text-transform: uppercase;
+  font-family: var(--headear-social-a-font-family);
 }
 .page-shell .header-actions {
   display: flex;
@@ -148,7 +150,7 @@
   color: var(--color-text-header-social-a);
   background: var(--bg-header-social);
   text-decoration: none;
-  font-family: none;
+  font-family: var(--headear-social-a-font-family);
   font-size:var(--size-text-header)
 }
 

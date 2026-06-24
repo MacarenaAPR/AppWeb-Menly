@@ -78,7 +78,7 @@
     --color-muted:#b3b3b38e;
     /*font family*/
     --font-family-general:"Arsenal SC";
-    --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
+    --font-family-base: "Great Vibes", "Arial Black", system-ui, sans-serif;
     --font-family-btns:"Bebas Neue";
     /*base*/
     /*BTN BUTTON PRIMARY reserva*/
@@ -105,10 +105,11 @@
     --color-text-header-social-a:var(--color-uno);
     --color-text-hover-header:var(--color-cuatro);
     --color-text-brand-name:var(--color-uno);
-    --size-text-header: 1.25rem;
-    --letter-spacing-header:0.1em;
-    --font-family-header: var(--font-family-base);
-    
+    --size-text-header: 1.1rem;
+    --letter-spacing-header:0em;
+    --font-family-header: var(--font-family-general);
+    --headear-social-a-font-family:var(--font-family-general);
+    --brand-tag-font-family:var(--font-family-general);
     /*CART-trigger carrito header*/
     --bg-color-strong-cart-trigger:var(--color-dos);
     --bg-color-cart-trigger:var(--color-dos);
@@ -216,8 +217,9 @@
     --about-title-text-font-family:var(--font-family-base);
     --about-parrafo-text-font-family:var(--font-family-general);
     --about-parrafo-text-color:var(--color-uno);
-    --about-subtitle-text-font-size:1.2rem;
+    --about-subtitle-text-font-size:1rem;
     --about-subtitle-text-color:var(--color-dos);
+    --about-subtitle-text-font-family:var(--font-family-general);
     --about-parrafo-details-font-size:0.9rem;
     --about-parrafo-details-color:var(--color-uno);
     
