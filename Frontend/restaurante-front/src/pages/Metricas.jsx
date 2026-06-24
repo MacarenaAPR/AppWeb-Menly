@@ -21,6 +21,12 @@ const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "O
 const productoTexto = (producto) =>
   producto ? `${producto.nombre} (${producto.cantidad})` : "Sin datos";
 
+const ventaWhatsappReporte = (reporte) =>
+  reporte?.venta_whatsapp ?? reporte?.resumen_canales?.whatsapp?.venta_real ?? 0;
+
+const ventaEspecialesReporte = (reporte) =>
+  reporte?.venta_especiales ?? reporte?.resumen_canales?.especiales?.venta_real ?? 0;
+
 const descargarPdfAnual = (reporte) => {
   if (!reporte) return;
 
@@ -118,6 +124,8 @@ const descargarPdfAnual = (reporte) => {
 
   addTitle("Resumen anual");
   addText("Venta total", formatearMoneda(reporte.venta_total_anual));
+  addText("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)));
+  addText("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)));
   addText("Pedidos totales", reporte.pedidos_total_anual ?? 0);
   addText("Pedidos cancelados", reporte.pedidos_cancelados_anual ?? 0);
   addText("Mes mayor venta", `${reporte.mes_mayor_venta?.nombre_mes || "-"} · ${formatearMoneda(reporte.mes_mayor_venta?.total)}`);
@@ -197,6 +205,8 @@ const descargarPdfMensualGuardado = (reporte) => {
   pdf.setFontSize(10);
   line("Mes", reporte.mes || "Mes actual");
   line("Venta total", formatearMoneda(reporte.venta_total));
+  line("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)));
+  line("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)));
   line("Pedidos totales", reporte.pedidos_total ?? 0);
   line("Pedidos cancelados", reporte.pedidos_cancelados ?? 0);
   line("Día mayor venta", `Día ${reporte.dia_mayor_venta?.dia || "-"} · ${formatearMoneda(reporte.dia_mayor_venta?.total)}`);
@@ -453,6 +463,9 @@ function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guar
 
     ensureSpace(44);
     addKeyValue("Venta mensual total", formatearMoneda(reporte.venta_total), margin, y);
+    addKeyValue("Venta WhatsApp", formatearMoneda(ventaWhatsappReporte(reporte)), margin + 94, y);
+    y += 18;
+    addKeyValue("Venta especiales", formatearMoneda(ventaEspecialesReporte(reporte)), margin, y);
     addKeyValue("Pedidos totales", reporte.pedidos_total ?? 0, margin + 94, y);
     y += 18;
     addKeyValue("Pedidos cancelados", reporte.pedidos_cancelados ?? 0, margin, y);
@@ -628,6 +641,8 @@ function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guar
           <>
             <section className="metricas-reporte-grid">
               <MetricCard icon="bi bi-currency-dollar" label="Venta mensual" value={formatearMoneda(reporte.venta_total)} />
+              <MetricCard icon="bi bi-whatsapp" label="Venta WhatsApp" value={formatearMoneda(ventaWhatsappReporte(reporte))} />
+              <MetricCard icon="bi bi-calendar-heart" label="Venta especiales" value={formatearMoneda(ventaEspecialesReporte(reporte))} />
               <MetricCard icon="bi bi-graph-up-arrow" label="Día mayor venta" value={`Día ${reporte.dia_mayor_venta?.dia || "-"}`} hint={formatearMoneda(reporte.dia_mayor_venta?.total)} />
               <MetricCard icon="bi bi-graph-down-arrow" label="Día menor venta" value={`Día ${reporte.dia_menor_venta?.dia || "-"}`} hint={formatearMoneda(reporte.dia_menor_venta?.total)} />
               <MetricCard icon="bi bi-bag-check" label="Pedidos totales" value={reporte.pedidos_total} />
@@ -755,6 +770,8 @@ function ReporteAnualModal({ reporte, loading, error, onClose, onGuardar, guarda
           <>
             <section className="metricas-reporte-grid">
               <MetricCard icon="bi bi-currency-dollar" label="Venta anual" value={formatearMoneda(reporte.venta_total_anual)} />
+              <MetricCard icon="bi bi-whatsapp" label="Venta WhatsApp" value={formatearMoneda(ventaWhatsappReporte(reporte))} />
+              <MetricCard icon="bi bi-calendar-heart" label="Venta especiales" value={formatearMoneda(ventaEspecialesReporte(reporte))} />
               <MetricCard icon="bi bi-bag-check" label="Pedidos totales" value={reporte.pedidos_total_anual} />
               <MetricCard icon="bi bi-x-circle" label="Cancelados" value={reporte.pedidos_cancelados_anual} />
               <MetricCard icon="bi bi-graph-up-arrow" label="Mes mayor venta" value={reporte.mes_mayor_venta?.nombre_mes || "-"} hint={formatearMoneda(reporte.mes_mayor_venta?.total)} />
@@ -1133,21 +1150,46 @@ export default function MetricasDashboard() {
       resumen: esMensual
         ? {
             venta_total: reporte.venta_total,
+            venta_whatsapp: ventaWhatsappReporte(reporte),
+            venta_especiales: ventaEspecialesReporte(reporte),
             pedidos_total: reporte.pedidos_total,
+            pedidos_creados: reporte.pedidos_creados,
+            pedidos_finalizados: reporte.pedidos_finalizados,
             pedidos_cancelados: reporte.pedidos_cancelados,
+            pedidos_creados_whatsapp: reporte.pedidos_creados_whatsapp,
+            pedidos_creados_especiales: reporte.pedidos_creados_especiales,
+            pedidos_finalizados_whatsapp: reporte.pedidos_finalizados_whatsapp,
+            pedidos_finalizados_especiales: reporte.pedidos_finalizados_especiales,
+            pedidos_cancelados_whatsapp: reporte.pedidos_cancelados_whatsapp,
+            pedidos_cancelados_especiales: reporte.pedidos_cancelados_especiales,
             dia_mayor_venta: reporte.dia_mayor_venta,
             dia_menor_venta: reporte.dia_menor_venta,
             producto_mas_vendido: reporte.producto_mas_vendido,
             producto_menos_vendido: reporte.producto_menos_vendido,
+            productos_por_canal: reporte.productos_por_canal,
+            resumen_canales: reporte.resumen_canales,
           }
         : {
             venta_total_anual: reporte.venta_total_anual,
+            venta_whatsapp: ventaWhatsappReporte(reporte),
+            venta_especiales: ventaEspecialesReporte(reporte),
             pedidos_total_anual: reporte.pedidos_total_anual,
+            pedidos_creados: reporte.pedidos_creados,
+            pedidos_finalizados: reporte.pedidos_finalizados,
             pedidos_cancelados_anual: reporte.pedidos_cancelados_anual,
+            pedidos_cancelados: reporte.pedidos_cancelados,
+            pedidos_creados_whatsapp: reporte.pedidos_creados_whatsapp,
+            pedidos_creados_especiales: reporte.pedidos_creados_especiales,
+            pedidos_finalizados_whatsapp: reporte.pedidos_finalizados_whatsapp,
+            pedidos_finalizados_especiales: reporte.pedidos_finalizados_especiales,
+            pedidos_cancelados_whatsapp: reporte.pedidos_cancelados_whatsapp,
+            pedidos_cancelados_especiales: reporte.pedidos_cancelados_especiales,
             mes_mayor_venta: reporte.mes_mayor_venta,
             mes_menor_venta: reporte.mes_menor_venta,
             producto_mas_vendido_anual: reporte.producto_mas_vendido_anual,
             producto_menos_vendido_anual: reporte.producto_menos_vendido_anual,
+            productos_por_canal: reporte.productos_por_canal,
+            resumen_canales: reporte.resumen_canales,
           },
       datos: reporte,
     };

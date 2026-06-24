@@ -2348,11 +2348,51 @@ class SeguridadCriticaTests(BaseTestCase):
             nombre_cliente="WSP",
             telefono_cliente="111",
             tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
-            productos_snapshot=[],
+            productos_snapshot=[{
+                "producto_id": self.producto.id,
+                "nombre": self.producto.nombre,
+                "cantidad": 2,
+                "precio_unitario": 5000,
+                "subtotal": 10000,
+            }],
             total=10000,
             estado=PedidoWhatsApp.ESTADO_ENTREGADO,
             mensaje_whatsapp_generado="WSP",
             whatsapp_destino="111",
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="WSP Pendiente",
+            telefono_cliente="333",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{
+                "nombre": "Producto pendiente",
+                "cantidad": 99,
+                "precio_unitario": 100,
+                "subtotal": 9900,
+            }],
+            total=9900,
+            estado=PedidoWhatsApp.ESTADO_PENDIENTE,
+            mensaje_whatsapp_generado="WSP pendiente",
+            whatsapp_destino="333",
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=3,
+            nombre_cliente="WSP Cancelado",
+            telefono_cliente="444",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{
+                "nombre": "Producto cancelado",
+                "cantidad": 88,
+                "precio_unitario": 100,
+                "subtotal": 8800,
+            }],
+            total=8800,
+            estado=PedidoWhatsApp.ESTADO_CANCELADO,
+            mensaje_whatsapp_generado="WSP cancelado",
+            whatsapp_destino="444",
         )
         PedidoEspecial.objects.create(
             restaurante=self.restaurante,
@@ -2366,6 +2406,24 @@ class SeguridadCriticaTests(BaseTestCase):
             fecha_entrega=hoy,
             estado=PedidoEspecial.ESTADO_ENTREGADO,
         )
+        PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Especial completado",
+            telefono_cliente="555",
+            email_cliente="especial-completado@test.com",
+            descripcion_original="Especial completado",
+            items=[{
+                "nombre": "Torta completada",
+                "descripcion": "",
+                "cantidad": 1,
+                "precio_unitario": 5000,
+                "subtotal": 5000,
+            }],
+            total=5000,
+            fecha_entrega=hoy,
+            estado="completado",
+        )
 
         self.client.force_authenticate(user=self.dueno)
         mensual = self.client.get("/api/metricas/reporte-mensual/")
@@ -2373,12 +2431,48 @@ class SeguridadCriticaTests(BaseTestCase):
 
         self.assertEqual(mensual.status_code, status.HTTP_200_OK)
         self.assertEqual(anual.status_code, status.HTTP_200_OK)
-        self.assertEqual(mensual.data["venta_total"], 30000)
+        self.assertEqual(mensual.data["venta_total"], 35000)
+        self.assertEqual(mensual.data["venta_whatsapp"], 10000)
+        self.assertEqual(mensual.data["venta_especiales"], 25000)
+        self.assertEqual(mensual.data["pedidos_creados"], 5)
+        self.assertEqual(mensual.data["pedidos_finalizados"], 3)
+        self.assertEqual(mensual.data["pedidos_cancelados"], 1)
+        self.assertEqual(mensual.data["pedidos_creados_whatsapp"], 3)
+        self.assertEqual(mensual.data["pedidos_creados_especiales"], 2)
+        self.assertEqual(mensual.data["pedidos_finalizados_whatsapp"], 1)
+        self.assertEqual(mensual.data["pedidos_finalizados_especiales"], 2)
+        self.assertEqual(mensual.data["pedidos_cancelados_whatsapp"], 1)
+        self.assertEqual(mensual.data["pedidos_cancelados_especiales"], 0)
         self.assertEqual(mensual.data["desglose_por_canal"]["whatsapp"]["venta_real"], 10000)
-        self.assertEqual(mensual.data["desglose_por_canal"]["especiales"]["venta_real"], 20000)
-        self.assertEqual(anual.data["venta_total_anual"], 30000)
+        self.assertEqual(mensual.data["desglose_por_canal"]["especiales"]["venta_real"], 25000)
+        self.assertIn("venta_total", mensual.data)
+        self.assertIn("pedidos_total", mensual.data)
+        self.assertIn("pedidos_cancelados", mensual.data)
+        self.assertIn("producto_mas_vendido", mensual.data)
+        self.assertIn("producto_menos_vendido", mensual.data)
+        self.assertIn("productos_vendidos", mensual.data)
+        self.assertIn("productos_por_canal", mensual.data)
+        self.assertIn("resumen_canales", mensual.data)
+        nombres_vendidos = [producto["nombre"] for producto in mensual.data["productos_vendidos"]]
+        self.assertIn(self.producto.nombre, nombres_vendidos)
+        self.assertIn("Torta completada", nombres_vendidos)
+        self.assertNotIn("Producto pendiente", nombres_vendidos)
+        self.assertNotIn("Producto cancelado", nombres_vendidos)
+
+        self.assertEqual(anual.data["venta_total_anual"], 35000)
+        self.assertEqual(anual.data["venta_whatsapp"], 10000)
+        self.assertEqual(anual.data["venta_especiales"], 25000)
+        self.assertEqual(anual.data["pedidos_creados"], 5)
+        self.assertEqual(anual.data["pedidos_finalizados"], 3)
+        self.assertEqual(anual.data["pedidos_cancelados"], 1)
         self.assertEqual(anual.data["desglose_por_canal"]["whatsapp"]["venta_real"], 10000)
-        self.assertEqual(anual.data["desglose_por_canal"]["especiales"]["venta_real"], 20000)
+        self.assertEqual(anual.data["desglose_por_canal"]["especiales"]["venta_real"], 25000)
+        self.assertIn("venta_total_anual", anual.data)
+        self.assertIn("pedidos_total_anual", anual.data)
+        self.assertIn("ventas_por_mes", anual.data)
+        self.assertIn("productos_vendidos", anual.data)
+        self.assertIn("productos_por_canal", anual.data)
+        self.assertIn("resumen_canales", anual.data)
 
     def test_productos_vendidos_salen_solo_de_pedidos_finalizados(self):
         PedidoWhatsApp.objects.create(

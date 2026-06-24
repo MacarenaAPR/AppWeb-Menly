@@ -105,24 +105,41 @@ def construir_reporte_mensual(restaurante):
         venta_diaria.append({"dia": dia, "total": total})
 
     productos_globales = productos_vendidos(restaurante, inicio, fin)
+    productos_por_canal = {
+        "whatsapp": productos_vendidos(restaurante, inicio, fin, canal="whatsapp"),
+        "especiales": productos_vendidos(restaurante, inicio, fin, canal="especiales"),
+    }
     dia_mayor = max(venta_diaria, key=lambda item: item["total"])
     dia_menor = min(venta_diaria, key=lambda item: item["total"])
+    whatsapp = consolidado["canales"]["whatsapp"]
+    especiales = consolidado["canales"]["especiales"]
 
     return {
         "mes": mes,
         "resumen_global": consolidado["global"],
         "desglose_por_canal": consolidado["canales"],
+        "resumen_canales": consolidado["canales"],
         "consolidado_total": consolidado["global"],
         "venta_total": consolidado["global"]["venta_real"],
+        "venta_whatsapp": whatsapp["venta_real"],
+        "venta_especiales": especiales["venta_real"],
         "pedidos_total": consolidado["global"]["pedidos_creados"],
+        "pedidos_creados": consolidado["global"]["pedidos_creados"],
         "pedidos_finalizados": consolidado["global"]["pedidos_finalizados"],
         "pedidos_cancelados": consolidado["global"]["pedidos_cancelados"],
+        "pedidos_creados_whatsapp": whatsapp["pedidos_creados"],
+        "pedidos_creados_especiales": especiales["pedidos_creados"],
+        "pedidos_finalizados_whatsapp": whatsapp["pedidos_finalizados"],
+        "pedidos_finalizados_especiales": especiales["pedidos_finalizados"],
+        "pedidos_cancelados_whatsapp": whatsapp["pedidos_cancelados"],
+        "pedidos_cancelados_especiales": especiales["pedidos_cancelados"],
         "venta_diaria": venta_diaria,
         "dia_mayor_venta": dia_mayor,
         "dia_menor_venta": dia_menor,
         "producto_mas_vendido": producto_mas_vendido(restaurante, inicio, fin),
         "producto_menos_vendido": producto_menos_vendido(restaurante, inicio, fin),
         "productos_vendidos": productos_globales,
+        "productos_por_canal": productos_por_canal,
         "top_productos_globales": productos_globales,
         "top_productos_por_ingresos": top_productos_por_ingresos(restaurante, inicio, fin),
     }
@@ -150,23 +167,42 @@ def construir_reporte_anual(restaurante):
         })
 
     productos_globales = productos_vendidos(restaurante, inicio, fin)
+    productos_por_canal = {
+        "whatsapp": productos_vendidos(restaurante, inicio, fin, canal="whatsapp"),
+        "especiales": productos_vendidos(restaurante, inicio, fin, canal="especiales"),
+    }
     mes_mayor = max(ventas_por_mes, key=lambda item: item["total"])
     mes_menor = min(ventas_por_mes, key=lambda item: item["total"])
+    whatsapp = consolidado["canales"]["whatsapp"]
+    especiales = consolidado["canales"]["especiales"]
 
     return {
         "anio": str(anio),
         "resumen_global": consolidado["global"],
         "desglose_por_canal": consolidado["canales"],
+        "resumen_canales": consolidado["canales"],
         "consolidado_total": consolidado["global"],
         "venta_total_anual": consolidado["global"]["venta_real"],
+        "venta_whatsapp": whatsapp["venta_real"],
+        "venta_especiales": especiales["venta_real"],
         "pedidos_total_anual": consolidado["global"]["pedidos_creados"],
+        "pedidos_creados": consolidado["global"]["pedidos_creados"],
         "pedidos_finalizados_anual": consolidado["global"]["pedidos_finalizados"],
+        "pedidos_finalizados": consolidado["global"]["pedidos_finalizados"],
         "pedidos_cancelados_anual": consolidado["global"]["pedidos_cancelados"],
+        "pedidos_cancelados": consolidado["global"]["pedidos_cancelados"],
+        "pedidos_creados_whatsapp": whatsapp["pedidos_creados"],
+        "pedidos_creados_especiales": especiales["pedidos_creados"],
+        "pedidos_finalizados_whatsapp": whatsapp["pedidos_finalizados"],
+        "pedidos_finalizados_especiales": especiales["pedidos_finalizados"],
+        "pedidos_cancelados_whatsapp": whatsapp["pedidos_cancelados"],
+        "pedidos_cancelados_especiales": especiales["pedidos_cancelados"],
         "mes_mayor_venta": mes_mayor,
         "mes_menor_venta": mes_menor,
         "producto_mas_vendido_anual": producto_mas_vendido(restaurante, inicio, fin),
         "producto_menos_vendido_anual": producto_menos_vendido(restaurante, inicio, fin),
         "productos_vendidos": productos_globales,
+        "productos_por_canal": productos_por_canal,
         "top_productos_globales": productos_globales,
         "top_productos_por_ingresos": top_productos_por_ingresos(restaurante, inicio, fin),
         "ventas_por_mes": ventas_por_mes,
