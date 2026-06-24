@@ -28,7 +28,7 @@
   display: block;
   width: 100%;
   padding: 18px 24px;
-  color: var(--landing-header-text);
+  color: var(--landing-footer-text-color);
   background: var(--landing-footer-bg);
   margin: 0;
   border: 0;

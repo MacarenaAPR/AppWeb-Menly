@@ -89,12 +89,14 @@
   border: 0
 }
 .page-shell .brand-name {
-  color: var(--color-text-brand-name);
-  font-size: clamp(1rem, 1.35vw, 1.35rem)
+  font-family: var(--font-family-base);
+  color: var(--brand-name-text-color);
+  font-size: var(--brand-name-text-size)
 }
 .page-shell .brand-tag {
-  color: var(--color-text-brand-name);
+  color: var(--brand-name-text-color);
   font-family: var(--brand-tag-font-family);
+  font-size: var(--brand-tag-text-size)
 }
 
 .page-shell .site-nav {

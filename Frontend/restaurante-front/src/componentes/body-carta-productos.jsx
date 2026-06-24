@@ -25,6 +25,15 @@ export default function CartaProducto(){
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const [productosPorPagina, setProductosPorPagina] = useState(8);
+  const [viewMode, setViewMode] = useState(() => {
+    const savedMode = window.localStorage.getItem("carta-productos-view-mode");
+
+    if (savedMode === "cards" || savedMode === "list") {
+      return savedMode;
+    }
+
+    return "cards";
+  });
 
   useEffect(() => {
     const fetchRestaurante = async () => {
@@ -167,6 +176,10 @@ export default function CartaProducto(){
       setPaginaActual(totalPaginas);
     }
   }, [paginaActual, totalPaginas]);
+
+  useEffect(() => {
+    window.localStorage.setItem("carta-productos-view-mode", viewMode);
+  }, [viewMode]);
 
   if (loading) {
     return <p>Cargando dashboard...</p>;
@@ -319,9 +332,35 @@ export default function CartaProducto(){
                       </div>
                       <button className="button-arrow" onClick={() => scroll("right")}>{">"}</button>
                     </div>
+
+                    <div className="view-mode-toggle" aria-label="Cambiar vista de productos">
+                      <button
+                        type="button"
+                        className={viewMode === "cards" ? "active" : ""}
+                        aria-pressed={viewMode === "cards"}
+                        onClick={() => setViewMode("cards")}
+                      >
+                        <i className="bi bi-grid-3x3-gap"></i>
+                        Tarjetas
+                      </button>
+
+                      <button
+                        type="button"
+                        className={viewMode === "list" ? "active" : ""}
+                        aria-pressed={viewMode === "list"}
+                        onClick={() => setViewMode("list")}
+                      >
+                        <i className="bi bi-list-ul"></i>
+                        Lista
+                      </button>
+                    </div>
                     
-        
-                    <div className="contenido-cards">
+
+                    <div className={`contenido-cards ${viewMode === "list" ? "is-list" : "is-cards"}`}>
+                      <span className="carta-productos-heading carta-productos-heading-categoria">Categoría</span>
+                      <span className="carta-productos-heading carta-productos-heading-precio">Precio</span>
+                      <span className="carta-productos-heading carta-productos-heading-disponible">Disponible</span>
+                      <span className="carta-productos-heading carta-productos-heading-destacado">Destacado</span>
                       {productosActuales.length === 0 ? (
                         <p>No hay productos disponibles.</p>
                       ) : (
@@ -332,6 +371,7 @@ export default function CartaProducto(){
                           img={p.imagen}
                           titulo={p.nombre}
                           price={p.precio}
+                          descripcion={p.descripcion}
                           categoria={
                             typeof p.categoria === "string"
                               ? p.categoria
