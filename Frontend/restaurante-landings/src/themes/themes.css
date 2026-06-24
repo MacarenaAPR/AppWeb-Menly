@@ -142,9 +142,9 @@
     --hero-badge-rotate: 0deg;
     --hero-badge-radius: 0;
     --hero-badge-padding: 8px 58px;
-    --hero-badge-letter-spacing: 0.24em;
-    --hero-badge-text-transform: uppercase ;
-    --hero-badge-font-family: "Bebas Neue", "Arial Black", sans-serif;
+    --hero-badge-letter-spacing:0em;
+    --hero-badge-text-transform: none ;
+    --hero-badge-font-family: var(--font-family-base);
     --hero-badge-font-size: 1.5rem;
     --hero-badge-font-weight: 900;
     --hero-badge-transform:none;
@@ -168,7 +168,7 @@
     
     /*commercial-badge*/
     --bg-color-commercial-badge:var(--color-tres);
-    --color-text-commercial-badge:var(--color-uno);
+    --color-text-commercial-badge:var(--color-cinco);
     --commercial-badge-font-family:var(--font-family-btns);
     
     /* PRODUCTOS */
@@ -263,10 +263,10 @@
     --color-primary: var(--color-tres);
     --color-secondary: var(--color-tres);
     --color-border: var(--color-cuatro);
-    --color-text-display: var(--color-uno);
+    --color-text-display: var(--color-cinco);
     --color-surface-translucent: rgba(73, 73, 73, 0.9);
     --color-border-accent: rgba(27, 27, 27, 0.22);
-    --color-accent: var(--color-dos);
+    --color-accent: var(--color-cinco);
 
 }
 .theme_8 {
