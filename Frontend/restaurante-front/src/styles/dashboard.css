@@ -42,6 +42,10 @@
     width: 100%;
 }
 
+.body-main1 {
+    position: relative;
+}
+
 /*seccion metrica + notificaciones general */
 .body-metric-notific{
     display: flex;
@@ -63,6 +67,100 @@
     gap: 10px;
     padding: 0;
     margin: 0;
+}
+
+.metric .card-metrics {
+    max-width: none;
+    width: 100%;
+}
+
+.metric .div-text-metric {
+    width: min(150px, 100%);
+}
+
+.metric .div-text-metric h1 {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.dashboard-platos-card .cards-icon-text {
+    align-items: flex-start;
+}
+
+.dashboard-platos-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.dashboard-platos-detail span {
+    color: #9A9A9F;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.notificaciones-burbuja {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    z-index: 20;
+    min-width: 176px;
+    min-height: 48px;
+    padding: 8px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(240, 107, 12, 0.8);
+    background: rgba(8, 13, 19, 0.92);
+    color: whitesmoke;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(10px);
+}
+
+.notificaciones-burbuja:hover {
+    background: rgba(240, 107, 12, 0.18);
+}
+
+.notificaciones-burbuja:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.notificaciones-burbuja-icon {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(240, 107, 12, 0.22);
+    color: #F06B0C;
+}
+
+.notificaciones-burbuja-icon i {
+    font-size: 17px;
+}
+
+.notificaciones-burbuja-text {
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.notificaciones-burbuja strong {
+    min-width: 26px;
+    height: 26px;
+    padding: 0 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #F06B0C;
+    color: #080D13;
+    font-size: 13px;
+    font-weight: 900;
 }
 .notific{
     display: flex;
@@ -630,6 +728,25 @@
     .body-metric-notific,
     .body-ultimos-cliks {
         flex-direction: column;
+    }
+
+    .notificaciones-burbuja {
+        top: 10px;
+        right: 10px;
+        min-width: 48px;
+        width: auto;
+        min-height: 44px;
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .notificaciones-burbuja-text {
+        display: none;
+    }
+
+    .notificaciones-burbuja-icon {
+        width: 30px;
+        height: 30px;
     }
 
     .metric {

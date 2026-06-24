@@ -1475,7 +1475,7 @@ def producto_mas_vendido_desde_snapshots(pedidos):
 
 
 def metricas_pedidos_whatsapp(restaurante):
-    hoy = now().date()
+    hoy = localtime(now()).date()
     inicio_mes = hoy.replace(day=1)
     inicio_semana = hoy - timedelta(days=6)
     pedidos_hoy = PedidoWhatsApp.objects.filter(
@@ -1505,7 +1505,7 @@ def metricas_pedidos_whatsapp(restaurante):
             restaurante=restaurante,
             estado=PedidoWhatsApp.ESTADO_PENDIENTE
         ).count(),
-        "pedidos_cancelados": PedidoWhatsApp.objects.filter(
+        "pedidos_cancelados": pedidos_mes.filter(
             restaurante=restaurante,
             estado=PedidoWhatsApp.ESTADO_CANCELADO
         ).count(),
@@ -1513,7 +1513,7 @@ def metricas_pedidos_whatsapp(restaurante):
 
 
 def metricas_pedidos_especiales(restaurante):
-    hoy = now().date()
+    hoy = localtime(now()).date()
     inicio_mes = hoy.replace(day=1)
     pedidos_hoy = PedidoEspecial.objects.filter(
         restaurante=restaurante,
@@ -1535,7 +1535,7 @@ def metricas_pedidos_especiales(restaurante):
             restaurante=restaurante,
             estado=PedidoEspecial.ESTADO_PENDIENTE
         ).count(),
-        "pedidos_cancelados": PedidoEspecial.objects.filter(
+        "pedidos_cancelados": pedidos_mes.filter(
             restaurante=restaurante,
             estado=PedidoEspecial.ESTADO_CANCELADO
         ).count(),
@@ -1709,8 +1709,10 @@ class PedidosWhatsAppDashboardView(APIView):
 
     def get(self, request):
         perfil = get_perfil_activo(request)
+        hoy = localtime(now()).date()
         pedidos = PedidoWhatsApp.objects.filter(
-            restaurante=perfil.restaurante
+            restaurante=perfil.restaurante,
+            fecha_creacion__date=hoy
         ).order_by("-fecha_creacion", "-id")
 
         return paginated_response(
@@ -1757,6 +1759,8 @@ class PedidosEspecialesDashboardView(APIView):
         perfil = get_perfil_activo(request)
         pedidos = PedidoEspecial.objects.filter(
             restaurante=perfil.restaurante
+        ).exclude(
+            estado=PedidoEspecial.ESTADO_ENTREGADO
         ).select_related("solicitud_especial").order_by("-fecha_creacion", "-id")
 
         return paginated_response(
@@ -1818,7 +1822,7 @@ class PedidosMetricasDashboardView(APIView):
     def get(self, request):
         perfil = get_perfil_activo(request)
         restaurante = perfil.restaurante
-        hoy = now().date()
+        hoy = localtime(now()).date()
         inicio_mes = hoy.replace(day=1)
 
         reservas_mes = Reserva.objects.filter(
@@ -1829,9 +1833,48 @@ class PedidosMetricasDashboardView(APIView):
             restaurante=restaurante
         ).aggregate(total=Sum("clicks"))["total"] or 0
 
+        metricas_whatsapp = metricas_pedidos_whatsapp(restaurante)
+        metricas_especiales = metricas_pedidos_especiales(restaurante)
+
+        pedidos_whatsapp_finalizados_mes = PedidoWhatsApp.objects.filter(
+            restaurante=restaurante,
+            fecha_creacion__date__gte=inicio_mes,
+            estado=PedidoWhatsApp.ESTADO_ENTREGADO,
+        )
+        estados_especiales_finalizados = [
+            PedidoEspecial.ESTADO_ENTREGADO,
+            "completado",
+        ]
+        pedidos_especiales_finalizados_mes = PedidoEspecial.objects.filter(
+            restaurante=restaurante,
+            fecha_creacion__date__gte=inicio_mes,
+            estado__in=estados_especiales_finalizados,
+        )
+        total_pedidos_mes = (
+            pedidos_whatsapp_finalizados_mes.count()
+            + pedidos_especiales_finalizados_mes.count()
+        )
+        total_venta_mes = (
+            (pedidos_whatsapp_finalizados_mes.aggregate(total=Sum("total"))["total"] or 0)
+            + (pedidos_especiales_finalizados_mes.aggregate(total=Sum("total"))["total"] or 0)
+        )
+        total_cancelados_mes = (
+            (metricas_whatsapp.get("pedidos_cancelados") or 0)
+            + (metricas_especiales.get("pedidos_cancelados") or 0)
+        )
+
         return Response({
-            "whatsapp": metricas_pedidos_whatsapp(restaurante),
-            "especiales": metricas_pedidos_especiales(restaurante),
+            "whatsapp": metricas_whatsapp,
+            "especiales": metricas_especiales,
+            "resumen": {
+                "venta_diaria_wsp": metricas_whatsapp.get("venta_diaria_total") or 0,
+                "pedidos_wsp_hoy": metricas_whatsapp.get("pedidos_diarios") or 0,
+                "venta_especiales_mes": metricas_especiales.get("total_mensual") or 0,
+                "pedidos_especiales_mes": metricas_especiales.get("pedidos_mes") or 0,
+                "venta_total_mes": int(total_venta_mes),
+                "pedidos_total_mes": total_pedidos_mes,
+                "pedidos_cancelados_mes": total_cancelados_mes,
+            },
             "reservas": {
                 "reservas_mes": reservas_mes.count(),
                 "reservas_pendientes": Reserva.objects.filter(
@@ -1988,8 +2031,10 @@ class DashboardUltimosPedidosView(APIView):
 
     def get(self, request):
         perfil = get_perfil_activo(request)
+        hoy = localtime(now()).date()
         pedidos = PedidoWhatsApp.objects.filter(
-            restaurante=perfil.restaurante
+            restaurante=perfil.restaurante,
+            fecha_creacion__date=hoy,
         ).order_by("-fecha_creacion", "-id")[:10]
 
         return Response([
@@ -2273,6 +2318,57 @@ class HistorialBitacoraView(APIView):
             ]
 
         return paginated_response(request, historial, serialize_historial, HistorialPagination)
+
+
+class HistorialPedidosView(APIView):
+    permission_classes = [IsAuthenticated, CanViewBitacora]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        restaurante = perfil.restaurante
+        hoy = localtime(now()).date()
+        busqueda = (request.query_params.get("search") or "").strip()
+        estado = (request.query_params.get("estado") or "").strip()
+        fecha_desde = (request.query_params.get("fecha_desde") or "").strip()
+        fecha_hasta = (request.query_params.get("fecha_hasta") or "").strip()
+
+        pedidos = PedidoWhatsApp.objects.filter(
+            restaurante=restaurante,
+            fecha_creacion__date__lt=hoy,
+        ).order_by("-fecha_creacion", "-id")
+
+        if busqueda:
+            filtros_busqueda = (
+                Q(nombre_cliente__icontains=busqueda)
+                | Q(telefono_cliente__icontains=busqueda)
+            )
+            if busqueda.isdigit():
+                filtros_busqueda |= Q(numero_pedido=int(busqueda))
+            pedidos = pedidos.filter(filtros_busqueda)
+
+        if estado and estado != "todos":
+            pedidos = pedidos.filter(estado=estado)
+
+        if fecha_desde:
+            try:
+                pedidos = pedidos.filter(
+                    fecha_creacion__date__gte=datetime.strptime(fecha_desde, "%Y-%m-%d").date()
+                )
+            except ValueError:
+                pass
+
+        if fecha_hasta:
+            try:
+                pedidos = pedidos.filter(
+                    fecha_creacion__date__lte=datetime.strptime(fecha_hasta, "%Y-%m-%d").date()
+                )
+            except ValueError:
+                pass
+
+        def serialize_pedidos(items):
+            return PedidoWhatsAppDashboardSerializer(items, many=True).data
+
+        return paginated_response(request, pedidos, serialize_pedidos, HistorialPagination)
 
 
 #PRODUCTOS

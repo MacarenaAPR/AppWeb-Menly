@@ -10,6 +10,15 @@ import { FaMotorcycle } from "react-icons/fa6";
 import { AiOutlineShop } from "react-icons/ai";
 import { TbShoppingBag } from "react-icons/tb";
 
+const formatearMoneda = (valor = 0) => {
+  const numero = Number(valor) || 0;
+  return numero.toLocaleString("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  });
+};
+
 export default function Dashboard() {
     
     const hoy = new Date().toLocaleDateString("es-CL", {
@@ -30,6 +39,7 @@ export default function Dashboard() {
   const [ultimosPedidos, setUltimosPedidos] = useState([]);
   const [ultimosPedidosLoading, setUltimosPedidosLoading] = useState(false);
   const [ultimosPedidosError, setUltimosPedidosError] = useState("");
+  const [metricasPedidos, setMetricasPedidos] = useState(null);
   const [modalNotificacionesAbierto, setModalNotificacionesAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState([]);
   const [notificacionesLoading, setNotificacionesLoading] = useState(false);
@@ -157,6 +167,21 @@ export default function Dashboard() {
     }
   };
 
+  const fetchMetricasPedidos = async () => {
+    try {
+      const response = await authFetch("/mi-restaurante/pedidos/metricas/", {
+        cache: "no-store",
+      });
+      const result = await response.json();
+
+      if (!response.ok) return;
+
+      setMetricasPedidos(result);
+    } catch {
+      setMetricasPedidos(null);
+    }
+  };
+
   useEffect(() => {
     const fetchRestaurante = async () => {
       try {
@@ -192,6 +217,7 @@ export default function Dashboard() {
         );
         fetchClicks();
         fetchUltimosPedidos();
+        fetchMetricasPedidos();
       } catch {
         setError("No se pudieron cargar los datos");
       } finally {
@@ -227,6 +253,10 @@ export default function Dashboard() {
       : `en ${suscripcion?.dias_restantes} días`
   }. Recuerda regularizar tu pago para mantener activo el servicio. Si ya realizaste el pago, ignora este mensaje.`;
   const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
+  const ventaTotalMes =
+    metricasPedidos?.resumen?.venta_total_mes ??
+    ((metricasPedidos?.whatsapp?.venta_mensual_total || 0) +
+      (metricasPedidos?.especiales?.total_mensual || 0));
 
   const iconoPedido = (tipoEntrega) => {
     if (tipoEntrega === "delivery") return <FaMotorcycle/>;
@@ -289,6 +319,19 @@ export default function Dashboard() {
                             <span>{mensajeCuentaInactiva}</span>
                         </div>
                     )}
+                    <button
+                      className="notificaciones-burbuja"
+                      type="button"
+                      disabled={cuentaInactiva}
+                      title={cuentaInactiva ? "Cuenta inactiva" : "Ver notificaciones"}
+                      onClick={abrirNotificaciones}
+                    >
+                      <span className="notificaciones-burbuja-icon">
+                        <i className="bi bi-envelope-fill"></i>
+                      </span>
+                      <span className="notificaciones-burbuja-text">Notificaciones</span>
+                      <strong>{contadorNotificaciones}</strong>
+                    </button>
                     <div className="header-logo-bienvenido"> 
                         <div className="div-header-logo">
                             <div className="bienvenidos">
@@ -300,13 +343,38 @@ export default function Dashboard() {
                     </div>
                     <div className="contenido-body">
                         <div className="body-metric-notific">
-                            <div className="metric">{/* FALTAN LAS METRICAS SACADA DE LAS BD */}
-                                <Card
-                                    icons = {"bi bi-fork-knife"}
-                                    metrica={data?.resumen?.productos_disponibles ?? 0}
-                                    titulo="Platos disponibles"
-                                    btnto={`/carta-productos/${restaurante.slug}`}
-                                />
+                            <div className="metric">
+                                <div className="card-metrics dashboard-platos-card">
+                                  <div className="cards-icon-text">
+                                    <div className="icon-circle">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="65" height="65" viewBox="0 0 65 65" fill="none">
+                                        <circle cx="32.2581" cy="32.2581" r="32.2581" fill="url(#paint_dashboard_platos)" />
+                                        <defs>
+                                          <linearGradient id="paint_dashboard_platos" x1="31.828" y1="-5.16129" x2="32.2581" y2="64.5161" gradientUnits="userSpaceOnUse">
+                                            <stop stopColor="#F8761D" />
+                                            <stop offset="0.9999" stopColor="#D44D29" />
+                                          </linearGradient>
+                                        </defs>
+                                      </svg>
+                                      <i className="bi bi-fork-knife"></i>
+                                    </div>
+                                    <div className="div-text-metric">
+                                      <h1>{data?.resumen?.productos_disponibles ?? 0}</h1>
+                                      <p>Platos</p>
+                                      <div className="dashboard-platos-detail">
+                                        <span>Disponibles: {data?.resumen?.productos_disponibles ?? 0}</span>
+                                        <span>No disponibles: {data?.resumen?.productos_no_disponibles ?? 0}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <button
+                                    className="Button-detalles"
+                                    type="button"
+                                    onClick={() => navigate(`/carta-productos/${restaurante.slug}`)}
+                                  >
+                                    <p>Ver carta</p>
+                                  </button>
+                                </div>
                                 <Card
                                     icons = {"bi bi-calendar2-check"}
                                     metrica={data?.resumen?.reservas_hoy ?? 0}
@@ -314,24 +382,11 @@ export default function Dashboard() {
                                     btnto={`/dashboard/${restaurante.slug}/reservas`}
                                 />
                                 <Card
-                                    icons= {"bi bi-exclamation-circle"}
-                                    metrica={data?.resumen?.productos_no_disponibles ?? 0}
-                                    titulo="Platos no disponibles"
-                                    btnto={`/carta-productos/${restaurante.slug}`}
+                                    icons = {"bi bi-cash-stack"}
+                                    metrica={formatearMoneda(ventaTotalMes)}
+                                    titulo="Venta total del mes"
+                                    btnto={`/dashboard/${restaurante.slug}/pedidos`}
                                 />
-                            </div>
-                            <div className="notific">
-                                <i className="bi bi-envelope-fill"></i>
-                                <h5>{contadorNotificaciones}</h5>
-                                <p>Notificaciones pendientes</p>
-                                <button
-                                  className="btn-ver-notificaciones"
-                                  disabled={cuentaInactiva}
-                                  title={cuentaInactiva ? "Cuenta inactiva" : undefined}
-                                  onClick={abrirNotificaciones}
-                                >
-                                  Ver notificaciones <span><i className="bi bi-arrow-right-short"></i></span>
-                                </button>
                             </div>
                             
                         </div>
@@ -344,7 +399,7 @@ export default function Dashboard() {
                                     ) : ultimosPedidosError ? (
                                       <p className="empty-text">{ultimosPedidosError}</p>
                                     ) : ultimosPedidos.length === 0 ? (
-                                      <p className="empty-text">Aún no hay pedidos recientes.</p>
+                                      <p className="empty-text">No hay pedidos registrados hoy.</p>
                                     ) : (
                                       ultimosPedidos.map((pedido) => (
                                         <article key={pedido.id} className="ultimo-pedido-item">

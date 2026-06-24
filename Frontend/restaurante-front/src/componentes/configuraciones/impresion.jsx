@@ -11,14 +11,19 @@ export default function Impresion() {
 
     return buildMenuUrl(restaurante.slug);
   });
+  const buildQrStorageKey = (restaurante, menuUrl) => {
+    if (!menuUrl) return "";
+
+    return `menuo_qr_${restaurante?.slug || "menu"}_${encodeURIComponent(menuUrl)}`;
+  };
   const qrKey = useMemo(() => {
     const restaurante = JSON.parse(localStorage.getItem("restaurante") || "null");
-    return urlMenu ? `menuo_qr_${restaurante?.slug || urlMenu}` : "";
+    return buildQrStorageKey(restaurante, urlMenu);
   }, [urlMenu]);
   const [qr, setQr] = useState(() => {
     const restaurante = JSON.parse(localStorage.getItem("restaurante") || "null");
     const menuUrl = restaurante ? buildMenuUrl(restaurante.slug) : "";
-    const storageKey = menuUrl ? `menuo_qr_${restaurante?.slug || menuUrl}` : "";
+    const storageKey = buildQrStorageKey(restaurante, menuUrl);
 
     return storageKey ? localStorage.getItem(storageKey) || "" : "";
   });

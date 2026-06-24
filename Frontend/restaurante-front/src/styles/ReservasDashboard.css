@@ -6,7 +6,6 @@
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   overflow-y: hidden;
@@ -699,6 +698,274 @@
     flex-wrap: wrap;
   }
 
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-tools {
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .filters-row {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .filters-row select,
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .filters-row .export-btn {
+    display: none;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .search-box {
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    font-size: 12px;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .search-box input {
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .tabs-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .tabs-row .tab {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 9px;
+    font-size: 11px;
+    line-height: 1.15;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .tabs-row .crear-reserva-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    padding: 0 12px;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table-card {
+    overflow-x: hidden;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table tbody tr:has(td[colspan]) {
+    display: block;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td {
+    max-width: 100%;
+    font-size: 13px;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td[colspan] {
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td[colspan]::before {
+    content: "";
+    display: none;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(2)::before {
+    content: "";
+    display: none;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(2) small,
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(3),
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(4),
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(5) {
+    display: none;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(6) {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: flex-end;
+    justify-self: end;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(7) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .reservas-table td:nth-child(7)::before {
+    content: "";
+    display: none;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .fecha-cell,
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .hora-cell {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .estado-badge {
+    padding: 5px 8px;
+    font-size: 10px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .acciones-cell {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+
+  .reservas-page:not(.pedidos-page):not(.solicitudes-page) .acciones-cell button {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+  }
+
+  .solicitudes-page .reservas-table-card {
+    overflow-x: hidden;
+  }
+
+  .solicitudes-page .solicitudes-table tbody tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .solicitudes-page .solicitudes-table tbody tr:has(td[colspan]) {
+    display: block;
+  }
+
+  .solicitudes-page .solicitudes-table td {
+    max-width: 100%;
+    font-size: 13px;
+  }
+
+  .solicitudes-page .solicitudes-table td[colspan] {
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+
+  .solicitudes-page .solicitudes-table td[colspan]::before {
+    content: "";
+    display: none;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(1)::before {
+    content: "";
+    display: none;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(3) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(4) {
+    display: none;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(5) {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: flex-end;
+    justify-self: end;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(5)::before {
+    content: "";
+    display: none;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(6) {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    align-items: flex-start;
+    justify-self: stretch;
+  }
+
+  .solicitudes-page .solicitudes-table td:nth-child(6)::before {
+    content: "";
+    display: none;
+  }
+
+  .solicitudes-page .solicitudes-table td strong,
+  .solicitudes-page .solicitudes-table td small {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .solicitudes-page .solicitudes-table .estado-badge {
+    width: auto;
+    max-width: 120px;
+    padding: 5px 8px;
+    font-size: 10px;
+    line-height: 1;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .solicitudes-page .solicitudes-table .acciones-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+
+  .solicitudes-page .solicitudes-table .acciones-cell button {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+  }
+
   .modal-actions button {
     flex: 1 1 130px;
   }
@@ -1161,5 +1428,292 @@
 
   .pedido-modal-header {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .pedidos-page,
+  .pedidos-page * {
+    box-sizing: border-box;
+  }
+
+  .pedidos-page {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .pedidos-page .reservas-header {
+    width: 100%;
+    max-width: 100%;
+    gap: 8px;
+    margin: 0;
+    padding-inline: 0;
+  }
+
+  .pedidos-page .reservas-header h1 {
+    font-size: clamp(1.45rem, 7vw, 1.85rem);
+    line-height: 1.05;
+  }
+
+  .pedidos-page .breadcrumb-reservas {
+    gap: 6px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    flex-wrap: wrap;
+  }
+
+  .pedidos-page .reservas-stats {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .pedidos-page .reservas-tools {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .pedidos-page .pedidos-tabs {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .pedidos-page .pedidos-tabs .tab {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 9px 12px;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.78rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .pedidos-page .pedidos-tabs .crear-reserva-btn {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 4px;
+    padding: 9px 12px;
+    justify-content: center;
+    font-size: 0.82rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .pedidos-page .reservas-table-card {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 0;
+    background: transparent;
+    border: 0;
+  }
+
+  .pedidos-page .pedidos-table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    border: 0;
+  }
+
+  .pedidos-page .pedidos-table thead {
+    display: none;
+  }
+
+  .pedidos-page .pedidos-table tbody {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .pedidos-page .pedidos-table tr {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding: 14px;
+    gap: 10px;
+    border: 1px solid #1e2d3d;
+    border-radius: 16px;
+    background: #0d1720;
+    overflow: hidden;
+  }
+
+  .pedidos-page .pedidos-table td {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    color: #e2e8f0;
+    font-size: 0.84rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .pedidos-page .pedidos-table td::before {
+    display: block;
+    margin-bottom: 4px;
+    color: #94a3b8;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(1) {
+    order: 1;
+    grid-column: auto;
+    grid-row: auto;
+    color: #fff;
+    font-weight: 900;
+    font-size: 1rem;
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(1)::before {
+    content: "Pedido";
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(2) {
+    order: 3;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(2)::before {
+    content: "Cliente / telefono";
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(3) {
+    order: 4;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(3)::before {
+    content: "Entrega";
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(4) {
+    order: 5;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(4)::before {
+    content: "Detalle";
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(5) {
+    order: 6;
+    grid-column: auto;
+    grid-row: auto;
+    color: #f8761d;
+    font-weight: 900;
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(5)::before {
+    content: "Total";
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(6) {
+    order: 2;
+    grid-column: auto;
+    grid-row: auto;
+    align-items: flex-start;
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(6)::before {
+    content: "Estado";
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(7) {
+    order: 7;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .pedidos-page .pedidos-table td:nth-child(7)::before {
+    content: "Acciones";
+  }
+
+  .pedidos-page .pedidos-table td strong,
+  .pedidos-page .pedidos-table td small {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .pedidos-page .pedidos-table td small {
+    margin-top: 2px;
+    color: #94a3b8;
+  }
+
+  .pedidos-page .pedidos-table .estado-badge {
+    width: fit-content;
+    max-width: 100%;
+    padding: 6px 9px;
+    text-align: center;
+    font-size: 0.68rem;
+    line-height: 1.1;
+    white-space: normal;
+  }
+
+  .pedidos-page .pedidos-table .acciones-cell {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .pedidos-page .pedidos-table .acciones-cell button {
+    flex: 1 1 44px;
+    width: auto;
+    min-width: 44px;
+    min-height: 40px;
+    padding: 8px 10px;
+    justify-content: center;
+  }
+
+  .pedidos-page .pedidos-table .acciones-cell .pedido-estado-select {
+    width: 100%;
+    max-width: 100%;
+    flex: 1 1 100%;
+    order: 2;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 32px 8px 10px;
+    font-size: 0.78rem;
+  }
+
+  .pedidos-page .pedidos-table tr:has(.empty-state) {
+    display: block;
+  }
+
+  .pedidos-page .pedidos-table .empty-state {
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+
+  .pedidos-page .pedidos-table .empty-state::before {
+    content: "";
+    display: none;
   }
 }

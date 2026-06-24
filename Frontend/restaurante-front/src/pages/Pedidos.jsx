@@ -49,8 +49,20 @@ const formatearFecha = (valor) => {
   return new Date(valor).toLocaleDateString("es-CL");
 };
 
-const resumenItems = (items = []) =>
-  items.map((item) => `${item.cantidad} x ${item.nombre}`).join(", ");
+const resumenItems = (items = [], etiquetaSingular = "producto", etiquetaPlural = "productos") => {
+  const totalItems = items.reduce(
+    (total, item) => total + Number(item?.cantidad || 0),
+    0
+  );
+  const etiqueta = totalItems === 1 ? etiquetaSingular : etiquetaPlural;
+
+  return (
+    <span className="pedido-productos-resumen">
+      <strong>{totalItems} {etiqueta}</strong>
+      <small>Ver detalle</small>
+    </span>
+  );
+};
 
 const normalizarListaPedidos = (data) => {
   const lista = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
@@ -232,9 +244,11 @@ export default function PedidosDashboard() {
         );
       } else {
         setPedidosEspeciales((actuales) =>
-          actuales.map((pedido) =>
-            pedido.id === id ? pedidoActualizado : pedido
-          )
+          pedidoActualizado.estado === "entregado"
+            ? actuales.filter((pedido) => pedido.id !== id)
+            : actuales.map((pedido) =>
+                pedido.id === id ? pedidoActualizado : pedido
+              )
         );
       }
 
@@ -490,47 +504,38 @@ export default function PedidosDashboard() {
           ) : (
             <>
               <section className="reservas-stats pedidos-stats">
-                {whatsappActivo && (
-                  <>
-                    <div className="reserva-stat-card">
-                      <div className="stat-icon"><i className="bi bi-currency-dollar"></i></div>
-                      <div>
-                        <h3>{formatearMoneda(metricas.whatsapp?.venta_diaria_total)}</h3>
-                        <p>Venta diaria WhatsApp</p>
-                      </div>
-                    </div>
-                    <div className="reserva-stat-card">
-                      <div className="stat-icon"><i className="bi bi-bag-check"></i></div>
-                      <div>
-                        <h3>{metricas.whatsapp?.pedidos_diarios || 0}</h3>
-                        <p>Pedidos WhatsApp hoy</p>
-                      </div>
-                    </div>
-                    <div className="reserva-stat-card">
-                      <div className="stat-icon"><i className="bi bi-star"></i></div>
-                      <div>
-                        <h3>{metricas.whatsapp?.producto_mas_vendido_dia?.cantidad || 0}</h3>
-                        <p>{metricas.whatsapp?.producto_mas_vendido_dia?.nombre || "Producto mas vendido"}</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {especialesActivo && (
-                  <div className="reserva-stat-card">
-                    <div className="stat-icon"><i className="bi bi-calendar-heart"></i></div>
-                    <div>
-                      <h3>{metricas.especiales?.pedidos_pendientes || 0}</h3>
-                      <p>Pedidos especiales pendientes</p>
-                    </div>
+                <div className="reserva-stat-card">
+                  <div className="stat-icon"><i className="bi bi-whatsapp"></i></div>
+                  <div>
+                    <h3>{formatearMoneda(metricas.resumen?.venta_diaria_wsp ?? metricas.whatsapp?.venta_diaria_total)}</h3>
+                    <p>Venta diaria WSP</p>
+                    <small>{metricas.resumen?.pedidos_wsp_hoy ?? metricas.whatsapp?.pedidos_diarios ?? 0} pedidos</small>
                   </div>
-                )}
+                </div>
+
+                <div className="reserva-stat-card">
+                  <div className="stat-icon"><i className="bi bi-calendar-heart"></i></div>
+                  <div>
+                    <h3>{formatearMoneda(metricas.resumen?.venta_especiales_mes ?? metricas.especiales?.total_mensual)}</h3>
+                    <p>Pedidos especiales mes</p>
+                    <small>{metricas.resumen?.pedidos_especiales_mes ?? metricas.especiales?.pedidos_mes ?? 0} pedidos</small>
+                  </div>
+                </div>
+
+                <div className="reserva-stat-card">
+                  <div className="stat-icon"><i className="bi bi-cash-stack"></i></div>
+                  <div>
+                    <h3>{formatearMoneda(metricas.resumen?.venta_total_mes)}</h3>
+                    <p>Venta total mes</p>
+                    <small>{metricas.resumen?.pedidos_total_mes ?? 0} pedidos</small>
+                  </div>
+                </div>
 
                 <div className="reserva-stat-card">
                   <div className="stat-icon"><i className="bi bi-x-circle"></i></div>
                   <div>
-                    <h3>{(metricas.whatsapp?.pedidos_cancelados || 0) + (metricas.especiales?.pedidos_cancelados || 0)}</h3>
-                    <p>Cancelados</p>
+                    <h3>{metricas.resumen?.pedidos_cancelados_mes ?? ((metricas.whatsapp?.pedidos_cancelados || 0) + (metricas.especiales?.pedidos_cancelados || 0))} pedidos</h3>
+                    <p>Cancelados mes</p>
                   </div>
                 </div>
               </section>
@@ -634,7 +639,7 @@ export default function PedidosDashboard() {
                             <small>{pedido.telefono_cliente}</small>
                           </td>
                           <td>{formatearFecha(`${pedido.fecha_entrega}T00:00:00`)}</td>
-                          <td>{resumenItems(pedido.items)}</td>
+                          <td>{resumenItems(pedido.items, "item", "items")}</td>
                           <td>{formatearMoneda(pedido.total)}</td>
                           <td><span className={`estado-badge ${pedido.estado}`}>{estadoLabels[pedido.estado] || pedido.estado}</span></td>
                           <td>

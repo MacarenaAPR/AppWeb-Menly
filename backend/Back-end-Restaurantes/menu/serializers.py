@@ -7,6 +7,9 @@ from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
 from django.db.models import Max
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MetodoPagoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -762,17 +765,112 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
                 restaurante=restaurante
             ).aggregate(maximo=Max("numero_pedido"))["maximo"] or 0
 
-            return PedidoEspecial.objects.create(
+            pedido = PedidoEspecial.objects.create(
                 restaurante=restaurante,
                 numero_pedido=ultimo_numero + 1,
                 **validated_data
             )
 
+            logger.info(
+                "Pedido especial creado",
+                extra={
+                    "pedido_especial_id": pedido.id,
+                    "pedido_especial_estado": pedido.estado,
+                    "pedido_especial_solicitud_id": pedido.solicitud_especial_id,
+                },
+            )
+
+            return pedido
+
+    def _buscar_solicitud_relacionada(self, instance):
+        if instance.solicitud_especial_id:
+            return instance.solicitud_especial
+
+        solicitud = SolicitudEspecial.objects.filter(
+            restaurante=instance.restaurante,
+            estado="aceptada",
+            fecha_evento=instance.fecha_entrega,
+            telefono_contacto=instance.telefono_cliente,
+            email_contacto=instance.email_cliente,
+            descripcion_solicitud=instance.descripcion_original,
+        ).order_by("-fecha_creacion", "-id").first()
+
+        if solicitud:
+            instance.solicitud_especial = solicitud
+            instance.save(update_fields=["solicitud_especial", "fecha_actualizacion"])
+            logger.warning(
+                "Pedido especial sin solicitud_especial_id fue vinculado por coincidencia",
+                extra={
+                    "pedido_especial_id": instance.id,
+                    "pedido_especial_estado": instance.estado,
+                    "pedido_especial_solicitud_id": instance.solicitud_especial_id,
+                    "solicitud_estado_anterior": solicitud.estado,
+                },
+            )
+
+        return solicitud
+
+    def _completar_solicitud_si_entregado(self, instance):
+        if str(instance.estado).lower() != PedidoEspecial.ESTADO_ENTREGADO:
+            return
+
+        solicitud = self._buscar_solicitud_relacionada(instance)
+        logger.info(
+            "Sincronizando pedido especial entregado con solicitud especial",
+            extra={
+                "pedido_especial_id": instance.id,
+                "pedido_especial_estado": instance.estado,
+                "pedido_especial_solicitud_id": instance.solicitud_especial_id,
+                "solicitud_estado_anterior": solicitud.estado if solicitud else None,
+            },
+        )
+
+        if not solicitud:
+            logger.warning(
+                "Pedido especial entregado sin solicitud especial relacionada",
+                extra={
+                    "pedido_especial_id": instance.id,
+                    "pedido_especial_estado": instance.estado,
+                    "pedido_especial_solicitud_id": instance.solicitud_especial_id,
+                },
+            )
+            return
+
+        if solicitud.estado != "completada":
+            estado_anterior = solicitud.estado
+            solicitud.estado = "completada"
+            solicitud.save(update_fields=["estado", "fecha_actualizacion"])
+            logger.info(
+                "Solicitud especial completada por pedido especial entregado",
+                extra={
+                    "pedido_especial_id": instance.id,
+                    "pedido_especial_estado": instance.estado,
+                    "pedido_especial_solicitud_id": instance.solicitud_especial_id,
+                    "solicitud_estado_anterior": estado_anterior,
+                    "solicitud_estado_nuevo": solicitud.estado,
+                },
+            )
+        else:
+            logger.info(
+                "Solicitud especial ya estaba completada",
+                extra={
+                    "pedido_especial_id": instance.id,
+                    "pedido_especial_estado": instance.estado,
+                    "pedido_especial_solicitud_id": instance.solicitud_especial_id,
+                    "solicitud_estado_anterior": solicitud.estado,
+                    "solicitud_estado_nuevo": solicitud.estado,
+                },
+            )
+
     def update(self, instance, validated_data):
         validated_data.pop("solicitud_especial", None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+
+            self._completar_solicitud_si_entregado(instance)
+
         return instance
 
 

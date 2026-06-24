@@ -25,6 +25,7 @@ export default function CartaProducto(){
   const navigate = useNavigate();
   const scrollRef = useRef(null);
   const [productosPorPagina, setProductosPorPagina] = useState(8);
+  const [filtroDisponibilidad, setFiltroDisponibilidad] = useState("todos");
   const [viewMode, setViewMode] = useState(() => {
     const savedMode = window.localStorage.getItem("carta-productos-view-mode");
 
@@ -130,6 +131,17 @@ export default function CartaProducto(){
         categoria.includes(texto) ||
         precio.includes(texto)
       );
+    })
+    .filter((p) => {
+      if (filtroDisponibilidad === "disponibles") {
+        return p.disponible !== false;
+      }
+
+      if (filtroDisponibilidad === "no_disponibles") {
+        return p.disponible === false;
+      }
+
+      return true;
     });
 
   const totalPaginas =
@@ -270,6 +282,19 @@ export default function CartaProducto(){
     }
   };
 
+  const handleDestacadoProducto = (id, destacado) => {
+    setData((prevData) => {
+      if (!prevData?.productos) return prevData;
+
+      return {
+        ...prevData,
+        productos: prevData.productos.map((producto) =>
+          producto.id === id ? { ...producto, destacado } : producto
+        ),
+      };
+    });
+  };
+
     return(
                 <section className="body-main carta-productos-page">
                   <header className="body-header">
@@ -333,26 +358,66 @@ export default function CartaProducto(){
                       <button className="button-arrow" onClick={() => scroll("right")}>{">"}</button>
                     </div>
 
-                    <div className="view-mode-toggle" aria-label="Cambiar vista de productos">
-                      <button
-                        type="button"
-                        className={viewMode === "cards" ? "active" : ""}
-                        aria-pressed={viewMode === "cards"}
-                        onClick={() => setViewMode("cards")}
-                      >
-                        <i className="bi bi-grid-3x3-gap"></i>
-                        Tarjetas
-                      </button>
+                    <div className="carta-productos-toolbar">
+                      <div className="view-mode-toggle" aria-label="Cambiar vista de productos">
+                        <button
+                          type="button"
+                          className={viewMode === "cards" ? "active" : ""}
+                          aria-pressed={viewMode === "cards"}
+                          onClick={() => setViewMode("cards")}
+                        >
+                          <i className="bi bi-grid-3x3-gap"></i>
+                          Tarjetas
+                        </button>
 
-                      <button
-                        type="button"
-                        className={viewMode === "list" ? "active" : ""}
-                        aria-pressed={viewMode === "list"}
-                        onClick={() => setViewMode("list")}
-                      >
-                        <i className="bi bi-list-ul"></i>
-                        Lista
-                      </button>
+                        <button
+                          type="button"
+                          className={viewMode === "list" ? "active" : ""}
+                          aria-pressed={viewMode === "list"}
+                          onClick={() => setViewMode("list")}
+                        >
+                          <i className="bi bi-list-ul"></i>
+                          Lista
+                        </button>
+                      </div>
+
+                      <div className="availability-filter-toggle" aria-label="Filtrar productos por disponibilidad">
+                        <button
+                          type="button"
+                          className={filtroDisponibilidad === "todos" ? "active" : ""}
+                          aria-pressed={filtroDisponibilidad === "todos"}
+                          onClick={() => {
+                            setFiltroDisponibilidad("todos");
+                            setPaginaActual(1);
+                          }}
+                        >
+                          Todos
+                        </button>
+
+                        <button
+                          type="button"
+                          className={filtroDisponibilidad === "disponibles" ? "active" : ""}
+                          aria-pressed={filtroDisponibilidad === "disponibles"}
+                          onClick={() => {
+                            setFiltroDisponibilidad("disponibles");
+                            setPaginaActual(1);
+                          }}
+                        >
+                          Disponibles
+                        </button>
+
+                        <button
+                          type="button"
+                          className={filtroDisponibilidad === "no_disponibles" ? "active" : ""}
+                          aria-pressed={filtroDisponibilidad === "no_disponibles"}
+                          onClick={() => {
+                            setFiltroDisponibilidad("no_disponibles");
+                            setPaginaActual(1);
+                          }}
+                        >
+                          No disponibles
+                        </button>
+                      </div>
                     </div>
                     
 
@@ -383,6 +448,7 @@ export default function CartaProducto(){
                           canManage={permisos.canManageProductos}
                           onDelete={permisos.canManageProductos ? handleDeleteProducto : null}
                           onEdit={permisos.canManageProductos ? (id) => navigate(`/carta-productos/${slug}/editar/${id}`) : null}
+                          onDestacadoChange={handleDestacadoProducto}
                         />
                       ))
                       )}

@@ -15,6 +15,7 @@ export default function CardsProductos({
   id,
   onDelete,
   onEdit,
+  onDestacadoChange,
   canManage = true,
 }) {
   const [estado, setEstado] = useState(disponible);
@@ -57,8 +58,32 @@ export default function CardsProductos({
     actualizarEstadoProducto("disponible", !estado);
   };
 
-  const handleDestacadoChange = () => {
-    actualizarEstadoProducto("destacado", !estadoDestacado);
+  const handleDestacadoChange = async () => {
+    const nuevoEstadoDestacado = !estadoDestacado;
+    const estadoAnterior = estadoDestacado;
+
+    setEstadoDestacado(nuevoEstadoDestacado);
+
+    try {
+      const response = await authFetch(`/mi-restaurante/productos/${id}/actualizar/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          destacado: nuevoEstadoDestacado,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("No se pudo actualizar");
+      }
+
+      onDestacadoChange?.(id, nuevoEstadoDestacado);
+    } catch {
+      setEstadoDestacado(estadoAnterior);
+      return;
+    }
   };
 
   const handleDeleteClick = async () => {
@@ -95,7 +120,7 @@ export default function CardsProductos({
 
       {canManage && (
         <>
-          <div className="producto-table-cell producto-cell-switch">
+          <div className="producto-table-cell producto-cell-switch producto-cell-disponible">
             <div className="form-check form-switch producto-switch">
               <label className="form-check-label">Disponible</label>
 
@@ -108,7 +133,7 @@ export default function CardsProductos({
             </div>
           </div>
 
-          <div className="producto-table-cell producto-cell-switch">
+          <div className="producto-table-cell producto-cell-switch producto-cell-destacado">
             <div className="form-check form-switch producto-switch">
               <label className="form-check-label">Destacado</label>
 

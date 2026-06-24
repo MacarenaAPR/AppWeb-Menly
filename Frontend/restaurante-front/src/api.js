@@ -31,14 +31,62 @@ export const buildMediaUrl = (path = "") => {
   return `${API_ORIGIN}/${trimLeadingSlash(path)}`;
 };
 
+const getPublicSiteBase = () => {
+  const configuredUrls = String(
+    import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin
+  )
+    .split(",")
+    .map((url) => trimTrailingSlash(url.trim()))
+    .filter(Boolean);
+
+  const currentOrigin = trimTrailingSlash(window.location.origin);
+  const publicUrl =
+    configuredUrls.find((url) => url !== currentOrigin) ||
+    configuredUrls[0] ||
+    currentOrigin;
+
+  return trimTrailingSlash(publicUrl);
+};
+
 export const buildMenuUrl = (slug) => {
   if (!slug) return "";
 
-  const base = trimTrailingSlash(
-    import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin
-  );
+  const normalizedSlug = encodeURIComponent(slug);
+  const base = getPublicSiteBase();
 
-  return `${base}/menu/${encodeURIComponent(slug)}`;
+  try {
+    const url = new URL(base);
+    const hostname = url.hostname.toLowerCase();
+
+    if (hostname === "localhost") {
+      url.hostname = `${slug}.localhost`;
+      url.pathname = "/";
+      url.search = "";
+      url.hash = "menu";
+      return url.toString();
+    }
+
+    if (hostname === "127.0.0.1") {
+      url.pathname = `/restaurantes/${normalizedSlug}`;
+      url.search = "";
+      url.hash = "menu";
+      return url.toString();
+    }
+
+    const hostnameParts = hostname.split(".");
+    const baseDomain =
+      hostnameParts.length > 2
+        ? hostnameParts.slice(-2).join(".")
+        : hostname;
+
+    url.hostname = `${slug}.${baseDomain}`;
+    url.pathname = "/";
+    url.search = "";
+    url.hash = "menu";
+    return url.toString();
+  } catch {
+    return `${base}/restaurantes/${normalizedSlug}#menu`;
+  }
 };
 
 export function limpiarSesionYRedirigir() {

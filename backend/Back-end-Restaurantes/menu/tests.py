@@ -9,7 +9,7 @@ from rest_framework import status
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, PedidoWhatsApp, PedidoEspecial
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host
@@ -1969,6 +1969,302 @@ class SeguridadCriticaTests(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         solicitud_externa.refresh_from_db()
         self.assertEqual(solicitud_externa.estado, "pendiente")
+
+    def test_pedido_especial_entregado_completa_solicitud_y_sale_del_listado_activo(self):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=["solicitudes_especiales_activas"])
+        solicitud = SolicitudEspecial.objects.create(
+            restaurante=self.restaurante,
+            nombre="Cliente",
+            apellido="Especial",
+            fecha_evento=date.today() + timedelta(days=10),
+            telefono_contacto="999999999",
+            email_contacto="especial@test.com",
+            descripcion_solicitud="Solicitud aceptada",
+            estado="aceptada",
+        )
+
+        self.client.force_authenticate(user=self.dueno)
+        crear_response = self.client.post(
+            "/api/mi-restaurante/pedidos/especiales/",
+            {
+                "solicitud_especial_id": solicitud.id,
+                "fecha_entrega": str(solicitud.fecha_evento),
+                "items": [
+                    {
+                        "nombre": "Pedido especial",
+                        "descripcion": "Item principal",
+                        "cantidad": 1,
+                        "precio_unitario": 15000,
+                    }
+                ],
+            },
+            format="json",
+        )
+
+        self.assertEqual(crear_response.status_code, status.HTTP_201_CREATED)
+        pedido_id = crear_response.data["pedido"]["id"]
+
+        actualizar_response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/especiales/{pedido_id}/",
+            {"estado": PedidoEspecial.ESTADO_ENTREGADO},
+            format="json",
+        )
+
+        self.assertEqual(actualizar_response.status_code, status.HTTP_200_OK)
+        solicitud.refresh_from_db()
+        self.assertEqual(solicitud.estado, "completada")
+
+        listado_response = self.client.get("/api/mi-restaurante/pedidos/especiales/")
+
+        self.assertEqual(listado_response.status_code, status.HTTP_200_OK)
+        ids_listado = [pedido["id"] for pedido in listado_response.data["results"]]
+        self.assertNotIn(pedido_id, ids_listado)
+        self.assertTrue(
+            PedidoEspecial.objects.filter(
+                id=pedido_id,
+                estado=PedidoEspecial.ESTADO_ENTREGADO,
+            ).exists()
+        )
+
+    def test_pedido_especial_entregado_con_fk_nulo_vincula_y_completa_solicitud_original(self):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=["solicitudes_especiales_activas"])
+        solicitud = SolicitudEspecial.objects.create(
+            restaurante=self.restaurante,
+            nombre="Cliente",
+            apellido="Especial",
+            fecha_evento=date.today() + timedelta(days=10),
+            telefono_contacto="999999999",
+            email_contacto="especial@test.com",
+            descripcion_solicitud="Solicitud aceptada",
+            estado="aceptada",
+        )
+        pedido = PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            solicitud_especial=None,
+            numero_pedido=1,
+            nombre_cliente=solicitud.nombre,
+            telefono_cliente=solicitud.telefono_contacto,
+            email_cliente=solicitud.email_contacto,
+            descripcion_original=solicitud.descripcion_solicitud,
+            items=[
+                {
+                    "nombre": "Pedido especial",
+                    "descripcion": "Item principal",
+                    "cantidad": 1,
+                    "precio_unitario": 15000,
+                    "subtotal": 15000,
+                }
+            ],
+            total=15000,
+            fecha_entrega=solicitud.fecha_evento,
+            estado=PedidoEspecial.ESTADO_CONFIRMADO,
+        )
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/especiales/{pedido.id}/",
+            {"estado": PedidoEspecial.ESTADO_ENTREGADO},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        solicitud.refresh_from_db()
+        pedido.refresh_from_db()
+        self.assertEqual(solicitud.estado, "completada")
+        self.assertEqual(pedido.solicitud_especial_id, solicitud.id)
+
+    def test_pedidos_whatsapp_dashboard_lista_solo_pedidos_de_hoy(self):
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo"])
+        hoy = timezone.localtime(timezone.now())
+        ayer = hoy - timedelta(days=1)
+        pedido_hoy = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente Hoy",
+            telefono_cliente="999999999",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[
+                {
+                    "nombre": "Hamburguesa",
+                    "cantidad": 2,
+                    "precio_unitario": 5000,
+                    "subtotal": 10000,
+                }
+            ],
+            total=10000,
+            mensaje_whatsapp_generado="Pedido hoy",
+            whatsapp_destino="999999999",
+        )
+        pedido_ayer = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Cliente Ayer",
+            telefono_cliente="888888888",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[
+                {
+                    "nombre": "Bebida",
+                    "cantidad": 1,
+                    "precio_unitario": 2000,
+                    "subtotal": 2000,
+                }
+            ],
+            total=2000,
+            mensaje_whatsapp_generado="Pedido ayer",
+            whatsapp_destino="888888888",
+        )
+        PedidoWhatsApp.objects.filter(id=pedido_ayer.id).update(fecha_creacion=ayer)
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.get("/api/mi-restaurante/pedidos/whatsapp/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [pedido["id"] for pedido in response.data["results"]]
+        self.assertIn(pedido_hoy.id, ids)
+        self.assertNotIn(pedido_ayer.id, ids)
+
+    def test_historial_pedidos_whatsapp_lista_solo_pedidos_anteriores(self):
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo"])
+        hoy = timezone.localtime(timezone.now())
+        ayer = hoy - timedelta(days=1)
+        pedido_hoy = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente Hoy",
+            telefono_cliente="999999999",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=10000,
+            mensaje_whatsapp_generado="Pedido hoy",
+            whatsapp_destino="999999999",
+        )
+        pedido_ayer = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Cliente Ayer",
+            telefono_cliente="888888888",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=2000,
+            mensaje_whatsapp_generado="Pedido ayer",
+            whatsapp_destino="888888888",
+        )
+        PedidoWhatsApp.objects.filter(id=pedido_ayer.id).update(fecha_creacion=ayer)
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.get("/api/historial/pedidos/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [pedido["id"] for pedido in response.data["results"]]
+        self.assertIn(pedido_ayer.id, ids)
+        self.assertNotIn(pedido_hoy.id, ids)
+
+    def test_metricas_pedidos_resumen_diario_y_mensual(self):
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=[
+            "carrito_whatsapp_activo",
+            "solicitudes_especiales_activas",
+        ])
+        hoy = timezone.localtime(timezone.now())
+        ayer = hoy - timedelta(days=1)
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente WSP Hoy",
+            telefono_cliente="999999999",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[
+                {
+                    "nombre": "Hamburguesa",
+                    "cantidad": 2,
+                    "precio_unitario": 5000,
+                    "subtotal": 10000,
+                }
+            ],
+            total=10000,
+            mensaje_whatsapp_generado="Pedido hoy",
+            whatsapp_destino="999999999",
+        )
+        pedido_wsp_ayer = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Cliente WSP Ayer",
+            telefono_cliente="888888888",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[
+                {
+                    "nombre": "Bebida",
+                    "cantidad": 1,
+                    "precio_unitario": 2000,
+                    "subtotal": 2000,
+                }
+            ],
+            total=2000,
+            mensaje_whatsapp_generado="Pedido ayer",
+            whatsapp_destino="888888888",
+        )
+        pedido_wsp_cancelado = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=3,
+            nombre_cliente="Cliente Cancelado",
+            telefono_cliente="777777777",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=4000,
+            estado=PedidoWhatsApp.ESTADO_CANCELADO,
+            mensaje_whatsapp_generado="Pedido cancelado",
+            whatsapp_destino="777777777",
+        )
+        pedido_especial = PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente Especial",
+            telefono_cliente="666666666",
+            email_cliente="especial@test.com",
+            descripcion_original="Pedido especial",
+            items=[
+                {
+                    "nombre": "Torta",
+                    "descripcion": "",
+                    "cantidad": 1,
+                    "precio_unitario": 20000,
+                    "subtotal": 20000,
+                }
+            ],
+            total=20000,
+            fecha_entrega=hoy.date(),
+        )
+        pedido_especial_cancelado = PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Cliente Especial Cancelado",
+            telefono_cliente="555555555",
+            email_cliente="cancelado@test.com",
+            descripcion_original="Pedido especial cancelado",
+            items=[],
+            total=3000,
+            fecha_entrega=hoy.date(),
+            estado=PedidoEspecial.ESTADO_CANCELADO,
+        )
+        PedidoWhatsApp.objects.filter(id=pedido_wsp_ayer.id).update(fecha_creacion=ayer)
+
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.get("/api/mi-restaurante/pedidos/metricas/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        resumen = response.data["resumen"]
+        self.assertEqual(resumen["venta_diaria_wsp"], 10000)
+        self.assertEqual(resumen["pedidos_wsp_hoy"], 2)
+        self.assertEqual(resumen["venta_especiales_mes"], int(pedido_especial.total))
+        self.assertEqual(resumen["pedidos_especiales_mes"], 2)
+        self.assertEqual(resumen["venta_total_mes"], 32000)
+        self.assertEqual(resumen["pedidos_total_mes"], 5)
+        self.assertEqual(resumen["pedidos_cancelados_mes"], 2)
 
     def test_reserva_publica_rechaza_modulo_reservas_inactivo(self):
         fecha_reserva = date.today() + timedelta(days=2)
