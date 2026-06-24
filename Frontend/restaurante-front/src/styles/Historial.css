@@ -223,9 +223,6 @@
   grid-template-columns:
     minmax(80px, 100px)
     minmax(130px, 1fr)
-    minmax(110px, 140px)
-    minmax(110px, 130px)
-    minmax(110px, 140px)
     minmax(100px, 120px)
     minmax(100px, 130px)
     minmax(120px, auto);
@@ -243,6 +240,70 @@
   justify-content: center;
   gap: 8px;
   padding: 0 12px;
+}
+
+.historial-eye-btn {
+  width: fit-content;
+  min-width: 82px;
+}
+
+@media (min-width: 769px) {
+  .historial-actions {
+    margin-bottom: 12px;
+  }
+
+  .historial-search {
+    width: 360px;
+    height: 38px;
+    padding-inline: 12px;
+  }
+
+  .historial-search input {
+    font-size: 13px;
+  }
+
+  .historial-panel-tabs button {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+    border-radius: 7px;
+  }
+
+  .historial-tabs {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .historial-tabs button {
+    min-width: auto;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  .historial-pedidos-filters {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .historial-pedidos-filters select,
+  .historial-pedidos-filters input {
+    height: 34px;
+    min-width: 145px;
+    font-size: 12px;
+  }
+
+  .historial-detail-btn {
+    min-height: 30px;
+    padding: 0 8px;
+    gap: 5px;
+    border-radius: 7px;
+    font-size: 11px;
+  }
+
+  .historial-eye-btn {
+    min-width: 64px;
+  }
 }
 
 .estado-dot {
@@ -382,6 +443,27 @@
 .historial-modal-items span {
   color: #f8761d;
   font-weight: 800;
+}
+
+.historial-modal-detail {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #101820;
+  border: 1px solid #1e2b38;
+}
+
+.historial-modal-detail strong {
+  color: #fff;
+  font-size: 13px;
+}
+
+.historial-modal-detail p {
+  margin: 0;
+  color: #dce3ec;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 900px) {
@@ -550,6 +632,14 @@
     flex: 0 0 auto;
     flex-direction: column;
     gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .historial-header h1 {
+    color: #fff;
+    font-size: 26px;
+    line-height: 1.1;
   }
 }
 

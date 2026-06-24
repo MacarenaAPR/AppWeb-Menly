@@ -264,6 +264,30 @@
   line-height: 1.4;
   text-align: start;
 }
+.about-schedule-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.about-schedule-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--about-parrafo-details-color);
+  font-size: var(--about-parrafo-details-font-size);
+  line-height: 1.35;
+}
+.about-schedule-list span {
+  min-width: 0;
+}
+.about-schedule-list strong {
+  flex: 0 0 auto;
+  color: var(--about-subtitle-text-color);
+  font-weight: 700;
+}
 .about-panel .social-links {
   display: flex;
   gap: 8px

@@ -323,43 +323,6 @@ export default function ReservasDashboard() {
             </section>
 
             <section className="reservas-tools">
-                <div className="filters-row">
-                <select
-                    value={filtroEstado}
-                    onChange={(e) => setFiltroEstado(e.target.value)}
-                >
-                    <option value="todas">Todos los estados</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="confirmada">Confirmada</option>
-                    <option value="cancelada">Cancelada</option>
-                    <option value="rechazada">Rechazada</option>
-                </select>
-
-                <select
-                    value={filtroTurno}
-                    onChange={(e) => setFiltroTurno(e.target.value)}
-                >
-                    <option value="todos">Todos los turnos</option>
-                    <option value="desayuno">Desayuno</option>
-                    <option value="almuerzo">Almuerzo</option>
-                    <option value="cena">Cena</option>
-                </select>
-
-                <div className="search-box">
-                    <i className="bi bi-search"></i>
-                    <input
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                    placeholder="Buscar por nombre, teléfono o correo..."
-                    />
-                </div>
-
-                <button className="export-btn" onClick={exportarCSV}>
-                    <i className="bi bi-download"></i>
-                    Exportar
-                </button>
-                </div>
-
                 <div className="tabs-row">
                 <button
                     className={`tab ${filtroFecha === "todas" && filtroEstado === "todas" ? "active" : ""}`}
@@ -401,6 +364,43 @@ export default function ReservasDashboard() {
                 >
                     Canceladas ({reservas.filter((r) => r.estado === "cancelada").length})
                 </button>
+                </div>
+
+                <div className="filters-row">
+                <select
+                    value={filtroEstado}
+                    onChange={(e) => setFiltroEstado(e.target.value)}
+                >
+                    <option value="todas">Todos los estados</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="confirmada">Confirmada</option>
+                    <option value="cancelada">Cancelada</option>
+                    <option value="rechazada">Rechazada</option>
+                </select>
+
+                <select
+                    value={filtroTurno}
+                    onChange={(e) => setFiltroTurno(e.target.value)}
+                >
+                    <option value="todos">Todos los turnos</option>
+                    <option value="desayuno">Desayuno</option>
+                    <option value="almuerzo">Almuerzo</option>
+                    <option value="cena">Cena</option>
+                </select>
+
+                <div className="search-box">
+                    <i className="bi bi-search"></i>
+                    <input
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    placeholder="Buscar por nombre, teléfono o correo..."
+                    />
+                </div>
+
+                <button className="export-btn" onClick={exportarCSV}>
+                    <i className="bi bi-download"></i>
+                    Exportar
+                </button>
                 <button
                     className="crear-reserva-btn"
                     onClick={() => {
@@ -423,7 +423,7 @@ export default function ReservasDashboard() {
                     <i className="bi bi-plus-lg"></i>
                     Crear reserva
                 </button>
-            </div>
+                </div>
             </section>
 
             <section className="reservas-table-card">
@@ -467,7 +467,6 @@ export default function ReservasDashboard() {
 
                         <td>
                         <strong>{reserva.nombre_cliente}</strong>
-                        <small>{reserva.email || "Sin correo"}</small>
                         </td>
 
                         <td>

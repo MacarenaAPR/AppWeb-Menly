@@ -453,6 +453,21 @@ export default function SolicitudesEspecialesDashboard() {
           </section>
 
           <section className="reservas-tools">
+            <div className="tabs-row">
+              <button className={`tab ${filtroEstado === "todas" ? "active" : ""}`} onClick={() => setFiltroEstado("todas")}>
+                Todas ({solicitudes.length})
+              </button>
+              {ESTADOS.map((estado) => (
+                <button
+                  key={estado}
+                  className={`tab ${estado} ${filtroEstado === estado ? "active" : ""}`}
+                  onClick={() => setFiltroEstado(estado)}
+                >
+                  {estadoLabels[estado]} ({conteos[estado] || 0})
+                </button>
+              ))}
+            </div>
+
             <div className="filters-row">
               <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
                 <option value="todas">Todos los estados</option>
@@ -477,21 +492,7 @@ export default function SolicitudesEspecialesDashboard() {
                 <i className="bi bi-download"></i>
                 Exportar
               </button>
-            </div>
 
-            <div className="tabs-row">
-              <button className={`tab ${filtroEstado === "todas" ? "active" : ""}`} onClick={() => setFiltroEstado("todas")}>
-                Todas ({solicitudes.length})
-              </button>
-              {ESTADOS.map((estado) => (
-                <button
-                  key={estado}
-                  className={`tab ${estado} ${filtroEstado === estado ? "active" : ""}`}
-                  onClick={() => setFiltroEstado(estado)}
-                >
-                  {estadoLabels[estado]} ({conteos[estado] || 0})
-                </button>
-              ))}
               <button className="crear-reserva-btn" onClick={abrirCrearSolicitud}>
                 <i className="bi bi-plus-lg"></i>
                 Nueva solicitud

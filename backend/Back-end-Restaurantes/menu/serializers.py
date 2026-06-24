@@ -3,6 +3,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
 from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, ReporteMetrica
+from .utils import crear_notificacion_pedido_whatsapp, crear_notificacion_pedido_especial
 from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
@@ -489,6 +490,14 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
             pedido.mensaje_whatsapp_generado = mensaje
             pedido.save(update_fields=["mensaje_whatsapp_generado"])
 
+            try:
+                crear_notificacion_pedido_whatsapp(pedido)
+            except Exception:
+                logger.exception(
+                    "Error creando notificacion persistente de pedido WhatsApp",
+                    extra={"pedido_whatsapp_id": pedido.id, "restaurante_id": restaurante.id},
+                )
+
         pedido.whatsapp_url = self.generar_whatsapp_url(pedido.whatsapp_destino, mensaje)
         return pedido
 
@@ -780,6 +789,14 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
                 },
             )
 
+            try:
+                crear_notificacion_pedido_especial(pedido)
+            except Exception:
+                logger.exception(
+                    "Error creando notificacion persistente de pedido especial",
+                    extra={"pedido_especial_id": pedido.id, "restaurante_id": restaurante.id},
+                )
+
             return pedido
 
     def _buscar_solicitud_relacionada(self, instance):
@@ -1016,6 +1033,20 @@ class NotificacionDetalleSerializer(NotificacionSerializer):
                 restaurante=obj.restaurante
             ).first()
             return SolicitudEspecialDashboardSerializer(solicitud).data if solicitud else None
+
+        if obj.referencia_modelo == Notificacion.MODELO_PEDIDO_WHATSAPP:
+            pedido = PedidoWhatsApp.objects.filter(
+                id=obj.referencia_id,
+                restaurante=obj.restaurante
+            ).first()
+            return PedidoWhatsAppDashboardSerializer(pedido).data if pedido else None
+
+        if obj.referencia_modelo == Notificacion.MODELO_PEDIDO_ESPECIAL:
+            pedido = PedidoEspecial.objects.filter(
+                id=obj.referencia_id,
+                restaurante=obj.restaurante
+            ).first()
+            return PedidoEspecialSerializer(pedido).data if pedido else None
 
         return None
 

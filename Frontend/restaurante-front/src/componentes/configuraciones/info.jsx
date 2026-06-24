@@ -143,6 +143,7 @@ export default function InfoRestaurante({ restaurante, onUpdate, readOnly = fals
   if (!restaurante) return null;
 
   const logoSrc = getLogoUrl(restaurante, logoFile);
+  const planActual = restaurante.plan?.nombre || "No disponible";
 
   return (
     <div className="config-card config-card-main">
@@ -187,6 +188,11 @@ export default function InfoRestaurante({ restaurante, onUpdate, readOnly = fals
         <div className="form-grid">
           {error && <div className="alert alert-danger full">{error}</div>}
           {success && <p className="success-text full">{success}</p>}
+
+          <div className="info-plan-card full">
+            <span>Plan actual</span>
+            <strong>{planActual}</strong>
+          </div>
 
           <label>
             Nombre del restaurante

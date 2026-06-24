@@ -140,6 +140,7 @@ export default function ConfiguracionRestaurante() {
                 {seccionActiva === "seguridad" && <RespaldoSeguridad />}
                 {seccionActiva === "integraciones" && <IntegracionesConfig />}
                 {seccionActiva === "sistema" && <SistemaConfig />}
+              {seccionActiva === "info" && (
               <div className="config-bottom-grid">
                 <div className="config-card horarios-summary-card">
                   <div className="card-title small">
@@ -234,6 +235,7 @@ export default function ConfiguracionRestaurante() {
                   </button>
                 </div>
               </div>
+              )}
 
               <footer className="config-footer">
                 <div>

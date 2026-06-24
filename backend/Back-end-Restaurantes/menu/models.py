@@ -514,18 +514,24 @@ class PedidoEspecial(models.Model):
 class Notificacion(models.Model):
     TIPO_RESERVA = "reserva"
     TIPO_SOLICITUD_ESPECIAL = "solicitud_especial"
+    TIPO_PEDIDO = "pedido"
 
     TIPOS = [
         (TIPO_RESERVA, "Reserva"),
         (TIPO_SOLICITUD_ESPECIAL, "Solicitud especial"),
+        (TIPO_PEDIDO, "Pedido"),
     ]
 
     MODELO_RESERVA = "Reserva"
     MODELO_SOLICITUD_ESPECIAL = "SolicitudEspecial"
+    MODELO_PEDIDO_WHATSAPP = "PedidoWhatsApp"
+    MODELO_PEDIDO_ESPECIAL = "PedidoEspecial"
 
     MODELOS_REFERENCIA = [
         (MODELO_RESERVA, "Reserva"),
         (MODELO_SOLICITUD_ESPECIAL, "Solicitud especial"),
+        (MODELO_PEDIDO_WHATSAPP, "Pedido WhatsApp"),
+        (MODELO_PEDIDO_ESPECIAL, "Pedido especial"),
     ]
 
     restaurante = models.ForeignKey(

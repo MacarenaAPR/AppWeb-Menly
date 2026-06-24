@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { authFetch, limpiarSesionYRedirigir } from "../../api";
+import { formatearRolVisual } from "../../utils/permisos";
 
 export default function RespaldoSeguridad() {
   const [restaurante] = useState(() =>
@@ -152,7 +153,7 @@ export default function RespaldoSeguridad() {
 
             <div>
               <span>Rol actual</span>
-              <strong>{restaurante?.rol || "No disponible"}</strong>
+              <strong>{restaurante?.rol ? formatearRolVisual(restaurante.rol) : "No disponible"}</strong>
             </div>
 
             <div>

@@ -1,5 +1,6 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { buildMenuUrl } from "../../api";
+import { formatearRolVisual } from "../../utils/permisos";
 
 
 export default function SistemaConfig() {
@@ -43,7 +44,7 @@ export default function SistemaConfig() {
 
           <div>
             <span>Rol actual</span>
-            <strong>{restaurante?.rol || "No disponible"}</strong>
+            <strong>{restaurante?.rol ? formatearRolVisual(restaurante.rol) : "No disponible"}</strong>
           </div>
 
           <div>
@@ -53,7 +54,7 @@ export default function SistemaConfig() {
 
           <div>
             <span>Plan</span>
-            <strong>Básico</strong>
+            <strong>{restaurante?.plan?.nombre || "No disponible"}</strong>
           </div>
 
           <div>

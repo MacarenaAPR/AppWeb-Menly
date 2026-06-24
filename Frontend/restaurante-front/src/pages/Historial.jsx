@@ -37,6 +37,7 @@ export default function Historial() {
   const [fechaDesdePedido, setFechaDesdePedido] = useState("");
   const [fechaHastaPedido, setFechaHastaPedido] = useState("");
   const [pedidoDetalle, setPedidoDetalle] = useState(null);
+  const [movimientoDetalle, setMovimientoDetalle] = useState(null);
   const [paginaActual, setPaginaActual] = useState(1);
   const [isMobile, setIsMobile] = useState(false);
   const [totalHistorial, setTotalHistorial] = useState(0);
@@ -242,18 +243,6 @@ export default function Historial() {
             </div>
           </header>
 
-          <div className="historial-actions">
-            <div className="historial-search">
-              <i className="bi bi-search"></i>
-              <input
-                type="text"
-                placeholder={panelActivo === "movimientos" ? "Buscar producto..." : "Buscar cliente, teléfono o N° pedido..."}
-                value={busqueda}
-                onChange={handleBusquedaChange}
-              />
-            </div>
-          </div>
-
           <div className="historial-panel-tabs">
             <button
               className={panelActivo === "movimientos" ? "active" : ""}
@@ -269,6 +258,18 @@ export default function Historial() {
               <i className="bi bi-receipt"></i>
               Bitácora de pedidos
             </button>
+          </div>
+
+          <div className="historial-actions">
+            <div className="historial-search">
+              <i className="bi bi-search"></i>
+              <input
+                type="text"
+                placeholder={panelActivo === "movimientos" ? "Buscar producto..." : "Buscar cliente, teléfono o N° pedido..."}
+                value={busqueda}
+                onChange={handleBusquedaChange}
+              />
+            </div>
           </div>
 
           {panelActivo === "movimientos" ? (
@@ -357,7 +358,15 @@ export default function Historial() {
 
                     <div className="historial-col descripcion">
                       <strong>Detalle:</strong>
-                      <p>{item.descripcion}</p>
+                      <button
+                        className="historial-detail-btn historial-eye-btn"
+                        type="button"
+                        onClick={() => setMovimientoDetalle(item)}
+                        aria-label={`Ver detalle de ${item.producto}`}
+                      >
+                        <i className="bi bi-eye"></i>
+                        Ver
+                      </button>
                     </div>
 
                     <div className="historial-col">
@@ -384,21 +393,6 @@ export default function Historial() {
                     <div className="historial-col">
                       <strong>Cliente:</strong>
                       <p>{pedido.nombre_cliente}</p>
-                    </div>
-
-                    <div className="historial-col">
-                      <strong>Teléfono:</strong>
-                      <p>{pedido.telefono_cliente}</p>
-                    </div>
-
-                    <div className="historial-col">
-                      <strong>Fecha:</strong>
-                      <p>{new Date(pedido.fecha_creacion).toLocaleDateString("es-CL")}</p>
-                    </div>
-
-                    <div className="historial-col">
-                      <strong>Entrega:</strong>
-                      <p>{pedido.tipo_entrega_display || pedido.tipo_entrega}</p>
                     </div>
 
                     <div className="historial-col">
@@ -477,6 +471,9 @@ export default function Historial() {
                   <p><strong>Estado:</strong> {estadoPedidoLabels[pedidoDetalle.estado] || pedidoDetalle.estado}</p>
                   <p><strong>Total:</strong> {formatearMoneda(pedidoDetalle.total)}</p>
                   <p><strong>Productos:</strong> {totalProductosPedido(pedidoDetalle.productos_snapshot)} productos</p>
+                  {pedidoDetalle.whatsapp_destino && (
+                    <p><strong>WhatsApp destino:</strong> {pedidoDetalle.whatsapp_destino}</p>
+                  )}
                 </div>
 
                 <div className="historial-modal-items">
@@ -486,6 +483,34 @@ export default function Historial() {
                       <span>{formatearMoneda(item.subtotal ?? (Number(item.precio_unitario || 0) * Number(item.cantidad || 0)))}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {movimientoDetalle && (
+            <div className="historial-modal-bg" onClick={() => setMovimientoDetalle(null)}>
+              <div className="historial-modal" onClick={(event) => event.stopPropagation()}>
+                <header>
+                  <div>
+                    <p>Movimiento</p>
+                    <h2>{movimientoDetalle.accion}</h2>
+                  </div>
+                  <button type="button" onClick={() => setMovimientoDetalle(null)}>
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                </header>
+
+                <div className="historial-modal-grid">
+                  <p><strong>Acción:</strong> {movimientoDetalle.accion}</p>
+                  <p><strong>Producto/entidad afectada:</strong> {movimientoDetalle.producto}</p>
+                  <p><strong>Responsable:</strong> {movimientoDetalle.usuario}</p>
+                  <p><strong>Fecha de actualización:</strong> {new Date(movimientoDetalle.fecha).toLocaleString("es-CL")}</p>
+                </div>
+
+                <div className="historial-modal-detail">
+                  <strong>Detalle completo</strong>
+                  <p>{movimientoDetalle.descripcion}</p>
                 </div>
               </div>
             </div>

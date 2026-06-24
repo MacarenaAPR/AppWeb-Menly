@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "../../api";
+import { formatearRolVisual } from "../../utils/permisos";
 
 
 export default function UsuariosConfig() {
@@ -173,11 +174,6 @@ export default function UsuariosConfig() {
     }
   };
 
-  const formatearRol = (rol) => {
-    if (!rol) return "Empleado";
-    return rol.charAt(0).toUpperCase() + rol.slice(1);
-  };
-
   if (loading) return <p>Cargando...</p>;
 
   return (
@@ -236,7 +232,7 @@ export default function UsuariosConfig() {
             Rol
             <select name="rol" value={form.rol} onChange={handleChange}>
               <option value="empleado">Empleado</option>
-              <option value="admin">Admin</option>
+              <option value="admin">Administrador</option>
             </select>
           </label>
 
@@ -253,7 +249,6 @@ export default function UsuariosConfig() {
         <div className="usuarios-table">
           <div className="usuarios-table-head">
             <span>Usuario</span>
-            <span>Email</span>
             <span>Rol</span>
             <span>Estado</span>
             <span>Acción</span>
@@ -274,10 +269,8 @@ export default function UsuariosConfig() {
                   <strong>{u.username}</strong>
                 </div>
 
-                <span className="usuarios-email">{u.email}</span>
-
                 <span className={`usuarios-role role-${u.rol || "empleado"}`}>
-                  {formatearRol(u.rol)}
+                  {formatearRolVisual(u.rol)}
                 </span>
 
                 <span className={u.activo ? "usuarios-status active" : "usuarios-status inactive"}>
@@ -385,7 +378,7 @@ function EditarUsuario({ usuario, onCancel, onSave }) {
 
         <div className="usuarios-edit-role">
           <span>Rol</span>
-          <strong>{usuario.rol || "empleado"}</strong>
+          <strong>{formatearRolVisual(usuario.rol)}</strong>
         </div>
 
         <div className="usuarios-edit-actions">

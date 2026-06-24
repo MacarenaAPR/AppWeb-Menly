@@ -23,3 +23,14 @@ export function permisosPorRol(rol = "") {
     canToggleOperativa: rol === ROLES.DUENO || rol === ROLES.ADMIN,
   };
 }
+
+export function formatearRolVisual(rol = "") {
+  const labels = {
+    dueno: "Gerente",
+    dueño: "Gerente",
+    admin: "Administrador",
+    empleado: "Empleado",
+  };
+
+  return labels[String(rol || "").toLowerCase()] || "Empleado";
+}

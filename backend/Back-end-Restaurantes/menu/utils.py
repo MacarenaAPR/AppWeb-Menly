@@ -198,3 +198,31 @@ def crear_notificacion_solicitud_especial(solicitud):
         referencia_id=solicitud.id,
         referencia_modelo=Notificacion.MODELO_SOLICITUD_ESPECIAL,
     )
+
+
+def crear_notificacion_pedido_whatsapp(pedido):
+    return Notificacion.objects.create(
+        restaurante=pedido.restaurante,
+        tipo=Notificacion.TIPO_PEDIDO,
+        titulo="Nuevo pedido WhatsApp recibido",
+        mensaje=(
+            f"{pedido.nombre_cliente} realizo el pedido #{pedido.numero_pedido} "
+            f"por un total de ${int(pedido.total)}."
+        ),
+        referencia_id=pedido.id,
+        referencia_modelo=Notificacion.MODELO_PEDIDO_WHATSAPP,
+    )
+
+
+def crear_notificacion_pedido_especial(pedido):
+    return Notificacion.objects.create(
+        restaurante=pedido.restaurante,
+        tipo=Notificacion.TIPO_PEDIDO,
+        titulo="Nuevo pedido especial creado",
+        mensaje=(
+            f"{pedido.nombre_cliente} tiene el pedido especial #{pedido.numero_pedido} "
+            f"por un total de ${int(pedido.total)}."
+        ),
+        referencia_id=pedido.id,
+        referencia_modelo=Notificacion.MODELO_PEDIDO_ESPECIAL,
+    )

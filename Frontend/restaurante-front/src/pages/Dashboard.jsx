@@ -294,6 +294,25 @@ export default function Dashboard() {
       );
     }
 
+    if (notificacionDetalle.tipo === "pedido") {
+      const productos = detalle.productos_snapshot || detalle.items || [];
+      const totalItems = productos.reduce(
+        (total, item) => total + Number(item?.cantidad || 0),
+        0
+      );
+
+      return (
+        <div className="notificacion-detalle-grid">
+          <span>N° pedido</span><strong>#{detalle.numero_pedido}</strong>
+          <span>Cliente</span><strong>{detalle.nombre_cliente}</strong>
+          <span>Teléfono</span><strong>{detalle.telefono_cliente}</strong>
+          <span>Total</span><strong>{formatearMoneda(detalle.total)}</strong>
+          <span>Productos</span><strong>{totalItems} productos</strong>
+          <span>Estado</span><strong>{detalle.estado_display || detalle.estado}</strong>
+        </div>
+      );
+    }
+
     return (
       <div className="notificacion-detalle-grid">
         <span>Cliente</span><strong>{detalle.nombre} {detalle.apellido}</strong>

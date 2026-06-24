@@ -252,6 +252,29 @@
   grid-column: span 2;
 }
 
+.info-plan-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(248, 118, 29, 0.35);
+  border-radius: 10px;
+  background: rgba(248, 118, 29, 0.08);
+}
+
+.info-plan-card span {
+  color: #aeb7bf;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.info-plan-card strong {
+  color: #ff9a45;
+  font-size: 14px;
+  font-weight: 900;
+}
+
 .btn-save {
   justify-self: end;
   grid-column: span 2;
@@ -702,6 +725,12 @@
   color: #ff9a45;
 }
 
+.role-dueno,
+.role-dueño {
+  background: rgba(248, 118, 29, 0.22);
+  color: #ff9a45;
+}
+
 .role-empleado {
   background: rgba(148, 163, 184, 0.15);
   color: #d5dce3;
@@ -988,6 +1017,42 @@
   border-bottom: none;
 }
 
+@media (min-width: 769px) {
+  .usuarios-table,
+  .categorias-table,
+  .horarios-table {
+    overflow-x: hidden;
+  }
+
+  .usuarios-table-head,
+  .usuarios-row {
+    grid-template-columns: minmax(150px, 1fr) minmax(120px, 0.7fr) minmax(110px, 0.65fr) minmax(220px, 1fr);
+    min-width: 0;
+  }
+
+  .categorias-table-head,
+  .categorias-row {
+    grid-template-columns: minmax(180px, 1fr) minmax(70px, 0.35fr) minmax(95px, 0.45fr) minmax(210px, 0.9fr);
+    min-width: 0;
+  }
+
+  .horarios-table-head,
+  .horarios-row {
+    grid-template-columns: minmax(130px, 0.75fr) minmax(150px, 1fr) minmax(95px, 0.55fr) minmax(170px, 0.8fr);
+    min-width: 0;
+  }
+
+  .usuarios-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .usuarios-actions button {
+    min-width: 72px;
+    padding-inline: 8px;
+  }
+}
+
 @media (max-width: 1100px) {
   .config-layout {
     grid-template-columns: 1fr;
@@ -1038,6 +1103,13 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 12px;
+  }
+
+  .config-header h1,
+  .config-card-header h2,
+  .card-title h2,
+  .usuarios-title h2 {
+    color: #fff;
   }
 
   .restaurante-mini {

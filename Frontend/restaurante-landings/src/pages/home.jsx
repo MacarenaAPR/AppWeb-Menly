@@ -93,6 +93,17 @@ const getCategoriasFromMenuResponse = (menuResponse) =>
 const getRestauranteFlagsFromMenuResponse = (menuResponse) =>
   Array.isArray(menuResponse) ? {} : menuResponse?.restaurante || {};
 
+const formatearHoraHorario = (hora) => {
+  if (!hora) return "--:--";
+  return String(hora).slice(0, 5);
+};
+
+const formatearHorarioPublico = (horario) => {
+  if (!horario || horario.cerrado) return "Cerrado";
+
+  return `${formatearHoraHorario(horario.hora_apertura)} - ${formatearHoraHorario(horario.hora_cierre)}`;
+};
+
 const MAX_UNIDADES_POR_PRODUCTO = 5;
 
 export default function Home() {
@@ -1479,7 +1490,18 @@ export default function Home() {
               <div className="about-panel-details">
                 <article>
                   <h3>Horarios</h3>
-                  <p>Consulta nuestros horarios de atención.</p>
+                  {Array.isArray(restaurante?.horarios) && restaurante.horarios.length > 0 ? (
+                    <ul className="about-schedule-list">
+                      {restaurante.horarios.map((horario) => (
+                        <li key={horario.id || horario.dia}>
+                          <span>{horario.dia_nombre || horario.dia}</span>
+                          <strong>{formatearHorarioPublico(horario)}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>Consulta nuestros horarios de atención.</p>
+                  )}
                 </article>
                 <article>
                   <h3>Ubicación</h3>
