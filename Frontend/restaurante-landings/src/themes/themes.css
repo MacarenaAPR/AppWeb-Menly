@@ -118,9 +118,9 @@
     
     /*HERO*/
      /*hero-panel h1 - mobile*/
-    --hero-panel-h1-color-text:var(--color-tres);
-    --hero-panel-p-color-text:var(--color-uno);
-    --hero-panel-h1-shadow-text:0 3px 14px rgba(0, 0, 0, 0.62);
+    --hero-panel-h1-color-text:var(--color-cuatro);
+    --hero-panel-p-color-text:var(--color-cinco);
+    --hero-panel-h1-shadow-text:0 3px 14px rgba(61, 61, 61, 0.62);
     /*hero-panel h1*/
     --font-size-h1-hero-panel:clamp(2.4rem, 4.5vw, 4.6rem);
     --color-text-h1-hero-panel:var(--color-tres); 
@@ -255,8 +255,8 @@
     --img-principal-base-restaurante: none;
     --color-bg: var(--color-cinco);/*utilizado en background de landings en page shell*/
     --color-bg-primary: var(--color-cuatro); /*utilizado en footer como bg*/
-    --color-text-primary: #f5f5f5;
-    --color-text-secondary: rgba(255, 255, 255, 0.781);
+    --color-text-primary:var(--color-uno); /*usado en modals carrito p */
+    --color-text-secondary: var(--color-uno); /*usado en modals carrito p*/
     --color-surface:var(--color-cinco);
     --color-primary: var(--color-tres);
     --color-secondary: var(--color-tres);
