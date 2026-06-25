@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, ReporteMetrica
+from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, ReporteMetrica
 from .utils import crear_notificacion_pedido_whatsapp, crear_notificacion_pedido_especial
 from django.contrib.auth.models import User
 from urllib.parse import quote
@@ -502,6 +502,41 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
         return pedido
 
     def generar_mensaje(self, pedido):
+        return self.generar_mensaje_con_tracking(pedido)
+
+    def get_tracking_url(self, pedido):
+        request = self.context.get("request")
+        base_url = ""
+        if request:
+            base_url = request.META.get("HTTP_ORIGIN") or request.build_absolute_uri("/")
+        base_url = (base_url or "https://menly.cl").rstrip("/")
+        return f"{base_url}/seguimiento/pedido/{pedido.tracking_token}"
+
+    def generar_mensaje_con_tracking(self, pedido):
+        tipo_entrega = pedido.get_tipo_entrega_display()
+        direccion = ""
+        if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and pedido.direccion_entrega:
+            direccion = f"Direccion: {pedido.direccion_entrega}\n"
+
+        productos = "\n".join(
+            f"{item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
+            for item in pedido.productos_snapshot
+        )
+
+        return (
+            "Hola, quiero hacer este pedido:\n\n"
+            f"Pedido #{pedido.numero_pedido}\n"
+            f"{productos}\n\n"
+            f"Total: ${int(pedido.total)}\n"
+            f"Tipo entrega: {tipo_entrega}\n"
+            f"{direccion}"
+            f"Cliente: {pedido.nombre_cliente}\n"
+            f"Telefono: {pedido.telefono_cliente}\n\n"
+            "Puedes ver el estado de tu pedido aqui:\n"
+            f"{self.get_tracking_url(pedido)}"
+        )
+
+    def generar_mensaje_legacy(self, pedido):
         tipo_entrega = pedido.get_tipo_entrega_display()
         direccion = ""
         if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and pedido.direccion_entrega:
@@ -532,6 +567,8 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
         return {
             "pedido_id": pedido.id,
             "numero_pedido": pedido.numero_pedido,
+            "tracking_token": pedido.tracking_token,
+            "tracking_url": self.get_tracking_url(pedido),
             "total": int(pedido.total),
             "mensaje_whatsapp": pedido.mensaje_whatsapp_generado,
             "whatsapp_url": getattr(
@@ -563,6 +600,7 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
             "estado",
             "estado_display",
             "fecha_creacion",
+            "fecha_actualizacion_estado",
             "mensaje_whatsapp_generado",
             "whatsapp_destino",
         ]
@@ -577,6 +615,7 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
             "total",
             "estado_display",
             "fecha_creacion",
+            "fecha_actualizacion_estado",
             "mensaje_whatsapp_generado",
             "whatsapp_destino",
         ]
@@ -656,6 +695,81 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class PedidoWhatsAppEstadoUpdateSerializer(serializers.Serializer):
+    estado = serializers.ChoiceField(choices=PedidoWhatsApp.ESTADOS)
+
+    def update(self, instance, validated_data):
+        estado_anterior = instance.estado
+        estado_nuevo = validated_data["estado"]
+
+        if estado_anterior == estado_nuevo:
+            return instance
+
+        instance.estado = estado_nuevo
+        instance.save(update_fields=["estado"])
+        HistorialEstadoPedidoWhatsApp.objects.create(
+            pedido=instance,
+            estado_anterior=estado_anterior,
+            estado_nuevo=estado_nuevo,
+            usuario=self.context.get("usuario"),
+            observacion=self.context.get("observacion", ""),
+        )
+        return instance
+
+    def create(self, validated_data):
+        raise NotImplementedError("Este serializer solo actualiza pedidos existentes.")
+
+
+class PedidoWhatsAppSeguimientoPublicoSerializer(serializers.ModelSerializer):
+    restaurante_nombre = serializers.CharField(source="restaurante.nombre_empresa", read_only=True)
+    tipo_entrega_display = serializers.CharField(source="get_tipo_entrega_display", read_only=True)
+    estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    items = serializers.SerializerMethodField()
+    observaciones_cliente = serializers.SerializerMethodField()
+    telefono_whatsapp_restaurante = serializers.CharField(source="whatsapp_destino", read_only=True)
+    whatsapp_contacto_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PedidoWhatsApp
+        fields = [
+            "restaurante_nombre",
+            "numero_pedido",
+            "estado",
+            "estado_display",
+            "fecha_creacion",
+            "fecha_actualizacion_estado",
+            "tipo_entrega",
+            "tipo_entrega_display",
+            "total",
+            "items",
+            "observaciones_cliente",
+            "telefono_whatsapp_restaurante",
+            "whatsapp_contacto_url",
+        ]
+
+    def get_items(self, pedido):
+        return [
+            {
+                "nombre": item.get("nombre", ""),
+                "cantidad": item.get("cantidad", 0),
+                "subtotal": item.get("subtotal", 0),
+            }
+            for item in pedido.productos_snapshot or []
+        ]
+
+    def get_observaciones_cliente(self, pedido):
+        if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY:
+            return pedido.direccion_entrega or ""
+        return ""
+
+    def get_whatsapp_contacto_url(self, pedido):
+        numero = "".join(ch for ch in str(pedido.whatsapp_destino) if ch.isdigit())
+        if not numero:
+            return ""
+        mensaje = quote(f"Hola, quiero consultar por mi pedido #{pedido.numero_pedido}.")
+        return f"https://wa.me/{numero}?text={mensaje}"
 
 
 class PedidoEspecialItemSerializer(serializers.Serializer):

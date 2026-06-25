@@ -3,10 +3,13 @@ import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
 import { authFetch } from "../api";
 
-const ESTADOS_PEDIDO = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
+const ESTADOS_PEDIDO = ["recibido", "pendiente_confirmacion", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
+const ESTADOS_PEDIDO_ESPECIAL = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado", "completado"];
 const PEDIDOS_POLLING_MS = 30000;
 
 const estadoLabels = {
+  recibido: "Pedido recibido",
+  pendiente_confirmacion: "Pendiente de confirmacion",
   pendiente: "Pendiente",
   confirmado: "Confirmado",
   en_preparacion: "En preparacion",
@@ -215,9 +218,14 @@ export default function PedidosDashboard() {
     setError("");
     setMensaje("");
 
+    const esCambioSoloEstado =
+      tipo === "whatsapp" &&
+      Object.keys(datos || {}).length === 1 &&
+      Object.prototype.hasOwnProperty.call(datos, "estado");
+
     const endpoint =
       tipo === "whatsapp"
-        ? `/mi-restaurante/pedidos/whatsapp/${id}/`
+        ? `/mi-restaurante/pedidos/whatsapp/${id}/${esCambioSoloEstado ? "estado/" : ""}`
         : `/mi-restaurante/pedidos/especiales/${id}/`;
 
     try {
@@ -633,7 +641,7 @@ export default function PedidosDashboard() {
                                 <i className="bi bi-eye"></i>
                               </button>
                               <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("whatsapp", pedido.id, { estado: e.target.value })}>
-                                {ESTADOS_PEDIDO.concat("completado").map((estado) => (
+                                {ESTADOS_PEDIDO.map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
@@ -686,7 +694,7 @@ export default function PedidosDashboard() {
                                 <i className="bi bi-pencil-square"></i>
                               </button>
                               <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("especial", pedido.id, { estado: e.target.value })}>
-                                {ESTADOS_PEDIDO.map((estado) => (
+                                {ESTADOS_PEDIDO_ESPECIAL.map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>

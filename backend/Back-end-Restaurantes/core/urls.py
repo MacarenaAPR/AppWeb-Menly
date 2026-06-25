@@ -22,9 +22,9 @@ from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, MiRestauranteView,ProductoListView,ProductoUpdateView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
-from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
+from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SeguimientoPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
 from menu.views import NotificacionesDashboardView, NotificacionesContadorView, NotificacionDetalleView, NotificacionMarcarLeidaView
-from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosMetricasDashboardView, MetricasResumenView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
+from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidoWhatsAppEstadoDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosMetricasDashboardView, MetricasResumenView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
 from menu.views import CategoriasView, CategoriaDetalleView
 from menu.views import MesasView, MesaDetalleView,IconosView
 from menu.views import HorariosView, HorarioDetalleView
@@ -68,6 +68,7 @@ urlpatterns = [
     # 🌐 reserva público
     path("api/reservas/<slug:slug>/", CrearReservaPublicaView.as_view(), name="crear-reserva-publica"),
     path("api/solicitudes-especiales/<slug:slug>/", CrearSolicitudEspecialPublicaView.as_view(), name="crear-solicitud-especial-publica"),
+    path("api/public/pedidos/seguimiento/<str:tracking_token>/", SeguimientoPedidoWhatsAppPublicoView.as_view(), name="seguimiento-pedido-whatsapp-publico"),
     path("api/pedidos-whatsapp/<slug:slug>/", CrearPedidoWhatsAppPublicoView.as_view(), name="crear-pedido-whatsapp-publico"),
     #logoyt
      path("api/logout/", LogoutView.as_view(), name="logout"),
@@ -188,6 +189,18 @@ urlpatterns = [
         "api/mi-restaurante/pedidos/whatsapp/<int:pedido_id>/",
         PedidoWhatsAppDetalleDashboardView.as_view(),
         name="pedido-whatsapp-dashboard-detalle"
+    ),
+
+    path(
+        "api/mi-restaurante/pedidos/whatsapp/<int:pedido_id>/estado/",
+        PedidoWhatsAppEstadoDashboardView.as_view(),
+        name="pedido-whatsapp-dashboard-estado"
+    ),
+
+    path(
+        "api/pedidos-whatsapp/<int:pedido_id>/estado/",
+        PedidoWhatsAppEstadoDashboardView.as_view(),
+        name="pedido-whatsapp-estado"
     ),
 
     path(
