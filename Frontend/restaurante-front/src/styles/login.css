@@ -70,7 +70,7 @@
   font: inherit;
   font-size: 1rem;
   font-weight: 700;
-  cursor: default;
+  cursor: pointer;
 }
 
 .login-action-primary {

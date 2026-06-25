@@ -3,8 +3,9 @@
   display: grid;
   place-items: center;
   padding: 24px 16px;
-  background: #f6f3ee;
+  background: #0D151C;
   color: #231f20;
+  font-family: arial;
 }
 
 .tracking-card {
@@ -151,7 +152,7 @@
 
 @media (max-width: 520px) {
   .tracking-page {
-    align-items: start;
+    align-items: center;
     padding-top: 14px;
   }
 

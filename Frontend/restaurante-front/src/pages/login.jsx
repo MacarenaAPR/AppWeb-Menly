@@ -8,6 +8,9 @@ import recursoLogin1 from "../assets/recursologin1.png";
 import recursoLogin2 from "../assets/recursologin2.png";
 import recursoLogin3 from "../assets/recursologin3.png";
 
+const MENLY_WHATSAPP_URL =
+  "https://wa.me/56988424939?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Menly";
+
 export default function Login() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -114,10 +117,18 @@ export default function Login() {
         </div>
 
         <div className="login-actions">
-          <button type="button" className="login-action login-action-primary">
+          <button
+            type="button"
+            className="login-action login-action-primary"
+            onClick={() => window.open(MENLY_WHATSAPP_URL, "_blank", "noopener,noreferrer")}
+          >
             Contáctanos
           </button>
-          <button type="button" className="login-action login-action-outline">
+          <button
+            type="button"
+            className="login-action login-action-outline"
+            onClick={() => navigate("/saber-mas")}
+          >
             Saber mas
           </button>
         </div>

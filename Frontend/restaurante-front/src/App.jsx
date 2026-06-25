@@ -13,6 +13,7 @@ import SolicitudesEspecialesDashboard from './pages/SolicitudesEspeciales'
 import PedidosDashboard from './pages/Pedidos'
 import MetricasDashboard from './pages/Metricas'
 import ConfiguracionRestaurante from './pages/Configuracion'
+import SaberMas from './pages/SaberMas'
 import RequireRole from './componentes/RequireRole'
 import Footer from './componentes/Footer'
 
@@ -52,6 +53,7 @@ function App() {
               <AddProductos />
             </RequireRole>
           } />
+          <Route path="/saber-mas" element={<SaberMas />} />
           <Route path="/" element={<Login />} />
           <Route path="/dashboard/:slug" element={<Dashboard />} />
           <Route path="/carta-productos/:slug" element={<CartaProductos />} />
