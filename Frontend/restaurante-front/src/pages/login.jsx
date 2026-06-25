@@ -193,7 +193,7 @@ export default function Login() {
       </header>
 
       <main className="login-content">
-        <section className="login-showcase" aria-label="Beneficios de Menly">
+        <section className="login-left" aria-label="Menly para restaurantes">
           <section className="login-seo-content" aria-labelledby="menly-public-title">
             <p className="login-seo-kicker">Plataforma web para gastronomía</p>
             <h1 id="menly-public-title">
@@ -227,7 +227,8 @@ export default function Login() {
             </div>
           </section>
 
-          <div className="login-phones" aria-label="Aplicaciones de Menly">
+          <div className="login-carousel" aria-label="Aplicaciones de Menly">
+            <div className="login-phones">
             <div className="login-phone login-phone-left">
               <img
                 src={recursoLogin1}
@@ -245,6 +246,7 @@ export default function Login() {
                 src={recursoLogin2}
                 alt="Página web de restaurante creada con Menly"
               />
+            </div>
             </div>
           </div>
 
@@ -279,7 +281,7 @@ export default function Login() {
           </div>
         </section>
 
-        <section className="login-panel">
+        <section className="login-card-wrapper">
           <div className="login-card">
             <h2 className="login-title">
               <span>I</span>nicia <span>S</span>esion

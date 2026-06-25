@@ -86,23 +86,33 @@
 
 .login-content {
   display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(400px, 0.85fr);
-  gap: clamp(28px, 4vw, 64px);
+  grid-template-columns: minmax(0, 1.65fr) minmax(380px, 0.85fr);
+  align-items: center;
+  gap: clamp(26px, 3.5vw, 56px);
   width: 100%;
   min-height: 0;
-  padding: 10px clamp(28px, 4vw, 64px) 28px;
+  padding: 8px clamp(28px, 4vw, 64px) 22px;
 }
 
-.login-showcase {
-  display: grid;
-  grid-template-rows: auto minmax(285px, 1fr) auto;
+.login-left {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2vw, 24px);
   min-width: 0;
-  align-content: center;
+  justify-content: center;
+}
+
+.login-carousel {
+  order: 1;
 }
 
 .login-seo-content {
-  width: min(100%, 760px);
-  margin: 0 auto 10px;
+  order: 2;
+}
+
+.login-seo-content {
+  width: min(100%, 720px);
+  margin: 0 auto;
 }
 
 .login-seo-kicker {
@@ -115,33 +125,33 @@
 }
 
 .login-seo-content h1 {
-  max-width: 760px;
+  max-width: 720px;
   margin: 0;
   color: #fff;
   font-family: "Inter", sans-serif;
-  font-size: clamp(2rem, 3.2vw, 3.7rem);
+  font-size: clamp(1.75rem, 2.45vw, 2.85rem);
   font-weight: 800;
-  line-height: 1.04;
+  line-height: 1.08;
 }
 
 .login-seo-content > p:not(.login-seo-kicker) {
-  max-width: 660px;
-  margin: 16px 0 0;
+  max-width: 620px;
+  margin: 10px 0 0;
   color: #f2f2f2;
-  font-size: clamp(0.95rem, 1.15vw, 1.15rem);
-  line-height: 1.5;
+  font-size: clamp(0.9rem, 1.02vw, 1.04rem);
+  line-height: 1.42;
 }
 
 .login-seo-features {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin-top: 12px;
 }
 
 .login-seo-features article {
   min-width: 0;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid rgba(255, 112, 23, 0.45);
 }
 
@@ -156,14 +166,14 @@
 .login-seo-features p {
   margin: 0;
   color: rgba(255, 255, 255, 0.78);
-  font-size: clamp(0.72rem, 0.78vw, 0.82rem);
-  line-height: 1.35;
+  font-size: clamp(0.7rem, 0.75vw, 0.78rem);
+  line-height: 1.32;
 }
 
 .login-phones {
   position: relative;
-  width: min(100%, 680px);
-  min-height: 365px;
+  width: min(100%, 700px);
+  min-height: clamp(330px, 43vh, 455px);
   margin: 0 auto;
   overflow: hidden;
   perspective: 1100px;
@@ -240,42 +250,10 @@
 }
 
 .login-benefits {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(25px, 4vw, 70px);
-  padding-top: 15px;
+  display: none;
 }
 
-.login-benefit {
-  min-width: 0;
-}
-
-.login-benefit h2 {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  min-height: 54px;
-  margin: 0 0 12px;
-  color: var(--menly-orange);
-  font-family: "Inter", sans-serif;
-  font-size: clamp(1.05rem, 1.35vw, 1.45rem);
-  font-weight: 750;
-  line-height: 1.2;
-}
-
-.login-benefit h2 i {
-  flex: 0 0 auto;
-  margin-top: 2px;
-}
-
-.login-benefit p {
-  margin: 0;
-  color: #f2f2f2;
-  font-size: clamp(0.86rem, 1.08vw, 1.08rem);
-  line-height: 1.38;
-}
-
-.login-panel {
+.login-card-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,9 +262,9 @@
 
 .login-card {
   width: 100%;
-  max-width: 450px;
-  min-height: 590px;
-  padding: clamp(38px, 4vw, 70px) clamp(30px, 3.4vw, 56px);
+  max-width: 430px;
+  min-height: 560px;
+  padding: clamp(34px, 3.5vw, 58px) clamp(30px, 3.2vw, 50px);
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 22px;
   background: rgba(5, 18, 27, 0.50);
@@ -498,16 +476,29 @@
 
 @media (max-width: 1180px) {
   .login-content {
-    grid-template-columns: minmax(0, 1.45fr) minmax(370px, 0.85fr);
-    gap: 28px;
+    grid-template-columns: minmax(0, 1.4fr) minmax(360px, 0.85fr);
+    gap: 24px;
+  }
+
+  .login-left {
+    gap: 18px;
   }
 
   .login-phones {
-    width: min(100%, 570px);
+    width: min(100%, 590px);
+    min-height: clamp(300px, 38vh, 390px);
+  }
+
+  .login-seo-content h1 {
+    font-size: clamp(1.65rem, 2.25vw, 2.35rem);
+  }
+
+  .login-seo-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .login-card {
-    min-height: 550px;
+    min-height: 535px;
     padding-inline: 35px;
   }
 }
@@ -534,11 +525,8 @@
 
   .login-content {
     grid-template-columns: 1fr;
+    gap: 28px;
     padding: 18px 24px 36px;
-  }
-
-  .login-panel {
-    grid-row: 1;
   }
 
   .login-card {
@@ -546,17 +534,16 @@
     min-height: 0;
   }
 
-  .login-showcase {
-    grid-template-rows: auto 400px auto;
+  .login-left {
+    gap: 18px;
   }
 
   .login-phones {
-    min-height: 400px;
+    min-height: 340px;
   }
 
   .login-seo-content {
     width: min(100%, 620px);
-    margin-bottom: 4px;
   }
 
   .login-seo-content h1,
@@ -598,7 +585,7 @@
   }
 
   .login-content {
-    gap: 35px;
+    gap: 28px;
     padding: 14px 14px 30px;
   }
 
@@ -623,13 +610,13 @@
     margin-top: 36px;
   }
 
-  .login-showcase {
-    grid-template-rows: auto 310px auto;
+  .login-left {
+    gap: 16px;
   }
 
   .login-phones {
     width: 100%;
-    min-height: 310px;
+    min-height: 285px;
   }
 
   .login-phone {
@@ -637,25 +624,16 @@
     animation-name: phoneCarouselMobile;
   }
 
-  .login-benefits {
-    grid-template-columns: 1fr;
-    gap: 25px;
-    width: min(100%, 430px);
-    margin-inline: auto;
-  }
-
-  .login-benefit h2 {
-    min-height: 0;
-    margin-bottom: 7px;
-  }
-
   .login-seo-content {
     width: min(100%, 430px);
-    margin-bottom: 0;
   }
 
   .login-seo-content h1 {
-    font-size: clamp(1.72rem, 9vw, 2.45rem);
+    font-size: clamp(1.58rem, 7.6vw, 2.1rem);
+  }
+
+  .login-seo-content > p:not(.login-seo-kicker) {
+    font-size: 0.9rem;
   }
 
   .login-seo-features {
@@ -721,12 +699,8 @@
     font-size: 0.68rem;
   }
 
-  .login-showcase {
-    grid-template-rows: auto 265px auto;
-  }
-
   .login-phones {
-    min-height: 265px;
+    min-height: 250px;
   }
 
   .login-phone {
