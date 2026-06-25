@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, ReporteMetrica
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
-from django.db.models import Count, Q, Prefetch
+from django.db.models import Count, F, Q, Prefetch
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError

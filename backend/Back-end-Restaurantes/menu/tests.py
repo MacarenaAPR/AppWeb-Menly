@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 from datetime import date, datetime, time, timedelta
+from importlib import import_module
 from unittest.mock import patch
 
 from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, Plan
@@ -165,6 +166,66 @@ class DashboardMetricasResilienciaTests(BaseTestCase):
         self.assertEqual(data["ventas"]["venta_real_mes"], 0)
         self.assertEqual(data["productos"]["top_por_cantidad"][0]["nombre"], "Bebida")
         self.assertEqual(data["productos"]["top_por_cantidad"][0]["cantidad"], 2)
+
+
+class MigracionPedidoWhatsAppTrackingTests(TestCase):
+    def test_poblar_tracking_y_estados_respeta_largos_de_campos(self):
+        migracion = import_module("menu.migrations.0034_pedido_whatsapp_tracking")
+
+        class PedidoAntiguo:
+            tracking_token = ""
+            fecha_actualizacion_estado = None
+            fecha_creacion = timezone.now()
+            estado = "pendiente"
+            update_fields = None
+
+            def save(self, update_fields=None):
+                self.update_fields = update_fields
+                self.estado_max_length = 30
+                self.tracking_token_max_length = 32
+                if len(self.estado) > self.estado_max_length:
+                    raise AssertionError("estado supera max_length")
+                if len(self.tracking_token) > self.tracking_token_max_length:
+                    raise AssertionError("tracking_token supera max_length")
+
+        pedido = PedidoAntiguo()
+
+        class FakeQuerySet:
+            def order_by(self, *_args):
+                return [pedido]
+
+            def exists(self):
+                return False
+
+        class FakeManager:
+            def all(self):
+                return FakeQuerySet()
+
+            def filter(self, **_kwargs):
+                return FakeQuerySet()
+
+        class FakePedidoWhatsApp:
+            objects = FakeManager()
+
+        testcase = self
+
+        class FakeApps:
+            def get_model(self, app_label, model_name):
+                testcase.assertEqual(app_label, "menu")
+                testcase.assertEqual(model_name, "PedidoWhatsApp")
+                return FakePedidoWhatsApp
+
+        with patch.object(migracion, "generar_token_unico", return_value="token-seguro-123"):
+            migracion.poblar_tracking_y_estados(FakeApps(), None)
+
+        self.assertEqual(pedido.estado, "pendiente_confirmacion")
+        self.assertLessEqual(len(pedido.estado), 30)
+        self.assertEqual(pedido.tracking_token, "token-seguro-123")
+        self.assertLessEqual(len(pedido.tracking_token), 32)
+        self.assertEqual(
+            pedido.update_fields,
+            ["tracking_token", "fecha_actualizacion_estado", "estado"],
+        )
 
 
 class SuscripcionDashboardTests(BaseTestCase):

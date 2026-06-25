@@ -52,15 +52,6 @@ class Migration(migrations.Migration):
             name="fecha_actualizacion_estado",
             field=models.DateTimeField(default=timezone.now),
         ),
-        migrations.RunPython(
-            poblar_tracking_y_estados,
-            reverse_code=migrations.RunPython.noop,
-        ),
-        migrations.AlterField(
-            model_name="pedidowhatsapp",
-            name="tracking_token",
-            field=models.CharField(db_index=True, editable=False, max_length=32, unique=True),
-        ),
         migrations.AlterField(
             model_name="pedidowhatsapp",
             name="estado",
@@ -77,6 +68,15 @@ class Migration(migrations.Migration):
                 default="recibido",
                 max_length=30,
             ),
+        ),
+        migrations.RunPython(
+            poblar_tracking_y_estados,
+            reverse_code=migrations.RunPython.noop,
+        ),
+        migrations.AlterField(
+            model_name="pedidowhatsapp",
+            name="tracking_token",
+            field=models.CharField(db_index=True, editable=False, max_length=32, unique=True),
         ),
         migrations.CreateModel(
             name="HistorialEstadoPedidoWhatsApp",
