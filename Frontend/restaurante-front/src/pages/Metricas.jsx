@@ -4,7 +4,7 @@ import Chart from "react-apexcharts";
 import jsPDF from "jspdf";
 
 import MainMenu from "../componentes/Main-menu";
-import { authFetch } from "../api";
+import { authFetch, readJsonResponse } from "../api";
 import "../styles/Metricas.css";
 
 const planFallback = { id: null, nombre: "Básico", slug: "basico" };
@@ -1057,21 +1057,37 @@ export default function MetricasDashboard() {
         authFetch("/mi-restaurante/productos-mas-clickeados/", { cache: "no-store" }),
       ]);
 
-      const restauranteData = await restauranteResponse.json();
-      if (!restauranteResponse.ok) throw new Error(restauranteData?.error || "No se pudo cargar el restaurante.");
+      const restauranteData = await readJsonResponse(
+        restauranteResponse,
+        "/mi-restaurante/",
+        "No se pudo cargar el restaurante."
+      );
 
       if (slug && slug !== restauranteData.restaurante.slug) {
         navigate(`/dashboard/${restauranteData.restaurante.slug}/metricas`, { replace: true });
         return;
       }
 
-      const metricasData = await metricasResponse.json();
-      if (!metricasResponse.ok) throw new Error(metricasData?.error || "No se pudieron cargar las metricas.");
+      const metricasData = await readJsonResponse(
+        metricasResponse,
+        "/mi-restaurante/metricas/resumen/",
+        "No se pudieron cargar las metricas."
+      );
 
-      const productosData = await productosResponse.json();
+      let productosData = [];
+      try {
+        productosData = await readJsonResponse(
+          productosResponse,
+          "/mi-restaurante/productos-mas-clickeados/",
+          "No se pudieron cargar los productos."
+        );
+      } catch (productosError) {
+        console.error("/mi-restaurante/productos-mas-clickeados/", productosError);
+      }
+
       setRestaurante(restauranteData.restaurante);
       setMetricas(metricasData);
-      setProductos(metricasData?.productos?.top_por_cantidad || (productosResponse.ok ? productosData || [] : []));
+      setProductos(metricasData?.productos?.top_por_cantidad || productosData || []);
     } catch (requestError) {
       setError(requestError.message || "No se pudieron cargar las metricas.");
     } finally {

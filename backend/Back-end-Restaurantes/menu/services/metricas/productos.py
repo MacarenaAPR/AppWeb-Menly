@@ -9,7 +9,17 @@ from .pedidos import (
 )
 
 
+def _to_int(value, default=0):
+    try:
+        return int(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
 def _item_key(item):
+    if not isinstance(item, dict):
+        return "nombre:Producto", None
+
     producto_id = item.get("producto_id") or item.get("id")
     if producto_id:
         return f"producto:{producto_id}", producto_id
@@ -19,12 +29,17 @@ def _item_key(item):
 
 
 def _sumar_item(acumulados, item, canal):
+    if not isinstance(item, dict):
+        return
+
     nombre = (item.get("nombre") or "Producto").strip() or "Producto"
-    cantidad = int(item.get("cantidad") or 0)
-    precio_unitario = int(item.get("precio_unitario") or item.get("precio") or 0)
+    cantidad = _to_int(item.get("cantidad"))
+    precio_unitario = _to_int(item.get("precio_unitario") or item.get("precio"))
     subtotal = item.get("subtotal")
     if subtotal is None:
         subtotal = precio_unitario * cantidad
+    else:
+        subtotal = _to_int(subtotal)
 
     if cantidad <= 0:
         return
@@ -42,7 +57,7 @@ def _sumar_item(acumulados, item, canal):
         },
     )
     actual["cantidad"] += cantidad
-    actual["total_vendido"] += int(subtotal or 0)
+    actual["total_vendido"] += subtotal
     actual["canales"][canal] = actual["canales"].get(canal, 0) + cantidad
 
 

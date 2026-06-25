@@ -101,6 +101,71 @@ def respuesta_cuenta_inactiva():
     return Response({"error": MENSAJE_CUENTA_INACTIVA}, status=status.HTTP_403_FORBIDDEN)
 
 
+def respuesta_metricas_vacia(error=None, status_code=status.HTTP_200_OK):
+    payload = {
+        "ventas": {
+            "venta_real_hoy": 0,
+            "venta_real_semana": 0,
+            "venta_real_mes": 0,
+            "venta_whatsapp_mes": 0,
+            "venta_especiales_mes": 0,
+            "ticket_promedio_mes": 0,
+        },
+        "pedidos": {
+            "pedidos_creados_hoy": 0,
+            "pedidos_creados_mes": 0,
+            "pedidos_finalizados_mes": 0,
+            "pedidos_cancelados_mes": 0,
+            "pedidos_activos": 0,
+            "tasa_cancelacion_mes": 0,
+        },
+        "canales": {
+            "whatsapp": {
+                "venta_real_hoy": 0,
+                "venta_real_semana": 0,
+                "venta_real_mes": 0,
+                "pedidos_creados_hoy": 0,
+                "pedidos_creados_mes": 0,
+                "pedidos_finalizados_hoy": 0,
+                "pedidos_finalizados_mes": 0,
+                "pedidos_cancelados_mes": 0,
+                "pedidos_activos": 0,
+            },
+            "especiales": {
+                "venta_real_hoy": 0,
+                "venta_real_semana": 0,
+                "venta_real_mes": 0,
+                "pedidos_creados_hoy": 0,
+                "pedidos_creados_mes": 0,
+                "pedidos_finalizados_hoy": 0,
+                "pedidos_finalizados_mes": 0,
+                "pedidos_cancelados_mes": 0,
+                "pedidos_activos": 0,
+            },
+        },
+        "reservas": {
+            "reservas_hoy": 0,
+            "reservas_creadas_mes": 0,
+            "reservas_programadas_mes": 0,
+            "reservas_pendientes_futuras": 0,
+            "reservas_canceladas_mes": 0,
+        },
+        "productos": {
+            "mas_vendido_hoy": None,
+            "mas_vendido_mes": None,
+            "top_por_cantidad": [],
+            "top_por_ingresos": [],
+            "mas_clickeados": [],
+            "clicks_total": 0,
+        },
+    }
+
+    if error:
+        payload["error"] = error
+
+    return Response(payload, status=status_code)
+
+
 def bloquear_si_cuenta_inactiva(perfil):
     if not perfil.restaurante.activo:
         return respuesta_cuenta_inactiva()
@@ -1650,7 +1715,24 @@ class MetricasResumenView(APIView):
 
     def get(self, request):
         perfil = get_perfil_activo(request)
-        return Response(construir_resumen_metricas(perfil.restaurante))
+
+        if not perfil.restaurante_id:
+            return Response(
+                {"error": "El usuario no tiene un restaurante asociado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            return Response(construir_resumen_metricas(perfil.restaurante))
+        except Exception:
+            logger.exception(
+                "Error al construir resumen de metricas",
+                extra={"restaurante_id": perfil.restaurante_id},
+            )
+            return respuesta_metricas_vacia(
+                "No se pudieron cargar las metricas.",
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class ReporteMensualMetricasView(APIView):
@@ -1795,23 +1877,44 @@ class DashboardUltimosPedidosView(APIView):
 
     def get(self, request):
         perfil = get_perfil_activo(request)
-        hoy = localtime(now()).date()
-        pedidos = PedidoWhatsApp.objects.filter(
-            restaurante=perfil.restaurante,
-            fecha_creacion__date=hoy,
-        ).order_by("-fecha_creacion", "-id")[:10]
 
-        return Response([
-            {
-                "id": pedido.id,
-                "numero_pedido": pedido.numero_pedido,
-                "nombre_cliente": pedido.nombre_cliente,
-                "tipo_entrega": pedido.tipo_entrega,
-                "fecha_creacion": pedido.fecha_creacion,
-                "hora_formateada": localtime(pedido.fecha_creacion).strftime("%H:%M"),
-            }
-            for pedido in pedidos
-        ])
+        if not perfil.restaurante_id:
+            return Response(
+                {"error": "El usuario no tiene un restaurante asociado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            hoy = localtime(now()).date()
+            pedidos = PedidoWhatsApp.objects.filter(
+                restaurante=perfil.restaurante,
+                fecha_creacion__date=hoy,
+            ).order_by("-fecha_creacion", "-id")[:10]
+
+            return Response([
+                {
+                    "id": pedido.id,
+                    "numero_pedido": pedido.numero_pedido,
+                    "nombre_cliente": pedido.nombre_cliente or "Cliente",
+                    "tipo_entrega": pedido.tipo_entrega or "",
+                    "fecha_creacion": pedido.fecha_creacion,
+                    "hora_formateada": (
+                        localtime(pedido.fecha_creacion).strftime("%H:%M")
+                        if pedido.fecha_creacion
+                        else ""
+                    ),
+                }
+                for pedido in pedidos
+            ])
+        except Exception:
+            logger.exception(
+                "Error al cargar ultimos pedidos del dashboard",
+                extra={"restaurante_id": perfil.restaurante_id},
+            )
+            return Response(
+                {"error": "No se pudieron cargar los ultimos pedidos.", "results": []},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class ReservasDashboardView(APIView):

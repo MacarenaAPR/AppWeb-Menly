@@ -5,7 +5,7 @@ import MainMenu from "../componentes/Main-menu";
 import Card from "../componentes/card-metric";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { authFetch } from "../api";
+import { authFetch, readJsonResponse } from "../api";
 import { FaMotorcycle } from "react-icons/fa6";
 import { AiOutlineShop } from "react-icons/ai";
 import { TbShoppingBag } from "react-icons/tb";
@@ -152,16 +152,16 @@ export default function Dashboard() {
       const response = await authFetch("/dashboard/ultimos-pedidos/", {
         cache: "no-store",
       });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result?.error || "No se pudieron cargar los ultimos pedidos");
-      }
+      const result = await readJsonResponse(
+        response,
+        "/dashboard/ultimos-pedidos/",
+        "No se pudieron cargar los datos"
+      );
 
       setUltimosPedidos(result || []);
     } catch (err) {
       setUltimosPedidos([]);
-      setUltimosPedidosError(err.message || "No se pudieron cargar los ultimos pedidos");
+      setUltimosPedidosError(err.message || "No se pudieron cargar los datos");
     } finally {
       setUltimosPedidosLoading(false);
     }
@@ -172,12 +172,15 @@ export default function Dashboard() {
       const response = await authFetch("/mi-restaurante/metricas/resumen/", {
         cache: "no-store",
       });
-      const result = await response.json();
-
-      if (!response.ok) return;
+      const result = await readJsonResponse(
+        response,
+        "/mi-restaurante/metricas/resumen/",
+        "No se pudieron cargar los datos"
+      );
 
       setMetricasPedidos(result);
-    } catch {
+    } catch (err) {
+      console.error("/mi-restaurante/metricas/resumen/", err);
       setMetricasPedidos(null);
     }
   };

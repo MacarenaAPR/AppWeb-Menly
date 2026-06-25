@@ -38,6 +38,36 @@ export const buildMenuUrl = (slug) => {
   return `https://${normalizedSlug}.menly.cl/#menu`;
 };
 
+export async function readJsonResponse(response, endpoint, fallbackMessage = "No se pudieron cargar los datos") {
+  const contentType = response.headers.get("content-type") || "";
+  const bodyText = await response.text();
+  const isJson = contentType.includes("application/json");
+  let data = null;
+
+  if (bodyText && isJson) {
+    try {
+      data = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error(endpoint, response.status, bodyText);
+      throw new Error(fallbackMessage);
+    }
+  }
+
+  if (!response.ok) {
+    console.error(endpoint, response.status, bodyText);
+    throw new Error(data?.error || fallbackMessage);
+  }
+
+  if (!bodyText) return null;
+
+  if (!isJson) {
+    console.error(endpoint, response.status, bodyText);
+    throw new Error(fallbackMessage);
+  }
+
+  return data;
+}
+
 export function limpiarSesionYRedirigir() {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");

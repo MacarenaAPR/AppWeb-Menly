@@ -119,6 +119,54 @@ class BaseTestCase(TestCase):
         )
 
 
+class DashboardMetricasResilienciaTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.dueno)
+
+    def test_ultimos_pedidos_sin_datos_devuelve_lista_vacia(self):
+        response = self.client.get("/api/dashboard/ultimos-pedidos/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), [])
+
+    def test_metricas_resumen_sin_datos_devuelve_payload_vacio(self):
+        response = self.client.get("/api/mi-restaurante/metricas/resumen/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["ventas"]["venta_real_mes"], 0)
+        self.assertEqual(data["reservas"]["reservas_hoy"], 0)
+        self.assertEqual(data["productos"]["top_por_cantidad"], [])
+        self.assertIsNone(data["productos"]["mas_vendido_mes"])
+
+    def test_metricas_resumen_tolera_items_snapshot_invalidos(self):
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[
+                "item-antiguo-invalido",
+                {"nombre": "Completo", "cantidad": "abc", "precio": "1000"},
+                {"nombre": "Bebida", "cantidad": "2", "precio": "bad", "subtotal": "bad"},
+            ],
+            total=0,
+            estado=PedidoWhatsApp.ESTADO_ENTREGADO,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+
+        response = self.client.get("/api/mi-restaurante/metricas/resumen/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["ventas"]["venta_real_mes"], 0)
+        self.assertEqual(data["productos"]["top_por_cantidad"][0]["nombre"], "Bebida")
+        self.assertEqual(data["productos"]["top_por_cantidad"][0]["cantidad"], 2)
+
+
 class SuscripcionDashboardTests(BaseTestCase):
 
     def set_fecha_creacion_restaurante(self, fecha):
