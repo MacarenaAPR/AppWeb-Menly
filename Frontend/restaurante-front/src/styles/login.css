@@ -95,8 +95,69 @@
 
 .login-showcase {
   display: grid;
-  grid-template-rows: minmax(310px, 1fr) auto;
+  grid-template-rows: auto minmax(285px, 1fr) auto;
   min-width: 0;
+  align-content: center;
+}
+
+.login-seo-content {
+  width: min(100%, 760px);
+  margin: 0 auto 10px;
+}
+
+.login-seo-kicker {
+  margin: 0 0 8px;
+  color: var(--menly-orange);
+  font-size: clamp(0.78rem, 0.95vw, 0.95rem);
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.login-seo-content h1 {
+  max-width: 760px;
+  margin: 0;
+  color: #fff;
+  font-family: "Inter", sans-serif;
+  font-size: clamp(2rem, 3.2vw, 3.7rem);
+  font-weight: 800;
+  line-height: 1.04;
+}
+
+.login-seo-content > p:not(.login-seo-kicker) {
+  max-width: 660px;
+  margin: 16px 0 0;
+  color: #f2f2f2;
+  font-size: clamp(0.95rem, 1.15vw, 1.15rem);
+  line-height: 1.5;
+}
+
+.login-seo-features {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.login-seo-features article {
+  min-width: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 112, 23, 0.45);
+}
+
+.login-seo-features h2 {
+  margin: 0 0 6px;
+  color: #fff;
+  font-size: clamp(0.76rem, 0.9vw, 0.92rem);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.login-seo-features p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: clamp(0.72rem, 0.78vw, 0.82rem);
+  line-height: 1.35;
 }
 
 .login-phones {
@@ -486,11 +547,30 @@
   }
 
   .login-showcase {
-    grid-template-rows: 400px auto;
+    grid-template-rows: auto 400px auto;
   }
 
   .login-phones {
     min-height: 400px;
+  }
+
+  .login-seo-content {
+    width: min(100%, 620px);
+    margin-bottom: 4px;
+  }
+
+  .login-seo-content h1,
+  .login-seo-content > p:not(.login-seo-kicker),
+  .login-seo-kicker {
+    text-align: center;
+  }
+
+  .login-seo-content > p:not(.login-seo-kicker) {
+    margin-inline: auto;
+  }
+
+  .login-seo-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -544,7 +624,7 @@
   }
 
   .login-showcase {
-    grid-template-rows: 310px auto;
+    grid-template-rows: auto 310px auto;
   }
 
   .login-phones {
@@ -567,6 +647,24 @@
   .login-benefit h2 {
     min-height: 0;
     margin-bottom: 7px;
+  }
+
+  .login-seo-content {
+    width: min(100%, 430px);
+    margin-bottom: 0;
+  }
+
+  .login-seo-content h1 {
+    font-size: clamp(1.72rem, 9vw, 2.45rem);
+  }
+
+  .login-seo-features {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .login-seo-features article {
+    padding-top: 8px;
   }
 
   .login-footer {
@@ -624,7 +722,7 @@
   }
 
   .login-showcase {
-    grid-template-rows: 265px auto;
+    grid-template-rows: auto 265px auto;
   }
 
   .login-phones {

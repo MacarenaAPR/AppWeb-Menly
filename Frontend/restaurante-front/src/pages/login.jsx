@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { loginRequest, passwordResetRequest } from "../api/auth";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "../styles/login.css";
@@ -10,6 +10,22 @@ import recursoLogin3 from "../assets/recursologin3.png";
 
 const MENLY_WHATSAPP_URL =
   "https://wa.me/56988424939?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Menly";
+
+const SEO_TITLE =
+  "Menly | Páginas web para restaurantes con menú digital, reservas y pedidos por WhatsApp";
+const SEO_DESCRIPTION =
+  "Menly ayuda a restaurantes, cafeterías y negocios gastronómicos a tener una página web profesional con menú digital, reservas online, pedidos por WhatsApp y panel de administración.";
+const SEO_CANONICAL = "https://menly.cl/";
+const MENLY_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Menly",
+  url: SEO_CANONICAL,
+  description:
+    "Plataforma para crear páginas web de restaurantes con menú digital, reservas y pedidos por WhatsApp.",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,6 +40,48 @@ export default function Login() {
   const [resetMessage, setResetMessage] = useState("");
   const [resetError, setResetError] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+
+  useEffect(() => {
+    document.title = SEO_TITLE;
+
+    const setMeta = (selector, attributes) => {
+      let element = document.head.querySelector(selector);
+      if (!element) {
+        element = document.createElement("meta");
+        document.head.appendChild(element);
+      }
+
+      Object.entries(attributes).forEach(([name, value]) => {
+        element.setAttribute(name, value);
+      });
+    };
+
+    setMeta('meta[name="description"]', {
+      name: "description",
+      content: SEO_DESCRIPTION,
+    });
+    setMeta('meta[name="robots"]', {
+      name: "robots",
+      content: "index, follow",
+    });
+
+    let canonical = document.head.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", SEO_CANONICAL);
+
+    let jsonLd = document.getElementById("menly-software-application-jsonld");
+    if (!jsonLd) {
+      jsonLd = document.createElement("script");
+      jsonLd.id = "menly-software-application-jsonld";
+      jsonLd.type = "application/ld+json";
+      document.head.appendChild(jsonLd);
+    }
+    jsonLd.textContent = JSON.stringify(MENLY_JSON_LD);
+  }, []);
 
   const handleChange = (e) => {
     setForm({
@@ -136,6 +194,39 @@ export default function Login() {
 
       <main className="login-content">
         <section className="login-showcase" aria-label="Beneficios de Menly">
+          <section className="login-seo-content" aria-labelledby="menly-public-title">
+            <p className="login-seo-kicker">Plataforma web para gastronomía</p>
+            <h1 id="menly-public-title">
+              Menly: páginas web para restaurantes con menú digital, reservas y pedidos por WhatsApp
+            </h1>
+            <p>
+              Menly ayuda a restaurantes, cafeterías y negocios gastronómicos a tener una página web profesional con menú digital, reservas online, pedidos por WhatsApp y panel de administración.
+            </p>
+
+            <div className="login-seo-features" aria-label="Funciones principales de Menly">
+              <article>
+                <h2>Menú digital para restaurantes</h2>
+                <p>Publica productos, categorías y precios en una carta online clara para tus clientes.</p>
+              </article>
+              <article>
+                <h2>Reservas online</h2>
+                <p>Recibe solicitudes de reserva desde la página web de tu restaurante.</p>
+              </article>
+              <article>
+                <h2>Pedidos por WhatsApp</h2>
+                <p>Conecta la intención de compra de tus clientes con una conversación directa por WhatsApp.</p>
+              </article>
+              <article>
+                <h2>Panel de administración</h2>
+                <p>Gestiona menú, reservas, pedidos y configuración del negocio desde un solo lugar.</p>
+              </article>
+              <article>
+                <h2>Métricas para el negocio</h2>
+                <p>Revisa información útil para entender el rendimiento digital de tu restaurante.</p>
+              </article>
+            </div>
+          </section>
+
           <div className="login-phones" aria-label="Aplicaciones de Menly">
             <div className="login-phone login-phone-left">
               <img
@@ -190,9 +281,9 @@ export default function Login() {
 
         <section className="login-panel">
           <div className="login-card">
-            <h1 className="login-title">
+            <h2 className="login-title">
               <span>I</span>nicia <span>S</span>esion
-            </h1>
+            </h2>
 
             <form className="login-form" onSubmit={handleSubmit}>
               <div className="form-group">
