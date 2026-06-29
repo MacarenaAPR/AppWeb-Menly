@@ -77,6 +77,10 @@ class ProductoClickRateThrottle(AnonRateThrottle):
     scope = "producto_click"
 
 
+class ContactoRateThrottle(AnonRateThrottle):
+    scope = "contacto"
+
+
 class ReservasPagination(PageNumberPagination):
     page_size = 10
 
@@ -2662,6 +2666,156 @@ class PasswordResetRequestView(APIView):
                 )
 
             return Response({"message": self.GENERIC_MESSAGE})
+
+
+class ContactoView(APIView):
+        permission_classes = [AllowAny]
+        throttle_classes = [ContactoRateThrottle]
+
+        campos_obligatorios = {
+            "nombre": "El nombre es obligatorio.",
+            "restaurante": "El nombre del restaurante es obligatorio.",
+            "correo": "El correo es obligatorio.",
+            "telefono": "El teléfono es obligatorio.",
+            "ciudad": "La ciudad es obligatoria.",
+            "plan": "El plan es obligatorio.",
+            "mensaje": "El mensaje es obligatorio.",
+        }
+
+        def post(self, request):
+            datos = {
+                campo: str(request.data.get(campo, "")).strip()
+                for campo in self.campos_obligatorios
+            }
+            errores = {
+                campo: mensaje
+                for campo, mensaje in self.campos_obligatorios.items()
+                if not datos[campo]
+            }
+
+            if datos["correo"]:
+                try:
+                    validate_email(datos["correo"])
+                except ValidationError:
+                    errores["correo"] = "Ingresa un correo válido."
+
+            if errores:
+                return Response(errores, status=status.HTTP_400_BAD_REQUEST)
+
+            fecha = localtime(now()).strftime("%d-%m-%Y %H:%M")
+            cuerpo = (
+                "Nueva solicitud de información desde Menly.\n\n"
+                f"Nombre: {datos['nombre']}\n"
+                f"Restaurante: {datos['restaurante']}\n"
+                f"Correo: {datos['correo']}\n"
+                f"Teléfono: {datos['telefono']}\n"
+                f"Ciudad: {datos['ciudad']}\n"
+                f"Plan: {datos['plan']}\n"
+                f"Mensaje: {datos['mensaje']}\n"
+                f"Fecha: {fecha}\n"
+            )
+
+            try:
+                send_mail(
+                    subject=f"Nueva solicitud de información - {datos['plan']}",
+                    message=cuerpo,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=["menly.contacto@gmail.com"],
+                    fail_silently=False,
+                )
+            except Exception:
+                logger.exception(
+                    "Error enviando solicitud de contacto para plan %s.",
+                    datos["plan"],
+                )
+                return Response(
+                    {"error": "No se pudo enviar la solicitud. Intenta nuevamente."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            return Response(
+                {
+                    "message": (
+                        "Hemos recibido tu solicitud. Nos pondremos en contacto "
+                        "contigo lo antes posible."
+                    )
+                },
+                status=status.HTTP_200_OK,
+            )
+
+
+class ContactoPlanesView(APIView):
+        permission_classes = [AllowAny]
+        throttle_classes = [ContactoRateThrottle]
+
+        campos_obligatorios = {
+            "nombre": "El nombre es obligatorio.",
+            "restaurante": "El nombre del restaurante es obligatorio.",
+            "correo": "El correo es obligatorio.",
+            "telefono": "El teléfono es obligatorio.",
+            "ciudad": "La ciudad es obligatoria.",
+            "plan": "Selecciona un plan de interés.",
+            "mensaje": "El mensaje es obligatorio.",
+        }
+
+        def post(self, request):
+            datos = {
+                campo: str(request.data.get(campo, "")).strip()
+                for campo in self.campos_obligatorios
+            }
+            errores = {
+                campo: mensaje
+                for campo, mensaje in self.campos_obligatorios.items()
+                if not datos[campo]
+            }
+
+            if datos["correo"]:
+                try:
+                    validate_email(datos["correo"])
+                except ValidationError:
+                    errores["correo"] = "Ingresa un correo válido."
+
+            if datos["plan"] and datos["plan"] not in {"Básico", "Pro", "No estoy seguro"}:
+                errores["plan"] = "Selecciona una opción válida."
+
+            if errores:
+                return Response(errores, status=status.HTTP_400_BAD_REQUEST)
+
+            fecha = localtime(now()).strftime("%d-%m-%Y %H:%M")
+            cuerpo = (
+                "Nueva consulta de planes desde Menly.\n\n"
+                f"Nombre: {datos['nombre']}\n"
+                f"Restaurante: {datos['restaurante']}\n"
+                f"Correo: {datos['correo']}\n"
+                f"Teléfono: {datos['telefono']}\n"
+                f"Ciudad: {datos['ciudad']}\n"
+                f"Plan de interés: {datos['plan']}\n"
+                f"Mensaje: {datos['mensaje']}\n"
+                f"Fecha: {fecha}\n"
+            )
+
+            try:
+                send_mail(
+                    subject=f"Consulta de planes - Menly - {datos['plan']}",
+                    message=cuerpo,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=["menly.contacto@gmail.com"],
+                    fail_silently=False,
+                )
+            except Exception:
+                logger.exception(
+                    "Error enviando consulta de planes para %s.",
+                    datos["plan"],
+                )
+                return Response(
+                    {"error": "No se pudo enviar la consulta. Intenta nuevamente."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            return Response(
+                {"message": "Consulta enviada correctamente. Te contactaremos pronto."},
+                status=status.HTTP_200_OK,
+            )
 
 
 

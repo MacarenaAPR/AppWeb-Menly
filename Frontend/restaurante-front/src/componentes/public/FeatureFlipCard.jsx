@@ -1,0 +1,32 @@
+export default function FeatureFlipCard({
+  icon,
+  title,
+  description,
+  image,
+  link,
+  isActive,
+  onToggle,
+}) {
+  return (
+    <button
+      type="button"
+      className={`feature-flip-card ${isActive ? "is-flipped" : ""}`}
+      aria-pressed={isActive}
+      onClick={onToggle}
+    >
+      <span className="feature-flip-card__inner">
+        <span className="feature-flip-card__face feature-flip-card__front">
+          <span className="feature-flip-card__icon feature-flip-card__icon--front">
+            <i className={`bi ${icon}`} aria-hidden="true"></i>
+          </span>
+          <span className="feature-flip-card__title">{title}</span>
+        </span>
+
+        <span className="feature-flip-card__face feature-flip-card__back">
+          <span className="feature-flip-card__back-title">{title}</span>
+          <span className="feature-flip-card__description">{description}</span>
+        </span>
+      </span>
+    </button>
+  );
+}

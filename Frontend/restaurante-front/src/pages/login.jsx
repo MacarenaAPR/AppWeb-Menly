@@ -10,6 +10,21 @@ import recursoLogin3 from "../assets/recursologin3.png";
 
 const MENLY_WHATSAPP_URL =
   "https://wa.me/56988424939?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Menly";
+const MENLY_CONTACT_EMAIL = "menly.contacto@gmail.com";
+const MENLY_CONTACT_MAILTO = `mailto:${MENLY_CONTACT_EMAIL}?subject=${encodeURIComponent(
+  "Solicitud de información - Menly"
+)}&body=${encodeURIComponent(
+  `Hola equipo de Menly,
+
+Me gustaría obtener información sobre la plataforma para mi restaurante.
+
+Nombre:
+Restaurante:
+Ciudad:
+Teléfono:
+
+Quedo atento(a).`
+)}`;
 
 const SEO_TITLE =
   "Menly | Páginas web para restaurantes con menú digital, reservas y pedidos por WhatsApp";
@@ -373,9 +388,9 @@ export default function Login() {
               </form>
             )}
 
-            <button type="button" className="login-contact-link">
+            <a className="login-contact-link" href={MENLY_CONTACT_MAILTO}>
               ¿ No tienes cuenta ? contáctanos
-            </button>
+            </a>
           </div>
         </section>
       </main>

@@ -237,6 +237,7 @@ REST_FRAMEWORK = {
         "public_reservas": "20/hour",
         "public_solicitudes_especiales": "20/hour",
         "producto_click": "30/min",
+        "contacto": "8/hour",
     },
 }
 

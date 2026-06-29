@@ -414,6 +414,7 @@
 
 .login-card .login-contact-link {
   margin-top: 25px;
+  text-decoration: none;
 }
 
 .password-reset-form {
