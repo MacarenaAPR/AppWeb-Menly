@@ -905,12 +905,7 @@ export default function Home() {
       return siguiente;
     });
   };
-  console.log("routeSlug:", routeSlug);
-  console.log("hostnameSlug:", hostnameSlug);
-  console.log("slug final:", slug);
-  console.log("URL API:", `${BASE_URL}/menu/${slug}/`);
-  console.log("restaurante", restaurante);
-  console.log("carrito_whatsapp_activo", restaurante?.carrito_whatsapp_activo);
+ 
   return (
     <div
       className={`page-shell ${themeClass}`}

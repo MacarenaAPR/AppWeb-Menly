@@ -113,7 +113,7 @@ const formInicial = {
   correo: "",
   telefono: "",
   ciudad: "",
-  plan: "No estoy seguro",
+  plan_interes: "No estoy seguro",
   mensaje: "",
 };
 
@@ -352,12 +352,12 @@ export default function Planes() {
 
           <label>
             Plan de interés
-            <select name="plan" value={formData.plan} onChange={handleChange} required>
+            <select name="plan_interes" value={formData.plan_interes} onChange={handleChange} required>
               <option value="Básico">Básico</option>
               <option value="Pro">Pro</option>
               <option value="No estoy seguro">No estoy seguro</option>
             </select>
-            {errors.plan && <span>{errors.plan}</span>}
+            {errors.plan_interes && <span>{errors.plan_interes}</span>}
           </label>
 
           <label className="planes-form__message">

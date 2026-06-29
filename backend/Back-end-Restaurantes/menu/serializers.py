@@ -12,6 +12,54 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+class ContactoPlanesSerializer(serializers.Serializer):
+    nombre = serializers.CharField(
+        max_length=120,
+        required=True,
+        error_messages={"blank": "El nombre es obligatorio.", "required": "El nombre es obligatorio."},
+    )
+    restaurante = serializers.CharField(
+        max_length=160,
+        required=True,
+        error_messages={
+            "blank": "El nombre del restaurante es obligatorio.",
+            "required": "El nombre del restaurante es obligatorio.",
+        },
+    )
+    correo = serializers.EmailField(
+        required=True,
+        error_messages={
+            "blank": "El correo es obligatorio.",
+            "required": "El correo es obligatorio.",
+            "invalid": "Ingresa un correo válido.",
+        },
+    )
+    telefono = serializers.CharField(
+        max_length=40,
+        required=True,
+        error_messages={"blank": "El teléfono es obligatorio.", "required": "El teléfono es obligatorio."},
+    )
+    ciudad = serializers.CharField(
+        max_length=120,
+        required=True,
+        error_messages={"blank": "La ciudad es obligatoria.", "required": "La ciudad es obligatoria."},
+    )
+    plan_interes = serializers.ChoiceField(
+        choices=["Básico", "Pro", "No estoy seguro"],
+        required=True,
+        error_messages={
+            "blank": "Selecciona un plan de interés.",
+            "required": "Selecciona un plan de interés.",
+            "invalid_choice": "Selecciona una opción válida.",
+        },
+    )
+    mensaje = serializers.CharField(
+        required=True,
+        error_messages={"blank": "El mensaje es obligatorio.", "required": "El mensaje es obligatorio."},
+    )
+
+
 class MetodoPagoSerializer(serializers.ModelSerializer):
     class Meta:
         model = MetodoPago

@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
-from .serializers import CustomTokenObtainPairSerializer,ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer
+from .serializers import CustomTokenObtainPairSerializer, ContactoPlanesSerializer, ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer
 from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
 from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoWhatsAppEstadoUpdateSerializer, PedidoWhatsAppSeguimientoPublicoSerializer, PedidoEspecialSerializer
 from .serializers import ReporteMetricaSerializer
@@ -2817,6 +2817,54 @@ class ContactoPlanesView(APIView):
                 status=status.HTTP_200_OK,
             )
 
+
+
+class ContactoPlanesAPIView(APIView):
+        permission_classes = [AllowAny]
+        throttle_classes = [ContactoRateThrottle]
+
+        def post(self, request):
+            serializer = ContactoPlanesSerializer(data=request.data)
+
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            datos = serializer.validated_data
+            fecha = localtime(now()).strftime("%d-%m-%Y %H:%M")
+            cuerpo = (
+                "Nueva consulta de planes - Menly\n\n"
+                f"Nombre: {datos['nombre']}\n"
+                f"Restaurante: {datos['restaurante']}\n"
+                f"Correo: {datos['correo']}\n"
+                f"Teléfono: {datos['telefono']}\n"
+                f"Ciudad: {datos['ciudad']}\n"
+                f"Plan de interés: {datos['plan_interes']}\n"
+                f"Mensaje: {datos['mensaje']}\n"
+                f"Fecha: {fecha}\n"
+            )
+
+            try:
+                send_mail(
+                    subject="Nueva consulta de planes - Menly",
+                    message=cuerpo,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=["menly.contacto@gmail.com"],
+                    fail_silently=False,
+                )
+            except Exception:
+                logger.exception(
+                    "Error enviando consulta de planes para %s.",
+                    datos["plan_interes"],
+                )
+                return Response(
+                    {"error": "No se pudo enviar la consulta. Intenta nuevamente."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            return Response(
+                {"message": "Consulta enviada correctamente. Te contactaremos pronto."},
+                status=status.HTTP_200_OK,
+            )
 
 
 class MiRestauranteView(APIView):
