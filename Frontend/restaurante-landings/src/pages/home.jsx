@@ -10,7 +10,7 @@ import { getOptimizedImageUrl } from "../utils/images";
 import { GiFireBowl } from "react-icons/gi";
 import { TiShoppingCart } from "react-icons/ti";
 import { MdOutlineShoppingBag } from "react-icons/md";
-
+import RestaurantPageLoader from "../components/RestaurantPageLoader";
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 const MENU_CACHE_TTL = 60 * 5 * 1000;
 
@@ -837,11 +837,7 @@ export default function Home() {
   }, [mobileNavOpen]);
 
   if (loading) {
-    return (
-      <div className="page-shell loading-screen">
-        <div className="skeleton-card" aria-label="Cargando menú"></div>
-      </div>
-    );
+    return <RestaurantPageLoader logoUrl={restaurante?.logo} />;
   }
 
   if (!slug) {
