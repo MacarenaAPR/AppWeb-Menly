@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
-import { authFetch } from "../api";
+import { authFetch, readJsonResponse } from "../api";
 
 export default function ReservasDashboard() {
     const [searchParams] = useSearchParams();
@@ -73,13 +73,17 @@ export default function ReservasDashboard() {
     const cargarReservas = useCallback(async (page = paginaActual) => {
         try {
         const response = await authFetch(`/mi-restaurante/reservas/?page=${page}`);
-
-        const data = await response.json();
+        const data = await readJsonResponse(
+            response,
+            `/mi-restaurante/reservas/?page=${page}`,
+            "No se pudieron cargar las reservas"
+        );
         setReservas(data.results || data);
         setTotalReservas(data.count ?? (Array.isArray(data) ? data.length : 0));
         setPaginaSiguiente(data.next || null);
         setPaginaAnterior(data.previous || null);
-        } catch {
+        } catch (requestError) {
+        setError(requestError.message || "No se pudieron cargar las reservas");
         setReservas([]);
         setTotalReservas(0);
         setPaginaSiguiente(null);
@@ -106,17 +110,16 @@ export default function ReservasDashboard() {
             }
         );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            setError(data.error || data.detail || "No se pudo actualizar la reserva");
-            return false;
-        }
+        await readJsonResponse(
+            response,
+            `/mi-restaurante/reservas/${id}/`,
+            "No se pudo actualizar la reserva"
+        );
 
         await cargarReservas();
         return true;
-        } catch {
-        setError("No se pudo actualizar la reserva");
+        } catch (requestError) {
+        setError(requestError.message || "No se pudo actualizar la reserva");
         return false;
         }
     };
@@ -233,12 +236,11 @@ export default function ReservasDashboard() {
             }
             );
 
-            const data = await response.json();
-
-            if (!response.ok) {
-            setError(data.error || "Error al crear reserva");
-            return;
-            }
+            await readJsonResponse(
+            response,
+            "/mi-restaurante/reservas/crear/",
+            "Error al crear reserva"
+            );
 
             setMostrarFormulario(false);
             setError("");
@@ -254,8 +256,8 @@ export default function ReservasDashboard() {
             });
 
             cargarReservas();
-        } catch {
-            setError("Error al crear reserva");
+        } catch (requestError) {
+            setError(requestError.message || "Error al crear reserva");
         }
     };
 

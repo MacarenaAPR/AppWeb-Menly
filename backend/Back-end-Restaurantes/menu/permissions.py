@@ -1,4 +1,5 @@
 # permissions.py
+from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from django.db.models import Q
@@ -31,6 +32,44 @@ def get_perfil(request, restaurante: Restaurante = None):
     if restaurante:
         qs = qs.filter(restaurante=restaurante)
     return qs.select_related("restaurante").first()
+
+
+def get_perfil_activo(request):
+    return get_object_or_404(
+        UsuarioRestaurante.objects.select_related("restaurante"),
+        user=request.user,
+        activo=True,
+    )
+
+
+def get_restaurante_actual(request):
+    return get_perfil_activo(request).restaurante
+
+
+def get_object_for_restaurante_or_404(model_or_queryset, restaurante, **filters):
+    if hasattr(model_or_queryset, "_default_manager"):
+        queryset = model_or_queryset._default_manager.all()
+    else:
+        queryset = model_or_queryset
+
+    return get_object_or_404(
+        queryset,
+        restaurante=restaurante,
+        **filters,
+    )
+
+
+class TenantScopedQuerysetMixin:
+    tenant_field = "restaurante"
+
+    def get_perfil_activo(self):
+        return get_perfil_activo(self.request)
+
+    def get_restaurante_actual(self):
+        return self.get_perfil_activo().restaurante
+
+    def get_tenant_queryset(self, queryset):
+        return queryset.filter(**{self.tenant_field: self.get_restaurante_actual()})
 
 
 def get_restaurante_from_view(view, request):
@@ -230,6 +269,35 @@ class CanManageProductos(BasePermission):
             return True
 
         return is_dueno(perfil) or is_admin(perfil)
+
+
+class CanManageCategorias(BasePermission):
+    """
+    Todos los roles activos pueden ver categorias.
+    Dueno gestiona todo. Admin solo puede activar o desactivar en la vista.
+    """
+    def has_permission(self, request, view):
+        rest = get_restaurante_from_view(view, request)
+        perfil = get_perfil(request, rest)
+
+        if not perfil:
+            return False
+
+        bloquear_si_restaurante_inactivo(perfil, request)
+
+        if request.method in ["GET", "HEAD", "OPTIONS"]:
+            return True
+
+        if request.method in ["PATCH", "PUT"]:
+            return is_dueno(perfil) or is_admin(perfil)
+
+        if request.method == "POST":
+            return is_dueno(perfil)
+
+        if request.method == "DELETE":
+            return is_dueno(perfil)
+
+        return False
 
 
 # 5) Reservas

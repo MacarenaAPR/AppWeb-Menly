@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import PublicNavbar from "../componentes/public/PublicNavbar";
@@ -267,12 +267,14 @@ import recursofoodtrucks from "../assets/recursofoodtrucks.png";
 import recursobares from "../assets/recursobares.png";
 import recursorestaurantes from "../assets/recursorestaurante.png";
 const rubrosGastronomicos = [
-  ["Cafeterías y Pastelerias","", recursopasteleria],
+  ["Cafeterías y Pastelerías","", recursopasteleria],
   ["Restaurantes","", recursorestaurantes],
   ["Food Trucks","", recursofoodtrucks],
-  ["Pizzerías","", recursopizzeria],
+  ["Pizzeria","", recursopizzeria],
   ["Bares","", recursobares],
 ];
+
+const RUBROS_AUTOPLAY_MS = 3600;
 
 const footerLinks = [
   ["Funciones", "funciones"],
@@ -292,6 +294,9 @@ const socialLinks = [
 export default function SaberMas() {
   const [openFaq, setOpenFaq] = useState(null);
   const [activeFeature, setActiveFeature] = useState(null);
+  const [activeRubro, setActiveRubro] = useState(0);
+  const [isRubroInteracting, setIsRubroInteracting] = useState(false);
+  const rubroDragStartX = useRef(null);
   const navigate = useNavigate();
 
   const abrirWhatsApp = (url = WHATSAPP_GENERAL) => {
@@ -304,6 +309,54 @@ export default function SaberMas() {
   const scrollToSection = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const cambiarRubro = (direction) => {
+    setActiveRubro((current) => {
+      const total = rubrosGastronomicos.length;
+      return (current + direction + total) % total;
+    });
+  };
+
+  const obtenerPosicionRubro = (index) => {
+    const total = rubrosGastronomicos.length;
+    let offset = index - activeRubro;
+
+    if (offset > total / 2) offset -= total;
+    if (offset < -total / 2) offset += total;
+
+    return offset;
+  };
+
+  const iniciarArrastreRubro = (event) => {
+    rubroDragStartX.current = event.clientX;
+    setIsRubroInteracting(true);
+  };
+
+  const terminarArrastreRubro = (event) => {
+    if (rubroDragStartX.current === null) {
+      setIsRubroInteracting(false);
+      return;
+    }
+
+    const deltaX = event.clientX - rubroDragStartX.current;
+
+    if (Math.abs(deltaX) > 42) {
+      cambiarRubro(deltaX < 0 ? 1 : -1);
+    }
+
+    rubroDragStartX.current = null;
+    setIsRubroInteracting(false);
+  };
+
+  useEffect(() => {
+    if (isRubroInteracting) return undefined;
+
+    const rubrosAutoplay = window.setInterval(() => {
+      cambiarRubro(1);
+    }, RUBROS_AUTOPLAY_MS);
+
+    return () => window.clearInterval(rubrosAutoplay);
+  }, [isRubroInteracting]);
 
   return (
     <main className="saber-mas-page">
@@ -393,6 +446,7 @@ export default function SaberMas() {
                 {...funcion}
                 isActive={activeFeature === index}
                 onToggle={() => setActiveFeature(activeFeature === index ? null : index)}
+                accordionId={`saber-feature-accordion-${index}`}
               />
             ))}
           </div>
@@ -502,14 +556,62 @@ export default function SaberMas() {
           </div>
 
           <div className="saber-business-grid">
-            {rubrosGastronomicos.map(([nombre, texto, imagen]) => (
-              <article className="saber-business-card" key={nombre}>
-                <img src={imagen} alt={`${nombre} con landing Menly`} />
-                <div>
-                  <h3>{nombre}</h3>
-                </div>
-              </article>
-            ))}
+            {rubrosGastronomicos.map(([nombre, , imagen], index) => {
+              const coverflowPosition = obtenerPosicionRubro(index);
+
+              return (
+                <article
+                  className={`saber-business-card ${coverflowPosition === 0 ? "is-active" : ""}`}
+                  data-coverflow-position={coverflowPosition}
+                  key={nombre}
+                  onPointerDown={iniciarArrastreRubro}
+                  onPointerUp={terminarArrastreRubro}
+                  onPointerCancel={() => {
+                    rubroDragStartX.current = null;
+                    setIsRubroInteracting(false);
+                  }}
+                >
+                  <img src={imagen} alt={`${nombre} con landing Menly`} loading="lazy" />
+                  <div>
+                    <h3>{nombre}</h3>
+                  </div>
+                </article>
+              );
+            })}
+
+            <button
+              type="button"
+              className="saber-business-nav saber-business-nav--prev"
+              aria-label="Ver rubro anterior"
+              onClick={() => cambiarRubro(-1)}
+              onPointerEnter={() => setIsRubroInteracting(true)}
+              onPointerLeave={() => setIsRubroInteracting(false)}
+            >
+              <i className="bi bi-chevron-left" aria-hidden="true"></i>
+            </button>
+            <button
+              type="button"
+              className="saber-business-nav saber-business-nav--next"
+              aria-label="Ver rubro siguiente"
+              onClick={() => cambiarRubro(1)}
+              onPointerEnter={() => setIsRubroInteracting(true)}
+              onPointerLeave={() => setIsRubroInteracting(false)}
+            >
+              <i className="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+
+            <div className="saber-business-dots" aria-label="Selector de rubros">
+              {rubrosGastronomicos.map(([nombre], index) => (
+                <button
+                  type="button"
+                  className={index === activeRubro ? "is-active" : ""}
+                  key={nombre}
+                  aria-label={`Ver ${nombre}`}
+                  aria-current={index === activeRubro ? "true" : undefined}
+                  onClick={() => setActiveRubro(index)}
+                ></button>
+              ))}
+            </div>
           </div>
         </div>
 

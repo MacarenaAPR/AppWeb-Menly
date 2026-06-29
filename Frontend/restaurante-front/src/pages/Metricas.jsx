@@ -919,8 +919,11 @@ function ReportesGuardados({ refreshKey }) {
       const response = await authFetch(`/metricas/reportes/${params.toString() ? `?${params}` : ""}`, {
         cache: "no-store",
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "No se pudieron cargar los reportes.");
+      const data = await readJsonResponse(
+        response,
+        `/metricas/reportes/${params.toString() ? `?${params}` : ""}`,
+        "No se pudieron cargar los reportes."
+      );
       setReportes(data || []);
     } catch (requestError) {
       setReportes([]);
@@ -939,8 +942,11 @@ function ReportesGuardados({ refreshKey }) {
     setError("");
     try {
       const response = await authFetch(`/metricas/reportes/${id}/`, { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "No se pudo cargar el detalle.");
+      const data = await readJsonResponse(
+        response,
+        `/metricas/reportes/${id}/`,
+        "No se pudo cargar el detalle."
+      );
       setDetalle(data);
     } catch (requestError) {
       setError(requestError.message || "No se pudo cargar el detalle.");
@@ -1106,11 +1112,11 @@ export default function MetricasDashboard() {
 
     try {
       const response = await authFetch("/metricas/reporte-mensual/", { cache: "no-store" });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error || "No se pudo cargar el reporte mensual.");
-      }
+      const data = await readJsonResponse(
+        response,
+        "/metricas/reporte-mensual/",
+        "No se pudo cargar el reporte mensual."
+      );
 
       setReporteMensual(data);
     } catch (requestError) {
@@ -1133,11 +1139,11 @@ export default function MetricasDashboard() {
 
     try {
       const response = await authFetch("/metricas/reporte-anual/", { cache: "no-store" });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error || "No se pudo cargar el reporte anual.");
-      }
+      const data = await readJsonResponse(
+        response,
+        "/metricas/reporte-anual/",
+        "No se pudo cargar el reporte anual."
+      );
 
       setReporteAnual(data);
     } catch (requestError) {
@@ -1216,8 +1222,11 @@ export default function MetricasDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "No se pudo guardar el reporte.");
+      await readJsonResponse(
+        response,
+        "/metricas/reportes/guardar/",
+        "No se pudo guardar el reporte."
+      );
       setReportesRefreshKey((prev) => prev + 1);
     } catch (requestError) {
       const mensaje = requestError.message || "No se pudo guardar el reporte.";

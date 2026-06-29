@@ -6,7 +6,7 @@ import ButtonCategoria from "../componentes/btn-categorias";
 import CardsProductos from "../componentes/card-productos";
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { authFetch } from "../api";
+import { authFetch, readJsonResponse } from "../api";
 import { permisosPorRol } from "../utils/permisos";
 
 export default function CartaProducto(){
@@ -50,11 +50,11 @@ export default function CartaProducto(){
           cache: "no-store",
         });
 
-        if (!response.ok) {
-          throw new Error("Error al cargar datos");
-        }
-
-        const result = await response.json();
+        const result = await readJsonResponse(
+          response,
+          "/mi-restaurante/",
+          "Error al cargar datos"
+        );
 
         if (slug !== result.restaurante.slug) {
           navigate(`/carta-productos/${result.restaurante.slug}`, { replace: true });
@@ -264,11 +264,11 @@ export default function CartaProducto(){
         method: "DELETE",
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.detail || "No se pudo eliminar el producto");
-      }
+      const data = await readJsonResponse(
+        response,
+        `/mi-restaurante/productos/${id}/eliminar/`,
+        "No se pudo eliminar el producto"
+      );
 
       setData((prevData) => ({
         ...prevData,

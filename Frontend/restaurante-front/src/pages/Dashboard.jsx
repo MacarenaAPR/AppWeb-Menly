@@ -69,11 +69,11 @@ export default function Dashboard() {
       const response = await authFetch("/mi-restaurante/notificaciones/?leida=false", {
         cache: "no-store",
       });
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result?.error || "No se pudieron cargar las notificaciones");
-      }
+      const result = await readJsonResponse(
+        response,
+        "/mi-restaurante/notificaciones/?leida=false",
+        "No se pudieron cargar las notificaciones"
+      );
 
       setNotificaciones(result.results || []);
       actualizarContadorNotificaciones(result.pendientes ?? 0);
@@ -105,21 +105,21 @@ export default function Dashboard() {
       const detalleResponse = await authFetch(`/mi-restaurante/notificaciones/${notificacionId}/`, {
         cache: "no-store",
       });
-      const detalleData = await detalleResponse.json();
-
-      if (!detalleResponse.ok) {
-        throw new Error(detalleData?.error || "No se pudo cargar el detalle");
-      }
+      const detalleData = await readJsonResponse(
+        detalleResponse,
+        `/mi-restaurante/notificaciones/${notificacionId}/`,
+        "No se pudo cargar el detalle"
+      );
 
       const marcarResponse = await authFetch(
         `/mi-restaurante/notificaciones/${notificacionId}/marcar-leida/`,
         { method: "PATCH" }
       );
-      const marcarData = await marcarResponse.json();
-
-      if (!marcarResponse.ok) {
-        throw new Error(marcarData?.error || "No se pudo marcar como leída");
-      }
+      const marcarData = await readJsonResponse(
+        marcarResponse,
+        `/mi-restaurante/notificaciones/${notificacionId}/marcar-leida/`,
+        "No se pudo marcar como leida"
+      );
 
       setNotificacionDetalle(marcarData.notificacion || detalleData);
       setNotificaciones((prev) => prev.filter((item) => item.id !== notificacionId));
@@ -134,9 +134,11 @@ export default function Dashboard() {
   const fetchClicks = async () => {
     try {
       const response = await authFetch("/mi-restaurante/productos-mas-clickeados/");
-      const data = await response.json();
-
-      if (!response.ok) return;
+      const data = await readJsonResponse(
+        response,
+        "/mi-restaurante/productos-mas-clickeados/",
+        "No se pudieron cargar los productos"
+      );
 
       setProductosClickeados(data || []);
     } catch {
@@ -199,11 +201,11 @@ export default function Dashboard() {
           cache: "no-store",
         });
 
-        if (!response.ok) {
-          throw new Error("Error al cargar datos");
-        }
-
-        const result = await response.json();
+        const result = await readJsonResponse(
+          response,
+          "/mi-restaurante/",
+          "Error al cargar datos"
+        );
 
         if (slug !== result.restaurante.slug) {
           navigate(`/dashboard/${result.restaurante.slug}`, { replace: true });

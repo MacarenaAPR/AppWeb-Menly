@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
-import { authFetch } from "../api";
+import { authFetch, readJsonResponse } from "../api";
 
 const ESTADOS_PEDIDO = ["recibido", "pendiente_confirmacion", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
 const ESTADOS_PEDIDO_ESPECIAL = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado", "completado"];
@@ -27,17 +27,6 @@ const formEspecialInicial = {
   fecha_entrega: "",
   estado: "pendiente",
   items: [{ nombre: "", descripcion: "", cantidad: 1, precio_unitario: 0 }],
-};
-
-const obtenerMensajeError = async (response, fallback) => {
-  try {
-    const data = await response.json();
-    if (typeof data === "string") return data;
-    const valores = Object.values(data || {});
-    return data?.error || data?.detail || valores.flat?.()?.[0] || fallback;
-  } catch {
-    return fallback;
-  }
 };
 
 const formatearMoneda = (valor) =>
@@ -114,10 +103,11 @@ export default function PedidosDashboard() {
 
   const cargarRestaurante = useCallback(async () => {
     const response = await authFetch("/mi-restaurante/", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(await obtenerMensajeError(response, "No se pudo cargar el restaurante."));
-    }
-    const data = await response.json();
+    const data = await readJsonResponse(
+      response,
+      "/mi-restaurante/",
+      "No se pudo cargar el restaurante."
+    );
     setRestaurante(data.restaurante);
     setCatalogoProductos((data.productos || []).filter((producto) => producto.disponible !== false));
     return data.restaurante;
@@ -141,17 +131,20 @@ export default function PedidosDashboard() {
     const respuestas = await Promise.all(requests);
     const [metricasResponse, whatsappResponse, especialesResponse] = respuestas;
 
-    if (!metricasResponse.ok) {
-      throw new Error(await obtenerMensajeError(metricasResponse, "No se pudieron cargar las metricas."));
-    }
-    setMetricas(await metricasResponse.json());
+    const metricasData = await readJsonResponse(
+      metricasResponse,
+      "/mi-restaurante/pedidos/metricas/",
+      "No se pudieron cargar las metricas."
+    );
+    setMetricas(metricasData);
 
     let indice = 1;
     if (restauranteActual.carrito_whatsapp_activo === true) {
-      if (!whatsappResponse.ok) {
-        throw new Error(await obtenerMensajeError(whatsappResponse, "No se pudieron cargar los pedidos WhatsApp."));
-      }
-      const data = await whatsappResponse.json();
+      const data = await readJsonResponse(
+        whatsappResponse,
+        "/mi-restaurante/pedidos/whatsapp/",
+        "No se pudieron cargar los pedidos WhatsApp."
+      );
       setPedidosWhatsapp(normalizarListaPedidos(data));
       indice += 1;
     } else {
@@ -160,10 +153,11 @@ export default function PedidosDashboard() {
 
     if (restauranteActual.solicitudes_especiales_activas === true) {
       const response = respuestas[indice];
-      if (!response.ok) {
-        throw new Error(await obtenerMensajeError(response, "No se pudieron cargar los pedidos especiales."));
-      }
-      const data = await response.json();
+      const data = await readJsonResponse(
+        response,
+        "/mi-restaurante/pedidos/especiales/",
+        "No se pudieron cargar los pedidos especiales."
+      );
       setPedidosEspeciales(normalizarListaPedidos(data));
     } else {
       setPedidosEspeciales([]);
@@ -235,13 +229,11 @@ export default function PedidosDashboard() {
         body: JSON.stringify(datos),
       });
 
-      if (!response.ok) {
-        throw new Error(
-          await obtenerMensajeError(response, "No se pudo actualizar el pedido.")
-        );
-      }
-
-      const data = await response.json();
+      const data = await readJsonResponse(
+        response,
+        endpoint,
+        "No se pudo actualizar el pedido."
+      );
       const pedidoActualizado = data.pedido;
 
       if (tipo === "whatsapp") {
@@ -478,9 +470,13 @@ export default function PedidosDashboard() {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(await obtenerMensajeError(response, "No se pudo guardar el pedido especial."));
-      }
+      await readJsonResponse(
+        response,
+        pedidoEditando
+          ? `/mi-restaurante/pedidos/especiales/${pedidoEditando.id}/`
+          : "/mi-restaurante/pedidos/especiales/",
+        "No se pudo guardar el pedido especial."
+      );
 
       setMostrarFormularioEspecial(false);
       setPedidoEditando(null);

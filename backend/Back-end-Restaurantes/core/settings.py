@@ -21,6 +21,19 @@ import sys
 from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
+IS_TESTING = "test" in sys.argv
+
+
+def _env_flag(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+ENVIRONMENT = config("ENVIRONMENT", default=os.getenv("DJANGO_ENV", "development")).lower()
+IS_PRODUCTION = ENVIRONMENT in {"production", "prod"} or _env_flag("RENDER")
 
 
 # Quick-start development settings - unsuitable for production
@@ -30,8 +43,7 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True") == "True"
-IS_TESTING = "test" in sys.argv
+DEBUG = config("DEBUG", default=not IS_PRODUCTION, cast=bool)
 
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
@@ -372,3 +384,41 @@ cloudinary.config(
 
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+def _missing_env_vars(names):
+    return [name for name in names if not os.getenv(name)]
+
+
+if not DEBUG and not IS_TESTING:
+    required_production_env = [
+        "SECRET_KEY",
+        "DATABASE_URL",
+        "CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET",
+        "EMAIL_BACKEND",
+        "EMAIL_HOST",
+        "EMAIL_HOST_USER",
+        "EMAIL_HOST_PASSWORD",
+        "DEFAULT_FROM_EMAIL",
+        "ALLOWED_HOSTS",
+        "CORS_ALLOWED_ORIGINS",
+        "CSRF_TRUSTED_ORIGINS",
+    ]
+    missing_env = _missing_env_vars(required_production_env)
+
+    if missing_env:
+        raise RuntimeError(
+            "Faltan variables obligatorias para produccion: "
+            + ", ".join(sorted(missing_env))
+        )
+
+    if not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:
+        raise RuntimeError("ALLOWED_HOSTS debe estar restringido en produccion.")
+
+    if not CORS_ALLOWED_ORIGINS and not CORS_ALLOWED_ORIGIN_REGEXES:
+        raise RuntimeError("CORS debe declarar origenes permitidos en produccion.")
+
+    if not CSRF_TRUSTED_ORIGINS:
+        raise RuntimeError("CSRF_TRUSTED_ORIGINS es obligatorio en produccion.")

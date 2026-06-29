@@ -32,6 +32,10 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
 from menu.permissions import CanManageConfiguracion, CanManageUsuarios,CanViewBitacora,CanManageProductos,CanManageReservas,CanManageMesas,CanManageHorarios,CanManageMetodosPago,CanManageRespaldos
 from menu.permissions import MENSAJE_CUENTA_INACTIVA
+from menu.permissions import CanManageCategorias, TenantScopedQuerysetMixin
+from menu.permissions import get_object_for_restaurante_or_404
+from menu.permissions import get_perfil_activo as get_perfil_activo_tenant
+from menu.permissions import get_restaurante_actual
 from menu.utils import validar_horario_reserva, notificar_nueva_reserva, notificar_nueva_solicitud_especial
 from menu.utils import crear_notificacion_reserva, crear_notificacion_solicitud_especial
 from menu.cache_utils import get_cached_menu, invalidate_menu_cache, set_cached_menu
@@ -631,11 +635,7 @@ class MetodoPagoDetalleView(APIView):
 
 #PERFIL ACTIVO PARA LOGIN
 def get_perfil_activo(request):
-    return get_object_or_404(
-        UsuarioRestaurante,
-        user=request.user,
-        activo=True
-    )
+    return get_perfil_activo_tenant(request)
 
 def es_dueno(perfil):
     return perfil.rol == "dueno"
@@ -868,14 +868,14 @@ class ConfiguracionRestauranteView(APIView):
 
         return Response(serializer.errors, status=400)
 
-class CategoriasView(APIView):
-    permission_classes = [IsAuthenticated]
+class CategoriasView(TenantScopedQuerysetMixin, APIView):
+    permission_classes = [IsAuthenticated, CanManageCategorias]
 
     def get(self, request):
-        perfil = get_perfil_activo(request)
+        restaurante = get_restaurante_actual(request)
 
         categorias = Categoria.objects.filter(
-            restaurante=perfil.restaurante
+            restaurante=restaurante
         ).order_by("orden", "id")
 
         serializer = CategoriaSerializer(categorias, many=True)
@@ -915,14 +915,14 @@ class CategoriasView(APIView):
 
         return Response(serializer.errors, status=400)
 
-class CategoriaDetalleView(APIView):
-    permission_classes = [IsAuthenticated]
+class CategoriaDetalleView(TenantScopedQuerysetMixin, APIView):
+    permission_classes = [IsAuthenticated, CanManageCategorias]
 
     def get_categoria(self, perfil, categoria_id):
-        return get_object_or_404(
+        return get_object_for_restaurante_or_404(
             Categoria,
+            perfil.restaurante,
             id=categoria_id,
-            restaurante=perfil.restaurante
         )
 
     def patch(self, request, categoria_id):
@@ -1467,13 +1467,13 @@ class SolicitudEspecialDetalleDashboardView(APIView):
         })
 
 
-class NotificacionesDashboardView(APIView):
+class NotificacionesDashboardView(TenantScopedQuerysetMixin, APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
     def get(self, request):
-        perfil = get_perfil_activo(request)
-        notificaciones = Notificacion.objects.filter(
-            restaurante=perfil.restaurante
+        restaurante = self.get_restaurante_actual()
+        notificaciones = self.get_tenant_queryset(
+            Notificacion.objects.all()
         ).order_by("-fecha_creacion")
 
         leida = request.query_params.get("leida")
@@ -1484,7 +1484,7 @@ class NotificacionesDashboardView(APIView):
 
         data = NotificacionSerializer(notificaciones, many=True).data
         pendientes = Notificacion.objects.filter(
-            restaurante=perfil.restaurante,
+            restaurante=restaurante,
             leida=False
         ).count()
 
@@ -1494,28 +1494,25 @@ class NotificacionesDashboardView(APIView):
         })
 
 
-class NotificacionesContadorView(APIView):
+class NotificacionesContadorView(TenantScopedQuerysetMixin, APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
     def get(self, request):
-        perfil = get_perfil_activo(request)
-        pendientes = Notificacion.objects.filter(
-            restaurante=perfil.restaurante,
-            leida=False
+        pendientes = self.get_tenant_queryset(
+            Notificacion.objects.filter(leida=False)
         ).count()
 
         return Response({"pendientes": pendientes})
 
 
-class NotificacionDetalleView(APIView):
+class NotificacionDetalleView(TenantScopedQuerysetMixin, APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
     def get_notificacion(self, request, notificacion_id):
-        perfil = get_perfil_activo(request)
-        return get_object_or_404(
+        return get_object_for_restaurante_or_404(
             Notificacion,
+            get_restaurante_actual(request),
             id=notificacion_id,
-            restaurante=perfil.restaurante
         )
 
     def get(self, request, notificacion_id):
@@ -1575,14 +1572,14 @@ def calcular_reporte_anual(restaurante):
     return construir_reporte_anual(restaurante)
 
 
-class PedidosWhatsAppDashboardView(APIView):
+class PedidosWhatsAppDashboardView(TenantScopedQuerysetMixin, APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
     def get(self, request):
-        perfil = get_perfil_activo(request)
+        restaurante = self.get_restaurante_actual()
         hoy = localtime(now()).date()
         pedidos = PedidoWhatsApp.objects.filter(
-            restaurante=perfil.restaurante,
+            restaurante=restaurante,
             fecha_creacion__date=hoy
         ).order_by("-fecha_creacion", "-id")
 
@@ -1593,12 +1590,15 @@ class PedidosWhatsAppDashboardView(APIView):
         )
 
 
-class PedidoWhatsAppDetalleDashboardView(APIView):
+class PedidoWhatsAppDetalleDashboardView(TenantScopedQuerysetMixin, APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
     def get_pedido(self, request, pedido_id):
-        perfil = get_perfil_activo(request)
-        return get_object_or_404(PedidoWhatsApp, id=pedido_id, restaurante=perfil.restaurante)
+        return get_object_for_restaurante_or_404(
+            PedidoWhatsApp,
+            get_restaurante_actual(request),
+            id=pedido_id,
+        )
 
     def get(self, request, pedido_id):
         pedido = self.get_pedido(request, pedido_id)
@@ -1925,14 +1925,11 @@ class ReservasDashboardView(APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
     def get(self, request):
-        usuario_restaurante = get_object_or_404(
-            UsuarioRestaurante,
-            user=request.user,
-            activo=True
-        )
+        perfil = get_perfil_activo(request)
+        restaurante = perfil.restaurante
 
         reservas = Reserva.objects.filter(
-            restaurante=usuario_restaurante.restaurante
+            restaurante=restaurante
         ).select_related(
             "creada_por__user",
             "gestionada_por__user",
@@ -1950,11 +1947,7 @@ class CrearReservaManualView(APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
     def post(self, request):
-        usuario_restaurante = get_object_or_404(
-            UsuarioRestaurante,
-            user=request.user,
-            activo=True
-        )
+        usuario_restaurante = get_perfil_activo(request)
 
         restaurante = usuario_restaurante.restaurante
         serializer = ReservaManualSerializer(
@@ -2024,16 +2017,12 @@ class ActualizarReservaView(APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
     def patch(self, request, reserva_id):
-        usuario_restaurante = get_object_or_404(
-            UsuarioRestaurante,
-            user=request.user,
-            activo=True
-        )
+        usuario_restaurante = get_perfil_activo(request)
 
-        reserva = get_object_or_404(
+        reserva = get_object_for_restaurante_or_404(
             Reserva,
+            usuario_restaurante.restaurante,
             id=reserva_id,
-            restaurante=usuario_restaurante.restaurante
         )
 
         estado = request.data.get("estado")
@@ -2243,14 +2232,14 @@ class HistorialPedidosView(APIView):
 
 
 #PRODUCTOS
-class ProductoListView(APIView):
+class ProductoListView(TenantScopedQuerysetMixin, APIView):
     permission_classes = [IsAuthenticated, CanManageProductos]
 
     def get(self, request):
-        perfil = get_perfil_activo(request)
+        restaurante = self.get_restaurante_actual()
 
         productos = Producto.objects.select_related("categoria").filter(
-            restaurante=perfil.restaurante
+            restaurante=restaurante
         ).order_by("categoria__orden", "orden", "id")
 
         def serialize_productos(items):
@@ -2277,20 +2266,13 @@ class ProductoListView(APIView):
         return paginated_response(request, productos, serialize_productos, ProductosPagination)
 
 
-class ProductoUpdateView(UpdateAPIView):
+class ProductoUpdateView(TenantScopedQuerysetMixin, UpdateAPIView):
     serializer_class = ProductoCreateSerializer
     permission_classes = [IsAuthenticated, CanManageProductos]
     lookup_field = "id"
 
     def get_queryset(self):
-        perfil = UsuarioRestaurante.objects.filter(
-            user=self.request.user,
-            activo=True
-        ).select_related("restaurante").first()
-
-        if not perfil:
-            return Producto.objects.none()
-
+        perfil = get_perfil_activo(self.request)
         return Producto.objects.filter(restaurante=perfil.restaurante)
 
     @transaction.atomic
@@ -2316,10 +2298,10 @@ class ProductoUpdateView(UpdateAPIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        nueva_categoria = get_object_or_404(
+        nueva_categoria = get_object_for_restaurante_or_404(
             Categoria,
+            producto.restaurante,
             id=nueva_categoria_id,
-            restaurante=producto.restaurante
         )
 
         # actualizar datos normales
@@ -2493,10 +2475,10 @@ class EliminarProductoView(APIView):
 
     def delete(self, request, id):
         perfil = get_perfil_activo(request)
-        producto = get_object_or_404(
+        producto = get_object_for_restaurante_or_404(
             Producto,
+            perfil.restaurante,
             id=id,
-            restaurante=perfil.restaurante
         )
 
         BitacoraProducto.objects.create(
@@ -2523,10 +2505,10 @@ class ActualizarDisponibilidadProductoView(APIView):
 
     def patch(self, request, id):
         perfil = get_perfil_activo(request)
-        producto = get_object_or_404(
+        producto = get_object_for_restaurante_or_404(
             Producto,
+            perfil.restaurante,
             id=id,
-            restaurante=perfil.restaurante
         )
 
         disponible = request.data.get("disponible")
