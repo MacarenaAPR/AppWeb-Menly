@@ -110,10 +110,7 @@ export default function DemosCoverflow({ demos }) {
                     <h3>{demo.nombre}</h3>
                   </div>
                   <a
-                    href={hasDemo ? demo.url : "#demos-web"}
-                    target={hasDemo ? "_blank" : undefined}
-                    rel={hasDemo ? "noreferrer" : undefined}
-                    aria-disabled={!hasDemo}
+                    href={demo.url}
                   >
                     Ver pagina en vivo
                   </a>

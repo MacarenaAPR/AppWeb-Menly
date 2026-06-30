@@ -3,7 +3,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import "../styles/dashboard.css";
 import MainMenu from "../componentes/Main-menu";
 import Card from "../componentes/card-metric";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { FaMotorcycle } from "react-icons/fa6";
@@ -18,6 +18,9 @@ const formatearMoneda = (valor = 0) => {
     maximumFractionDigits: 0,
   });
 };
+
+const DASHBOARD_REFRESH_MS = 20000;
+const MAX_ULTIMOS_PEDIDOS = 10;
 
 export default function Dashboard() {
     
@@ -47,7 +50,7 @@ export default function Dashboard() {
   const [notificacionDetalle, setNotificacionDetalle] = useState(null);
   const [detalleLoading, setDetalleLoading] = useState(false);
 
-  const actualizarContadorNotificaciones = (pendientes) => {
+  const actualizarContadorNotificaciones = useCallback((pendientes) => {
     setData((prev) => {
       if (!prev) return prev;
 
@@ -59,11 +62,13 @@ export default function Dashboard() {
         },
       };
     });
-  };
+  }, []);
 
-  const fetchNotificaciones = async () => {
-    setNotificacionesLoading(true);
-    setNotificacionesError("");
+  const fetchNotificaciones = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setNotificacionesLoading(true);
+      setNotificacionesError("");
+    }
 
     try {
       const response = await authFetch("/mi-restaurante/notificaciones/?leida=false", {
@@ -78,12 +83,16 @@ export default function Dashboard() {
       setNotificaciones(result.results || []);
       actualizarContadorNotificaciones(result.pendientes ?? 0);
     } catch (err) {
-      setNotificaciones([]);
-      setNotificacionesError(err.message || "No se pudieron cargar las notificaciones");
+      if (!silent) {
+        setNotificaciones([]);
+        setNotificacionesError(err.message || "No se pudieron cargar las notificaciones");
+      }
     } finally {
-      setNotificacionesLoading(false);
+      if (!silent) {
+        setNotificacionesLoading(false);
+      }
     }
-  };
+  }, [actualizarContadorNotificaciones]);
 
   const abrirNotificaciones = () => {
     setModalNotificacionesAbierto(true);
@@ -146,9 +155,11 @@ export default function Dashboard() {
     }
   };
 
-  const fetchUltimosPedidos = async () => {
-    setUltimosPedidosLoading(true);
-    setUltimosPedidosError("");
+  const fetchUltimosPedidos = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setUltimosPedidosLoading(true);
+      setUltimosPedidosError("");
+    }
 
     try {
       const response = await authFetch("/dashboard/ultimos-pedidos/", {
@@ -160,16 +171,20 @@ export default function Dashboard() {
         "No se pudieron cargar los datos"
       );
 
-      setUltimosPedidos(result || []);
+      setUltimosPedidos((result || []).slice(0, MAX_ULTIMOS_PEDIDOS));
     } catch (err) {
-      setUltimosPedidos([]);
-      setUltimosPedidosError(err.message || "No se pudieron cargar los datos");
+      if (!silent) {
+        setUltimosPedidos([]);
+        setUltimosPedidosError(err.message || "No se pudieron cargar los datos");
+      }
     } finally {
-      setUltimosPedidosLoading(false);
+      if (!silent) {
+        setUltimosPedidosLoading(false);
+      }
     }
-  };
+  }, []);
 
-  const fetchMetricasPedidos = async () => {
+  const fetchMetricasPedidos = useCallback(async ({ silent = false } = {}) => {
     try {
       const response = await authFetch("/mi-restaurante/metricas/resumen/", {
         cache: "no-store",
@@ -183,9 +198,11 @@ export default function Dashboard() {
       setMetricasPedidos(result);
     } catch (err) {
       console.error("/mi-restaurante/metricas/resumen/", err);
-      setMetricasPedidos(null);
+      if (!silent) {
+        setMetricasPedidos(null);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     const fetchRestaurante = async () => {
@@ -231,7 +248,19 @@ export default function Dashboard() {
     };
 
     fetchRestaurante();
-  }, [slug, navigate]);
+  }, [slug, navigate, fetchUltimosPedidos, fetchMetricasPedidos]);
+
+  useEffect(() => {
+    if (!data) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      fetchUltimosPedidos({ silent: true });
+      fetchMetricasPedidos({ silent: true });
+      fetchNotificaciones({ silent: true });
+    }, DASHBOARD_REFRESH_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [data, fetchUltimosPedidos, fetchMetricasPedidos, fetchNotificaciones]);
 
   if (loading) {
     return <p>Cargando dashboard...</p>;

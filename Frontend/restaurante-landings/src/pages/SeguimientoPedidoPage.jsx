@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { apiFetch } from "../Services/api";
 import "../styles/seguimiento-pedido.css";
 
+const TRACKING_REFRESH_MS = 20000;
+
 const ESTADOS = [
   "recibido",
   "pendiente_confirmacion",
@@ -45,32 +47,45 @@ export default function SeguimientoPedidoPage() {
 
   useEffect(() => {
     let activo = true;
+    let intervalId;
 
-    const cargarPedido = async () => {
-      setLoading(true);
-      setError("");
+    const cargarPedido = async ({ silent = false } = {}) => {
+      if (!silent) {
+        setLoading(true);
+        setError("");
+      }
 
       try {
         const data = await apiFetch(`/public/pedidos/seguimiento/${trackingToken}/`, {
           retries: 0,
         });
-        if (activo) setPedido(data);
+        if (activo) {
+          setPedido(data);
+          setError("");
+        }
       } catch (requestError) {
         if (!activo) return;
+        if (silent) {
+          return;
+        }
         if (requestError?.status === 404) {
           setError("No encontramos este pedido o el enlace no es valido.");
         } else {
           setError("No pudimos cargar el seguimiento. Intenta nuevamente.");
         }
       } finally {
-        if (activo) setLoading(false);
+        if (activo && !silent) setLoading(false);
       }
     };
 
     cargarPedido();
+    intervalId = window.setInterval(() => {
+      cargarPedido({ silent: true });
+    }, TRACKING_REFRESH_MS);
 
     return () => {
       activo = false;
+      window.clearInterval(intervalId);
     };
   }, [trackingToken]);
 

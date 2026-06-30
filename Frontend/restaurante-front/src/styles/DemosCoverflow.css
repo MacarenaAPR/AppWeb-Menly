@@ -178,7 +178,7 @@
   color: #ff8a3a;
   background: rgba(6, 11, 17, 0.78);
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32);
-
+  cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 

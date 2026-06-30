@@ -215,11 +215,18 @@
 }
 
 .estado-badge {display: flex;
-  width: 100px;
+  width: fit-content;
+  min-width: 100px;
+  max-width: 160px;
+  align-items: center;
+  justify-content: center;
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 12px;
   text-transform: capitalize;
+  font-weight: 800;
+  line-height: 1.15;
+  border: 1px solid transparent;
 }
 
 .estado-badge.confirmada {
@@ -236,6 +243,44 @@
 .estado-badge.pendiente {
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
+}
+
+.estado-badge.recibido,
+.estado-badge.pendiente_confirmacion {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.28);
+  color: #fbbf24;
+}
+
+.estado-badge.confirmado {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.28);
+  color: #60a5fa;
+}
+
+.estado-badge.en_preparacion {
+  background: rgba(168, 85, 247, 0.16);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+}
+
+.estado-badge.listo {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #4ade80;
+}
+
+.estado-badge.entregado,
+.estado-badge.completado {
+  background: rgba(20, 83, 45, 0.28);
+  border-color: rgba(74, 222, 128, 0.24);
+  color: #bbf7d0;
+}
+
+.estado-badge.cancelado {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.28);
+  color: #f87171;
 }
 
 .estado-badge.en_revision {
@@ -1421,6 +1466,37 @@
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
+.pedidos-page .reservas-table-card {
+  max-height: min(620px, calc(100vh - 340px));
+  min-height: 410px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(248, 118, 29, 0.5) rgba(15, 23, 42, 0.5);
+}
+
+.pedidos-page .reservas-table-card::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.pedidos-page .reservas-table-card::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 999px;
+}
+
+.pedidos-page .reservas-table-card::-webkit-scrollbar-thumb {
+  background: rgba(248, 118, 29, 0.5);
+  border-radius: 999px;
+}
+
+.pedidos-page .pedidos-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #101820;
+}
+
 .pedidos-tabs {
   align-items: center;
 }
@@ -1946,6 +2022,9 @@
   .pedidos-page .reservas-table-card {
     width: 100%;
     max-width: 100%;
+    max-height: 68vh;
+    min-height: 260px;
+    overflow-y: auto;
     overflow-x: hidden;
     padding: 0;
     background: transparent;
