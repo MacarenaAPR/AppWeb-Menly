@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import PublicNavbar from "../componentes/public/PublicNavbar";
 import FeatureFlipCard from "../componentes/public/FeatureFlipCard";
+import DemosCoverflow from "../componentes/public/DemosCoverflow";
 import "../styles/SaberMas.css";
 import demosmash from "../assets/demo-smash-house.png";
 import demobakry from "../assets/demo-bakry.png";
@@ -615,42 +616,7 @@ export default function SaberMas() {
           </div>
         </div>
 
-        <div className="saber-web-demos" id="demos-web">
-          <div className="saber-section__heading saber-section__heading--center">
-            <span className="saber-kicker">Demostraciones reales</span>
-            <h2>Conoce algunos diseños creados con Menly</h2>
-            <p>
-              Cada restaurante tiene una identidad diferente. Estas son algunas
-              demostraciones.
-            </p>
-          </div>
-
-          <div className="saber-web-demo-grid">
-            {demos.map((demo) => {
-              const hasDemo = demo.url && demo.url !== "#";
-
-              return (
-                <article className="saber-web-demo-card" key={demo.nombre}>
-                  <img src={demo.img} alt={`Captura de la landing ${demo.nombre}`} />
-                  <div className="saber-web-demo-card__overlay">
-                    <div>
-                      <span>{demo.categoria}</span>
-                      <h3>{demo.nombre}</h3>
-                    </div>
-                    <a
-                      href={hasDemo ? demo.url : "#demos-web"}
-                      target={hasDemo ? "_blank" : undefined}
-                      rel={hasDemo ? "noreferrer" : undefined}
-                      aria-disabled={!hasDemo}
-                    >
-                      Ver demo
-                    </a>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </div>
+        <DemosCoverflow demos={demos} />
 
       </section>
 
