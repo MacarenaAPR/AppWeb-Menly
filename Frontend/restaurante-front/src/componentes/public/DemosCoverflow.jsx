@@ -115,7 +115,7 @@ export default function DemosCoverflow({ demos }) {
                     rel={hasDemo ? "noreferrer" : undefined}
                     aria-disabled={!hasDemo}
                   >
-                    Ver p&aacute;gina en vivo <span aria-hidden="true">&rarr;</span>
+                    Ver pagina en vivo
                   </a>
                 </div>
               </article>

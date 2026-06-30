@@ -10,7 +10,7 @@ from datetime import date, datetime, time, timedelta
 from importlib import import_module
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host
@@ -2257,13 +2257,87 @@ class SeguridadCriticaTests(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("tracking_token", response.data)
         self.assertIn("tracking_url", response.data)
+        self.assertEqual(response.data["total"], 3000)
         self.assertIn(
             f"http://localhost:5173/seguimiento/pedido/{response.data['tracking_token']}",
             response.data["mensaje_whatsapp"],
         )
-        self.assertTrue(
-            PedidoWhatsApp.objects.filter(tracking_token=response.data["tracking_token"]).exists()
+        expected_message = (
+            "Hola, quiero hacer este pedido:\n\n"
+            f"Pedido #{response.data['numero_pedido']}\n"
+            "2 x Coca Cola - $3000\n\n"
+            "Total: $3000\n"
+            "Tipo entrega: Retiro en local\n"
+            "Cliente: Cliente Tracking\n"
+            "Telefono: 912345678\n\n"
+            "Puedes ver el estado de tu pedido aqui:\n"
+            f"http://localhost:5173/seguimiento/pedido/{response.data['tracking_token']}"
         )
+        self.assertEqual(response.data["mensaje_whatsapp"], expected_message)
+
+        pedido = PedidoWhatsApp.objects.get(tracking_token=response.data["tracking_token"])
+        self.assertEqual(pedido.restaurante, self.restaurante)
+        self.assertEqual(pedido.total, 3000)
+        self.assertTrue(pedido.tracking_token)
+        self.assertEqual(
+            pedido.productos_snapshot,
+            [
+                {
+                    "producto_id": self.producto.id,
+                    "nombre": "Coca Cola",
+                    "precio_unitario": 1500,
+                    "cantidad": 2,
+                    "subtotal": 3000,
+                }
+            ],
+        )
+        self.assertEqual(pedido.mensaje_whatsapp_generado, expected_message)
+        self.assertTrue(
+            Notificacion.objects.filter(
+                restaurante=self.restaurante,
+                referencia_modelo=Notificacion.MODELO_PEDIDO_WHATSAPP,
+                referencia_id=pedido.id,
+            ).exists()
+        )
+        self.assertFalse(
+            PedidoWhatsApp.objects.filter(
+                restaurante=self.otro_restaurante,
+                tracking_token=response.data["tracking_token"],
+            ).exists()
+        )
+
+    def test_pedido_whatsapp_publico_rechaza_producto_de_otro_restaurante(self):
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.whatsapp = "56999999999"
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
+        producto_otro = Producto.objects.create(
+            restaurante=self.otro_restaurante,
+            categoria=self.categoria_otro_restaurante,
+            nombre="Producto ajeno",
+            descripcion="No pertenece",
+            precio=9990,
+            disponible=True,
+            destacado=False,
+            orden=1,
+        )
+
+        response = self.client.post(
+            f"/api/pedidos-whatsapp/{self.restaurante.slug}/",
+            {
+                "nombre_cliente": "Cliente Aislado",
+                "telefono_cliente": "912345678",
+                "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+                "productos": [
+                    {"producto_id": producto_otro.id, "cantidad": 1},
+                ],
+            },
+            format="json",
+            HTTP_ORIGIN="http://localhost:5173",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("productos", response.data)
+        self.assertFalse(PedidoWhatsApp.objects.filter(restaurante=self.restaurante).exists())
 
     def test_seguimiento_publico_devuelve_solo_payload_seguro(self):
         pedido = PedidoWhatsApp.objects.create(

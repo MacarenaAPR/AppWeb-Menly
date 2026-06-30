@@ -3,7 +3,16 @@ from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
 from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, ReporteMetrica
-from .utils import crear_notificacion_pedido_whatsapp, crear_notificacion_pedido_especial
+from .utils import crear_notificacion_pedido_especial
+from .services.pedidos_whatsapp import (
+    crear_pedido_whatsapp,
+    generar_mensaje_legacy,
+    generar_mensaje_whatsapp,
+    generar_whatsapp_url,
+    get_tracking_url,
+    normalizar_productos_pedido,
+    obtener_whatsapp_destino,
+)
 from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
@@ -456,7 +465,7 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
                 "carrito": "El carrito por WhatsApp no está activo para este restaurante."
             })
 
-        whatsapp_destino = (restaurante.whatsapp or restaurante.telefono or "").strip()
+        whatsapp_destino = obtener_whatsapp_destino(restaurante)
         if not whatsapp_destino:
             raise serializers.ValidationError({
                 "whatsapp": "El restaurante no tiene un número de WhatsApp configurado."
@@ -472,38 +481,10 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
                 "productos": "Agrega al menos un producto al pedido."
             })
 
-        cantidades_por_producto = {}
-        for item in productos_solicitados:
-            producto_id = item["producto_id"]
-            cantidades_por_producto[producto_id] = (
-                cantidades_por_producto.get(producto_id, 0) + item["cantidad"]
-            )
-
-        productos = Producto.objects.filter(
-            restaurante=restaurante,
-            disponible=True,
-            id__in=cantidades_por_producto.keys()
-        ).in_bulk()
-
-        if len(productos) != len(cantidades_por_producto):
+        snapshot, total = normalizar_productos_pedido(restaurante, productos_solicitados)
+        if snapshot is None:
             raise serializers.ValidationError({
                 "productos": "Uno o más productos no pertenecen a este restaurante o no están disponibles."
-            })
-
-        snapshot = []
-        total = 0
-
-        for producto_id, cantidad in cantidades_por_producto.items():
-            producto = productos[producto_id]
-            precio_unitario = producto.precio
-            subtotal = precio_unitario * cantidad
-            total += subtotal
-            snapshot.append({
-                "producto_id": producto.id,
-                "nombre": producto.nombre,
-                "precio_unitario": int(precio_unitario),
-                "cantidad": cantidad,
-                "subtotal": int(subtotal),
             })
 
         data["productos_snapshot"] = snapshot
@@ -512,104 +493,27 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        productos_snapshot = validated_data.pop("productos_snapshot")
-        total = validated_data.pop("total")
-        whatsapp_destino = validated_data.pop("whatsapp_destino")
-        validated_data.pop("productos", None)
         restaurante = self.context["restaurante"]
-
-        with transaction.atomic():
-            Restaurante.objects.select_for_update().get(id=restaurante.id)
-            ultimo_numero = PedidoWhatsApp.objects.filter(
-                restaurante=restaurante
-            ).aggregate(maximo=Max("numero_pedido"))["maximo"] or 0
-            numero_pedido = ultimo_numero + 1
-
-            pedido = PedidoWhatsApp.objects.create(
-                restaurante=restaurante,
-                numero_pedido=numero_pedido,
-                productos_snapshot=productos_snapshot,
-                total=total,
-                whatsapp_destino=whatsapp_destino,
-                mensaje_whatsapp_generado="",
-                **validated_data
-            )
-            mensaje = self.generar_mensaje(pedido)
-            pedido.mensaje_whatsapp_generado = mensaje
-            pedido.save(update_fields=["mensaje_whatsapp_generado"])
-
-            try:
-                crear_notificacion_pedido_whatsapp(pedido)
-            except Exception:
-                logger.exception(
-                    "Error creando notificacion persistente de pedido WhatsApp",
-                    extra={"pedido_whatsapp_id": pedido.id, "restaurante_id": restaurante.id},
-                )
-
-        pedido.whatsapp_url = self.generar_whatsapp_url(pedido.whatsapp_destino, mensaje)
-        return pedido
+        return crear_pedido_whatsapp(
+            restaurante,
+            dict(validated_data),
+            request=self.context.get("request"),
+        )
 
     def generar_mensaje(self, pedido):
-        return self.generar_mensaje_con_tracking(pedido)
+        return generar_mensaje_whatsapp(pedido, request=self.context.get("request"))
 
     def get_tracking_url(self, pedido):
-        request = self.context.get("request")
-        base_url = ""
-        if request:
-            base_url = request.META.get("HTTP_ORIGIN") or request.build_absolute_uri("/")
-        base_url = (base_url or "https://menly.cl").rstrip("/")
-        return f"{base_url}/seguimiento/pedido/{pedido.tracking_token}"
+        return get_tracking_url(pedido, request=self.context.get("request"))
 
     def generar_mensaje_con_tracking(self, pedido):
-        tipo_entrega = pedido.get_tipo_entrega_display()
-        direccion = ""
-        if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and pedido.direccion_entrega:
-            direccion = f"Direccion: {pedido.direccion_entrega}\n"
-
-        productos = "\n".join(
-            f"{item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
-            for item in pedido.productos_snapshot
-        )
-
-        return (
-            "Hola, quiero hacer este pedido:\n\n"
-            f"Pedido #{pedido.numero_pedido}\n"
-            f"{productos}\n\n"
-            f"Total: ${int(pedido.total)}\n"
-            f"Tipo entrega: {tipo_entrega}\n"
-            f"{direccion}"
-            f"Cliente: {pedido.nombre_cliente}\n"
-            f"Telefono: {pedido.telefono_cliente}\n\n"
-            "Puedes ver el estado de tu pedido aqui:\n"
-            f"{self.get_tracking_url(pedido)}"
-        )
+        return self.generar_mensaje(pedido)
 
     def generar_mensaje_legacy(self, pedido):
-        tipo_entrega = pedido.get_tipo_entrega_display()
-        direccion = ""
-        if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and pedido.direccion_entrega:
-            direccion = f"Direccion:\n{pedido.direccion_entrega}\n\n"
-
-        productos = "\n".join(
-            f"* {item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
-            for item in pedido.productos_snapshot
-        )
-
-        return (
-            "Hola, quiero hacer un pedido desde Menly.\n\n"
-            f"Cliente: {pedido.nombre_cliente}\n"
-            f"Teléfono: {pedido.telefono_cliente}\n"
-            f"Tipo de entrega: {tipo_entrega}\n\n"
-            f"{direccion}"
-            "Productos:\n\n"
-            f"{productos}\n\n"
-            f"Total: ${int(pedido.total)}\n\n"
-            f"Pedido N°: {pedido.numero_pedido}"
-        )
+        return generar_mensaje_legacy(pedido)
 
     def generar_whatsapp_url(self, telefono, mensaje):
-        numero = "".join(ch for ch in str(telefono) if ch.isdigit())
-        return f"https://wa.me/{numero}?text={quote(mensaje)}"
+        return generar_whatsapp_url(telefono, mensaje)
 
     def to_representation(self, pedido):
         return {

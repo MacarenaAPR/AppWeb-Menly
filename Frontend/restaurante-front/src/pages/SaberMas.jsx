@@ -695,7 +695,7 @@ export default function SaberMas() {
           <span className="saber-kicker">Contacto</span>
           <h2>¿Listo para digitalizar tu negocio?</h2>
           <p>
-            Solicita una demostración gratuita y descubre cómo Menly puede ayudarte a
+            Solicita una demostración gratuita por 30 dias y descubre cómo Menly puede ayudarte a
             gestionar tu restaurante de forma más simple.
           </p>
         </div>
