@@ -2456,6 +2456,236 @@
   }
 }
 
+@media (max-width: 1199px) {
+  .saber-hero {
+    min-height: auto;
+  }
+
+  .saber-hero__content {
+    min-width: 0;
+  }
+
+  .saber-hero h1 {
+    font-size: clamp(2rem, 4.8vw, 2.75rem);
+  }
+
+  .saber-hero__mockup {
+    justify-self: center;
+    width: 100%;
+    max-width: 480px;
+    min-height: clamp(300px, 35vw, 390px);
+  }
+
+  .saber-hero__mockup img {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .saber-hero {
+    grid-template-columns: minmax(0, 0.54fr) minmax(300px, 0.46fr);
+    align-items: center;
+    gap: clamp(28px, 4vw, 44px);
+    padding-block: clamp(42px, 5vw, 56px);
+  }
+
+  .saber-hero__content {
+    max-width: 620px;
+  }
+
+  .saber-hero h1 {
+    max-width: 620px;
+    line-height: 1.06;
+  }
+
+  .saber-hero p {
+    max-width: 560px;
+  }
+
+  .saber-hero__mockup {
+    max-width: 430px;
+    min-height: clamp(320px, 35vw, 390px);
+    margin: 0;
+  }
+
+  .saber-hero__mockup img {
+    width: min(44%, 150px);
+  }
+
+  .saber-hero__mockup img:nth-child(1) {
+    left: 2%;
+    top: 42px;
+  }
+
+  .saber-hero__mockup img:nth-child(2) {
+    right: 2%;
+    top: 72px;
+  }
+
+  .saber-hero__mockup img:nth-child(3) {
+    left: 50%;
+    bottom: 0;
+    width: min(55%, 218px);
+    transform: translateX(-50%) rotate(-1deg);
+  }
+}
+
+@media (min-width: 799px) and (max-width: 899px) {
+  .saber-hero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: clamp(30px, 5vw, 44px);
+    padding: clamp(34px, 6vw, 48px) 0 clamp(42px, 7vw, 58px);
+    text-align: center;
+  }
+
+  .saber-hero__content {
+    max-width: 680px;
+  }
+
+  .saber-hero__content .saber-kicker,
+  .saber-hero .saber-primary-btn {
+    margin-inline: auto;
+  }
+
+  .saber-hero h1 {
+    max-width: 680px;
+    font-size: clamp(2rem, 5.6vw, 2.75rem);
+    line-height: 1.08;
+  }
+
+  .saber-hero p {
+    max-width: 620px;
+    margin-inline: auto;
+    font-size: clamp(0.98rem, 2vw, 1.06rem);
+  }
+
+  .saber-hero__mockup {
+    width: min(100%, 460px);
+    min-height: clamp(330px, 45vw, 390px);
+    margin: 0 auto;
+  }
+
+  .saber-hero__mockup img {
+    width: min(43%, 160px);
+  }
+
+  .saber-hero__mockup img:nth-child(1) {
+    left: 5%;
+    top: 34px;
+  }
+
+  .saber-hero__mockup img:nth-child(2) {
+    right: 5%;
+    top: 68px;
+  }
+
+  .saber-hero__mockup img:nth-child(3) {
+    left: 50%;
+    bottom: 0;
+    width: min(55%, 235px);
+    transform: translateX(-50%) rotate(-1deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .saber-hero {
+    grid-template-columns: 1fr;
+    margin-left: 16px;
+    margin-right: auto;
+    text-align: left;
+    overflow: hidden;
+  }
+
+  .saber-hero__content {
+    position: relative;
+    z-index: 2;
+    max-width: 100%;
+  }
+
+  .saber-hero h1 {
+    max-width: 100%;
+    font-size: clamp(1.5rem, 5.8vw, 1.72rem);
+    line-height: 1.1;
+    overflow-wrap: break-word;
+  }
+
+  .saber-hero p {
+    max-width: 100%;
+  }
+
+  .saber-hero__mockup {
+    display: flex;
+    align-items: center;
+    justify-self: center;
+    width: min(100%, 360px);
+    min-height: clamp(320px, 100vw, 250px);
+    margin: 0 auto;
+  }
+
+  .saber-hero__mockup img {
+    width: min(37%, 180px);
+  }
+
+  .saber-hero__mockup img:nth-child(1) {
+    left: 4%;
+  }
+
+  .saber-hero__mockup img:nth-child(2) {
+    right: 4%;
+
+  }
+
+  .saber-hero__mockup img:nth-child(3) {
+    left: 50%;
+    bottom: 20px;
+    width: min(47%, 150px);
+    transform: translateX(-50%) rotate(-1deg);
+  }
+}
+
+@media (max-width: 420px) {
+  .saber-hero {
+    width: min(100% - 32px, var(--saber-max));
+  }
+
+  .saber-hero h1 {
+    max-width: 330px;
+    font-size: clamp(1.48rem, 6.4vw, 1.6rem);
+  }
+
+  .saber-hero p {
+    max-width: 330px;
+    font-size: 0.88rem;
+  }
+
+  .saber-hero__mockup {
+    width: min(100%, 290px);
+
+  }
+
+  .saber-hero__mockup img {
+    width: min(36%, 104px);
+  }
+
+  .saber-hero__mockup img:nth-child(1) {
+    left: 5%;
+
+  }
+
+  .saber-hero__mockup img:nth-child(2) {
+    right: 5%;
+
+  }
+
+  .saber-hero__mockup img:nth-child(3) {
+    width: min(46%, 134px);
+    bottom: 20px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .saber-mas-page *,
   .public-navbar * {
