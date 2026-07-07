@@ -32,6 +32,8 @@ class RestauranteAdmin(admin.ModelAdmin):
         "telefono",
         "ciudad",
         "activo",
+        "abierto",
+        "delivery_activo",
         "reservas_activas",
         "solicitudes_especiales_activas",
         "carrito_whatsapp_activo",
@@ -42,6 +44,8 @@ class RestauranteAdmin(admin.ModelAdmin):
     )
     list_filter = (
         "activo",
+        "abierto",
+        "delivery_activo",
         "reservas_activas",
         "solicitudes_especiales_activas",
         "carrito_whatsapp_activo",
@@ -60,6 +64,7 @@ class RestauranteAdmin(admin.ModelAdmin):
                 "slug",
                 "plan",
                 "activo",
+                "abierto",
                 "fecha_creacion",
             )
         }),
@@ -99,6 +104,7 @@ class RestauranteAdmin(admin.ModelAdmin):
                 "reservas_activas",
                 "solicitudes_especiales_activas",
                 "carrito_whatsapp_activo",
+                "delivery_activo",
                 "metricas_activas",
             )
         }),
@@ -113,6 +119,8 @@ class RestauranteAdmin(admin.ModelAdmin):
                 "reservas_activas",
                 "solicitudes_especiales_activas",
                 "carrito_whatsapp_activo",
+                "delivery_activo",
+                "abierto",
                 "metricas_activas",
             ]
         ):

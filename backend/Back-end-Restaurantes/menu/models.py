@@ -82,6 +82,8 @@ class Restaurante(models.Model):
     reservas_activas = models.BooleanField(default=True)
     solicitudes_especiales_activas = models.BooleanField(default=False)
     carrito_whatsapp_activo = models.BooleanField(default=False)
+    delivery_activo = models.BooleanField(default=False)
+    abierto = models.BooleanField(default=True)
     metricas_activas = models.BooleanField(default=True)
 
     class Meta:
@@ -407,6 +409,8 @@ class PedidoWhatsApp(models.Model):
     ESTADO_CONFIRMADO = "confirmado"
     ESTADO_EN_PREPARACION = "en_preparacion"
     ESTADO_LISTO = "listo"
+    ESTADO_EN_REPARTO = "en_reparto"
+    ESTADO_EN_DELIVERY = ESTADO_EN_REPARTO
     ESTADO_ENTREGADO = "entregado"
     ESTADO_CANCELADO = "cancelado"
 
@@ -416,6 +420,7 @@ class PedidoWhatsApp(models.Model):
         (ESTADO_CONFIRMADO, "Confirmado"),
         (ESTADO_EN_PREPARACION, "En preparación"),
         (ESTADO_LISTO, "Listo"),
+        (ESTADO_EN_REPARTO, "En reparto"),
         (ESTADO_ENTREGADO, "Entregado"),
         (ESTADO_CANCELADO, "Cancelado"),
     ]

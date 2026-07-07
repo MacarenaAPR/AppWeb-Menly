@@ -204,6 +204,81 @@
   border-radius: 0;
   background: transparent
 }
+.store-closed-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(10, 12, 18, 0.42);
+  backdrop-filter: blur(8px);
+}
+.store-closed-modal {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  width: min(480px, 100%);
+  padding: 26px;
+  padding-right: 58px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 42%),
+    color-mix(in srgb, var(--color-bg) 92%, var(--color-surface) 8%);
+  color: var(--landing-text-main);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
+}
+.store-closed-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 26%, var(--color-border));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface) 86%, transparent);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.store-closed-modal-close:hover {
+  background: color-mix(in srgb, var(--color-primary) 16%, var(--color-surface));
+}
+.store-closed-modal-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  color: var(--color-primary);
+  font-size: 1.25rem;
+}
+.store-closed-modal h2,
+.store-closed-modal p,
+.store-closed-modal small {
+  margin: 0;
+}
+.store-closed-modal h2 {
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  line-height: 1.08;
+}
+.store-closed-modal p {
+  margin-top: 8px;
+  color: var(--landing-text-main);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.store-closed-modal small {
+  display: block;
+  margin-top: 6px;
+  color: var(--landing-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
 .page-shell .product-modal .producto-add-cart::before {
   display: none;
   content: none

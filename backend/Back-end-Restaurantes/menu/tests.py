@@ -168,6 +168,127 @@ class DashboardMetricasResilienciaTests(BaseTestCase):
         self.assertEqual(data["productos"]["top_por_cantidad"][0]["cantidad"], 2)
 
 
+class ConfiguracionRestauranteOperacionTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.dueno)
+
+    def crear_pedido_delivery(self):
+        return PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente Delivery",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_DELIVERY,
+            direccion_entrega="Calle 123",
+            productos_snapshot=[
+                {
+                    "producto_id": self.producto.id,
+                    "nombre": self.producto.nombre,
+                    "cantidad": 1,
+                    "precio_unitario": 1500,
+                    "subtotal": 1500,
+                }
+            ],
+            total=1500,
+            estado=PedidoWhatsApp.ESTADO_CONFIRMADO,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+
+    def test_configuracion_guarda_delivery_activo_y_abierto(self):
+        response = self.client.patch(
+            "/api/mi-restaurante/configuracion/",
+            {"delivery_activo": True, "abierto": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.restaurante.refresh_from_db()
+        self.assertTrue(self.restaurante.delivery_activo)
+        self.assertFalse(self.restaurante.abierto)
+        data = response.json()
+        self.assertTrue(data["delivery_activo"])
+        self.assertFalse(data["abierto"])
+
+    def test_landing_publica_devuelve_estado_abierto_cerrado(self):
+        self.restaurante.abierto = False
+        self.restaurante.save(update_fields=["abierto"])
+
+        response = self.client.get(f"/api/restaurantes/{self.restaurante.slug}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertFalse(data["abierto"])
+        self.assertFalse(data["abierto_ahora"])
+
+    def test_dashboard_cambia_estado_abierto_del_restaurante_autenticado(self):
+        response = self.client.patch(
+            "/api/mi-restaurante/estado-apertura/",
+            {"abierto": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.restaurante.refresh_from_db()
+        self.assertFalse(self.restaurante.abierto)
+        self.assertFalse(response.json()["abierto"])
+
+    def test_estado_apertura_no_modifica_otro_restaurante(self):
+        user_otro = User.objects.create_user(
+            username="dueno-otro@test.com",
+            email="dueno-otro@test.com",
+            password="123456",
+        )
+        UsuarioRestaurante.objects.create(
+            user=user_otro,
+            restaurante=self.otro_restaurante,
+            rol="dueno",
+            activo=True,
+        )
+
+        self.client.force_authenticate(user=user_otro)
+        response = self.client.patch(
+            "/api/mi-restaurante/estado-apertura/",
+            {"abierto": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.restaurante.refresh_from_db()
+        self.otro_restaurante.refresh_from_db()
+        self.assertTrue(self.restaurante.abierto)
+        self.assertFalse(self.otro_restaurante.abierto)
+
+    def test_delivery_desactivado_rechaza_estado_en_reparto(self):
+        pedido = self.crear_pedido_delivery()
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/whatsapp/{pedido.id}/estado/",
+            {"estado": PedidoWhatsApp.ESTADO_EN_REPARTO},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.estado, PedidoWhatsApp.ESTADO_CONFIRMADO)
+
+    def test_delivery_activado_permite_estado_en_reparto(self):
+        self.restaurante.delivery_activo = True
+        self.restaurante.save(update_fields=["delivery_activo"])
+        pedido = self.crear_pedido_delivery()
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/whatsapp/{pedido.id}/estado/",
+            {"estado": PedidoWhatsApp.ESTADO_EN_REPARTO},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.estado, PedidoWhatsApp.ESTADO_EN_REPARTO)
+
+
 class MigracionPedidoWhatsAppTrackingTests(TestCase):
     def test_poblar_tracking_y_estados_respeta_largos_de_campos(self):
         migracion = import_module("menu.migrations.0034_pedido_whatsapp_tracking")

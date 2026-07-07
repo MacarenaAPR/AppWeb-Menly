@@ -32,8 +32,22 @@ def _env_flag(name, default=False):
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _config_bool(name, default=False):
+    value = config(name, default=str(default))
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off", "prod", "production", "release"}:
+        return False
+
+    raise ValueError(f"Invalid boolean value for {name}: {value}")
+
+
 ENVIRONMENT = config("ENVIRONMENT", default=os.getenv("DJANGO_ENV", "development")).lower()
-IS_PRODUCTION = ENVIRONMENT in {"production", "prod"} or _env_flag("RENDER")
+IS_PRODUCTION = ENVIRONMENT in {"production", "prod", "release"} or _env_flag("RENDER")
 
 
 # Quick-start development settings - unsuitable for production
@@ -43,7 +57,7 @@ IS_PRODUCTION = ENVIRONMENT in {"production", "prod"} or _env_flag("RENDER")
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG", default=not IS_PRODUCTION, cast=bool)
+DEBUG = _config_bool("DEBUG", default=not IS_PRODUCTION)
 
 ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
@@ -70,7 +84,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'menu',
+    'menu.apps.MenuConfig',
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
@@ -80,6 +94,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'core.timezone_middleware.ChileTimezoneMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'core.security_middleware.ProductionSecurityHeadersMiddleware',
@@ -349,9 +364,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'es-cl'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Santiago'
 
 USE_I18N = True
 

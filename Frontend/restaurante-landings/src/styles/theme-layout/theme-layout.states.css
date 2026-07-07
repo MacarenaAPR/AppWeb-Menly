@@ -46,6 +46,20 @@
   background: rgba(239, 68, 68, 0.12);
   color: #fecaca;
 }
+.menu-order-disabled-message {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  background: color-mix(in srgb, var(--color-surface) 90%, var(--color-primary) 10%);
+  color: var(--landing-text-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
 .inactive-restaurant-screen {
   min-height: 100vh;
   display: grid;

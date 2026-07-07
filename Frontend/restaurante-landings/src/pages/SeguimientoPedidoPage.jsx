@@ -10,6 +10,7 @@ const ESTADOS = [
   "pendiente_confirmacion",
   "confirmado",
   "en_preparacion",
+  "en_delivery",
   "listo",
   "entregado",
 ];
@@ -19,6 +20,7 @@ const ESTADO_LABELS = {
   pendiente_confirmacion: "Pendiente de confirmacion",
   confirmado: "Confirmado",
   en_preparacion: "En preparacion",
+  en_delivery: "En camino",
   listo: "Listo",
   entregado: "Entregado",
   cancelado: "Cancelado",

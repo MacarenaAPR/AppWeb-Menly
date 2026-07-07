@@ -49,6 +49,8 @@ export default function Dashboard() {
   const [notificacionesError, setNotificacionesError] = useState("");
   const [notificacionDetalle, setNotificacionDetalle] = useState(null);
   const [detalleLoading, setDetalleLoading] = useState(false);
+  const [aperturaLoading, setAperturaLoading] = useState(false);
+  const [aperturaError, setAperturaError] = useState("");
 
   const actualizarContadorNotificaciones = useCallback((pendientes) => {
     setData((prev) => {
@@ -288,6 +290,48 @@ export default function Dashboard() {
   }. Recuerda regularizar tu pago para mantener activo el servicio. Si ya realizaste el pago, ignora este mensaje.`;
   const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
   const ventaTotalMes = metricasPedidos?.ventas?.venta_real_mes ?? 0;
+  const tiendaAbierta = restaurante?.abierto === true;
+
+  const cambiarEstadoApertura = async () => {
+    if (!restaurante || aperturaLoading) return;
+
+    const siguienteEstado = !tiendaAbierta;
+    setAperturaLoading(true);
+    setAperturaError("");
+
+    try {
+      const response = await authFetch("/mi-restaurante/estado-apertura/", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ abierto: siguienteEstado }),
+      });
+      const result = await readJsonResponse(
+        response,
+        "/mi-restaurante/estado-apertura/",
+        "No se pudo cambiar el estado de la tienda"
+      );
+
+      setData((prev) => {
+        if (!prev) return prev;
+        const restauranteActualizado = {
+          ...prev.restaurante,
+          abierto: result.abierto,
+          abierto_ahora: result.abierto_ahora,
+        };
+
+        localStorage.setItem("restaurante", JSON.stringify(restauranteActualizado));
+
+        return {
+          ...prev,
+          restaurante: restauranteActualizado,
+        };
+      });
+    } catch (err) {
+      setAperturaError(err.message || "No se pudo cambiar el estado de la tienda");
+    } finally {
+      setAperturaLoading(false);
+    }
+  };
 
   const iconoPedido = (tipoEntrega) => {
     if (tipoEntrega === "delivery") return <FaMotorcycle/>;
@@ -387,6 +431,23 @@ export default function Dashboard() {
                             <div className="bienvenidos">
                                 <h5>¡Bienvenido, {usuario.username}!</h5>
                                 <h1>{restaurante.nombre_empresa}</h1>
+                                <div className="dashboard-store-status">
+                                  <span className={tiendaAbierta ? "is-open" : "is-closed"}>
+                                    {tiendaAbierta ? "Tienda abierta" : "Tienda cerrada"}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={cambiarEstadoApertura}
+                                    disabled={cuentaInactiva || aperturaLoading}
+                                  >
+                                    {aperturaLoading
+                                      ? "Actualizando..."
+                                      : tiendaAbierta
+                                        ? "Cerrar tienda"
+                                        : "Abrir tienda"}
+                                  </button>
+                                </div>
+                                {aperturaError && <small className="dashboard-store-error">{aperturaError}</small>}
                                 <p><i className="bi bi-calendar2-week"></i> Resumen de hoy, <span className="fecha">{hoy}</span></p>
                             </div>
                         </div>

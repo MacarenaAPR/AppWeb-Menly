@@ -30,6 +30,7 @@ export default function InfoRestaurante({ restaurante, onUpdate, readOnly = fals
     email_contacto: "",
     direccion: "",
     sitio_web: "",
+    delivery_activo: false,
   });
 
   const [logoFile, setLogoFile] = useState(null);
@@ -46,16 +47,17 @@ export default function InfoRestaurante({ restaurante, onUpdate, readOnly = fals
         email_contacto: restaurante.email_contacto || "",
         direccion: restaurante.direccion || "",
         sitio_web: restaurante.sitio_web || "",
+        delivery_activo: restaurante.delivery_activo === true,
       });
     }
   }, [restaurante]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, type, checked, value } = e.target;
 
     setForm({
       ...form,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -193,6 +195,20 @@ export default function InfoRestaurante({ restaurante, onUpdate, readOnly = fals
             <span>Plan actual</span>
             <strong>{planActual}</strong>
           </div>
+
+          <label className="config-check-row full">
+            <input
+              name="delivery_activo"
+              type="checkbox"
+              checked={form.delivery_activo}
+              onChange={handleChange}
+              disabled={readOnly}
+            />
+            <span>
+              <strong>Delivery activo</strong>
+              <small>Habilita la opción de delivery en pedidos y gestión operativa.</small>
+            </span>
+          </label>
 
           <label>
             Nombre del restaurante

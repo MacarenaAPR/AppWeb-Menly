@@ -13,6 +13,7 @@ from .services.pedidos_whatsapp import (
     normalizar_productos_pedido,
     obtener_whatsapp_destino,
 )
+from .services.estado_restaurante import calcular_estado_abierto
 from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
@@ -264,6 +265,7 @@ def serializar_plan_restaurante(restaurante):
 class RestauranteConfigSerializer(serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField()
     plan = serializers.SerializerMethodField()
+    abierto_ahora = serializers.SerializerMethodField()
 
     class Meta:
         model = Restaurante
@@ -282,6 +284,9 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "facebook",
             "google_maps",
             "link_delivery",
+            "delivery_activo",
+            "abierto",
+            "abierto_ahora",
             "descripcion",
             "logo",
             "logo_url",
@@ -297,6 +302,7 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "carrito_whatsapp_activo",
             "metricas_activas",
             "plan",
+            "abierto_ahora",
         ]
 
     def get_logo_url(self, obj):
@@ -310,6 +316,9 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
 
     def get_plan(self, obj):
         return serializar_plan_restaurante(obj)
+
+    def get_abierto_ahora(self, obj):
+        return calcular_estado_abierto(obj)
 
 
 class ImagenRestaurantePublicaSerializer(serializers.ModelSerializer):
@@ -327,6 +336,7 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
     horarios = serializers.SerializerMethodField()
     metodos_pago = serializers.SerializerMethodField()
     imagenes = serializers.SerializerMethodField()
+    abierto_ahora = serializers.SerializerMethodField()
 
     class Meta:
         model = Restaurante
@@ -345,6 +355,9 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
             "google_maps",
             "sitio_web",
             "link_delivery",
+            "delivery_activo",
+            "abierto",
+            "abierto_ahora",
             "logo_url",
             "horarios",
             "metodos_pago",
@@ -381,6 +394,9 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
     def get_metodos_pago(self, obj):
         metodos_pago = obj.metodos_pago.filter(activo=True).order_by("nombre")
         return MetodoPagoSerializer(metodos_pago, many=True).data
+
+    def get_abierto_ahora(self, obj):
+        return calcular_estado_abierto(obj)
     
 class ReservaPublicaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -456,6 +472,11 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
         if tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and not direccion_entrega:
             raise serializers.ValidationError({
                 "direccion_entrega": "Debe ingresar una direccion para delivery."
+            })
+
+        if tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and not restaurante.delivery_activo:
+            raise serializers.ValidationError({
+                "tipo_entrega": "El delivery no esta activo para este restaurante."
             })
 
         data["direccion_entrega"] = direccion_entrega or None
@@ -575,6 +596,14 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
     def validate_estado(self, value):
         if value not in dict(PedidoWhatsApp.ESTADOS):
             raise serializers.ValidationError("Estado inválido.")
+        if value == PedidoWhatsApp.ESTADO_EN_REPARTO:
+            pedido = self.instance
+            restaurante = self.context.get("restaurante") or getattr(pedido, "restaurante", None)
+            tipo_entrega = getattr(pedido, "tipo_entrega", None)
+            if not restaurante or not restaurante.delivery_activo:
+                raise serializers.ValidationError("El delivery no esta activo para este restaurante.")
+            if tipo_entrega != PedidoWhatsApp.TIPO_DELIVERY:
+                raise serializers.ValidationError("Solo los pedidos delivery pueden pasar a En reparto.")
         return value
 
 
@@ -651,6 +680,17 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
 
 class PedidoWhatsAppEstadoUpdateSerializer(serializers.Serializer):
     estado = serializers.ChoiceField(choices=PedidoWhatsApp.ESTADOS)
+
+    def validate_estado(self, value):
+        if value != PedidoWhatsApp.ESTADO_EN_REPARTO:
+            return value
+
+        pedido = self.instance
+        if not pedido.restaurante.delivery_activo:
+            raise serializers.ValidationError("El delivery no esta activo para este restaurante.")
+        if pedido.tipo_entrega != PedidoWhatsApp.TIPO_DELIVERY:
+            raise serializers.ValidationError("Solo los pedidos delivery pueden pasar a En reparto.")
+        return value
 
     def update(self, instance, validated_data):
         estado_anterior = instance.estado

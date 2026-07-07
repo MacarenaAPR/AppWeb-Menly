@@ -275,6 +275,40 @@
   font-weight: 900;
 }
 
+.form-grid .config-check-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #1f303b;
+  border-radius: 10px;
+  background: #071016;
+}
+
+.form-grid .config-check-row input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: #f8761d;
+}
+
+.config-check-row span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.config-check-row strong {
+  color: #f5f5f5;
+  font-size: 13px;
+}
+
+.config-check-row small {
+  color: #8ea0ad;
+  font-size: 12px;
+}
+
 .btn-save {
   justify-self: end;
   grid-column: span 2;

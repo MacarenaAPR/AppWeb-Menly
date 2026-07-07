@@ -48,6 +48,7 @@ from menu.services.metricas.resumen import (
     construir_payload_pedidos_compat,
     construir_resumen_metricas,
 )
+from menu.services.estado_restaurante import calcular_estado_abierto
 
 
 logger = logging.getLogger(__name__)
@@ -297,6 +298,7 @@ RESTAURANTE_FEATURE_FLAGS = [
     "reservas_activas",
     "solicitudes_especiales_activas",
     "carrito_whatsapp_activo",
+    "delivery_activo",
     "metricas_activas",
 ]
 
@@ -864,9 +866,35 @@ class ConfiguracionRestauranteView(APIView):
 
         if serializer.is_valid():
             serializer.save()
+            if any(campo in request.data for campo in ["delivery_activo", "abierto"]):
+                invalidate_menu_cache(restaurante)
             return Response(serializer.data)
 
         return Response(serializer.errors, status=400)
+
+
+class RestauranteEstadoAperturaView(APIView):
+    permission_classes = [IsAuthenticated, CanManageConfiguracion]
+
+    def patch(self, request):
+        perfil = get_perfil_activo(request)
+        restaurante = perfil.restaurante
+        abierto = request.data.get("abierto")
+
+        if not isinstance(abierto, bool):
+            return Response(
+                {"abierto": "Debe enviar true o false."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        restaurante.abierto = abierto
+        restaurante.save(update_fields=["abierto"])
+        invalidate_menu_cache(restaurante)
+
+        return Response({
+            "abierto": restaurante.abierto,
+            "abierto_ahora": calcular_estado_abierto(restaurante),
+        })
 
 class CategoriasView(TenantScopedQuerysetMixin, APIView):
     permission_classes = [IsAuthenticated, CanManageCategorias]
@@ -2950,6 +2978,8 @@ class MiRestauranteView(APIView):
                     "telefono": restaurante.telefono,
                     "slug": restaurante.slug,
                     "activo": restaurante.activo,
+                    "abierto": restaurante.abierto,
+                    "abierto_ahora": calcular_estado_abierto(restaurante),
                     "imgen_principal": request.build_absolute_uri(restaurante.imgen_principal.url) if restaurante.imgen_principal else None,
                     "plan": serializar_plan_restaurante(restaurante),
                     **serializar_flags_restaurante(restaurante),
@@ -3046,6 +3076,8 @@ def menu_api(request, slug):
         "restaurante": {
             "id": restaurante.id,
             "slug": restaurante.slug,
+            "abierto": restaurante.abierto,
+            "abierto_ahora": calcular_estado_abierto(restaurante),
             **serializar_flags_restaurante(restaurante),
         },
         "categorias": categorias_data,

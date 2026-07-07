@@ -71,6 +71,11 @@
   color: #1f6b2b;
 }
 
+.tracking-status-en_delivery {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
 .tracking-progress {
   height: 10px;
   overflow: hidden;

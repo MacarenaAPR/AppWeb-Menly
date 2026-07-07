@@ -18,11 +18,12 @@ from django.contrib import admin
 #from django.conf import settings
 from django.urls import path
 from django.http import JsonResponse, HttpResponse
+from core.debug_views import debug_time
 from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, ContactoView, ContactoPlanesAPIView, MiRestauranteView,ProductoListView,ProductoUpdateView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
-from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SeguimientoPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
+from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, RestauranteEstadoAperturaView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SeguimientoPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
 from menu.views import NotificacionesDashboardView, NotificacionesContadorView, NotificacionDetalleView, NotificacionMarcarLeidaView
 from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidoWhatsAppEstadoDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosMetricasDashboardView, MetricasResumenView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
 from menu.views import CategoriasView, CategoriaDetalleView
@@ -36,6 +37,7 @@ urlpatterns = [
 
     path('admin/', admin.site.urls),
     path("healthz/", lambda request: JsonResponse({"status": "ok"}), name="healthz"),
+    path("api/debug/time/", debug_time, name="debug-time"),
     path(
         "robots.txt",
         lambda request: HttpResponse(
@@ -233,6 +235,7 @@ urlpatterns = [
 
     #CONFIGURACION DEL RESTAURANTE 
     path("api/mi-restaurante/configuracion/", ConfiguracionRestauranteView.as_view()),
+    path("api/mi-restaurante/estado-apertura/", RestauranteEstadoAperturaView.as_view()),
 
 
     #USUARIOS CONFIGURACION SEGUN PERMISOS

@@ -134,6 +134,7 @@ export default function Home() {
   const [cantidadPromocion, setCantidadPromocion] = useState(1);
   const [toastCarrito, setToastCarrito] = useState("");
   const [modalActivo, setModalActivo] = useState(null);
+  const [tiendaCerradaModalCerrado, setTiendaCerradaModalCerrado] = useState(false);
   const [destacadosIndex, setDestacadosIndex] = useState(0);
   const [destacadosPorVista, setDestacadosPorVista] = useState(3);
   const [destacadosOffset, setDestacadosOffset] = useState(0);
@@ -169,8 +170,8 @@ export default function Home() {
 
         const categoriasMenu = getCategoriasFromMenuResponse(dataMenu);
         setRestaurante({
-          ...dataRestaurante,
           ...getRestauranteFlagsFromMenuResponse(dataMenu),
+          ...dataRestaurante,
         });
         setCategorias(categoriasMenu);
         //setCachedMenu(slug, dataMenu);
@@ -344,6 +345,14 @@ export default function Home() {
 
     setPedidoMensaje("");
     setPedidoError("");
+
+    if (
+      restaurante?.carrito_whatsapp_activo === true &&
+      restaurante?.abierto_ahora === false
+    ) {
+      setPedidoError("Los pedidos estarán disponibles cuando la tienda esté abierta.");
+      return;
+    }
 
     if (carrito.length === 0) {
       setPedidoError("Agrega al menos un producto para enviar el pedido.");
@@ -672,6 +681,41 @@ export default function Home() {
   }, [imagenPrincipalOptimizada, logoOptimizado, restaurante]);
 
   useEffect(() => {
+    if (restaurante && restaurante.delivery_activo !== true && tipoEntregaPedido === "delivery") {
+      setTipoEntregaPedido("");
+    }
+  }, [restaurante, tipoEntregaPedido]);
+
+  useEffect(() => {
+    setTiendaCerradaModalCerrado(false);
+  }, [slug]);
+
+  useEffect(() => {
+    const carritoCerrado =
+      restaurante?.carrito_whatsapp_activo === true &&
+      restaurante?.abierto_ahora === false;
+
+    if (!carritoCerrado) return;
+
+    setCarrito([]);
+    setCarritoAbierto(false);
+    setTipoEntregaPedido("");
+    setPedidoMensaje("");
+    setPedidoError("");
+  }, [restaurante]);
+
+  useEffect(() => {
+    if (
+      restaurante?.carrito_whatsapp_activo === true &&
+      restaurante?.abierto_ahora === false
+    ) {
+      return undefined;
+    }
+
+    setTiendaCerradaModalCerrado(false);
+  }, [restaurante?.carrito_whatsapp_activo, restaurante?.abierto_ahora]);
+
+  useEffect(() => {
     const startAutoScroll = (carousel, delay) => {
       if (!carousel) return null;
 
@@ -829,6 +873,21 @@ export default function Home() {
   }, [modalActivo]);
 
   useEffect(() => {
+    const modalVisible =
+      restaurante?.carrito_whatsapp_activo === true &&
+      restaurante?.abierto_ahora === false &&
+      !tiendaCerradaModalCerrado;
+
+    if (!modalVisible) return undefined;
+
+    document.body.classList.add("modal-open");
+
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [restaurante?.carrito_whatsapp_activo, restaurante?.abierto_ahora, tiendaCerradaModalCerrado]);
+
+  useEffect(() => {
     document.body.classList.toggle("mobile-nav-open", mobileNavOpen);
 
     return () => {
@@ -881,6 +940,12 @@ export default function Home() {
   const reservasActivas = restaurante?.reservas_activas === true;
   const solicitudesEspecialesActivas = restaurante?.solicitudes_especiales_activas === true;
   const carritoWhatsappActivo = restaurante?.carrito_whatsapp_activo === true;
+  const deliveryActivo = restaurante?.delivery_activo === true;
+  const tiendaCerradaConCarrito =
+    carritoWhatsappActivo && restaurante?.abierto_ahora === false;
+  const carritoDisponible = carritoWhatsappActivo && !tiendaCerradaConCarrito;
+  const mostrarModalTiendaCerrada =
+    tiendaCerradaConCarrito && !tiendaCerradaModalCerrado;
   const destacadosClase = [
     "featured-carousel",
     destacadosConCarrusel ? "is-carousel" : "is-static",
@@ -999,7 +1064,7 @@ export default function Home() {
               </a>
             )}
           </div>
-          {carritoWhatsappActivo && !mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-header")}
+          {carritoDisponible && !mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-header")}
         </div>
       </header>
 
@@ -1052,14 +1117,14 @@ export default function Home() {
                   <span>Ingredientes frescos</span>
                   <span>Preparado al momento</span>
                   <span>Sabor casero</span>
-                  {carritoWhatsappActivo && <span>Delivery</span>}
+                  {carritoWhatsappActivo && deliveryActivo && <span>Delivery</span>}
                 </div>
                 <div className="hero-tags-group" aria-hidden="true">
                   <span>Atención rápida</span>
                   <span>Ingredientes frescos</span>
                   <span>Preparado al momento</span>
                   <span>Sabor casero</span>
-                  {carritoWhatsappActivo && <span>Delivery</span>}
+                  {carritoWhatsappActivo && deliveryActivo && <span>Delivery</span>}
                 </div>
               </div>
             </div>
@@ -1175,7 +1240,7 @@ export default function Home() {
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
                           <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
-                          {carritoWhatsappActivo && (
+                          {carritoDisponible && (
                             <button
                               type="button"
                               className="commercial-action"
@@ -1276,7 +1341,7 @@ export default function Home() {
                 {getProductConditions(selectedPromotion) && (
                   <p><small>{getProductConditions(selectedPromotion)}</small></p>
                 )}
-                {carritoWhatsappActivo && (
+                {carritoDisponible && (
                   <div className="product-modal-cart-actions">
                     <label className="cart-modal-qty">
                       <span>Cantidad</span>
@@ -1310,7 +1375,7 @@ export default function Home() {
           </div>
         )}
 
-        {carritoWhatsappActivo && (
+        {carritoDisponible && (
           <section className="order-modes" aria-label="Pide como quieras">
             <div>
               <span>Pide como quieras</span>
@@ -1344,9 +1409,14 @@ export default function Home() {
             categorias={categorias}
             onProductClick={handleClickProducto}
             fallbackImage={restaurante?.logo_url}
-            carritoActivo={carritoWhatsappActivo}
+            carritoActivo={carritoDisponible}
             onAddToCart={agregarAlCarrito}
             maxCantidad={MAX_UNIDADES_POR_PRODUCTO}
+            carritoMensajeInactivo={
+              tiendaCerradaConCarrito
+                ? "Los pedidos estarán disponibles cuando la tienda esté abierta."
+                : ""
+            }
           />
         </section>
 
@@ -1575,7 +1645,7 @@ export default function Home() {
           </section>
         </div>
       )}
-      {carritoWhatsappActivo && mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-floating")}
+      {carritoDisponible && mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-floating")}
       {toastCarrito && <div className="cart-toast">{toastCarrito}</div>}
       {modalActivo && (
         <div
@@ -1620,7 +1690,34 @@ export default function Home() {
           </section>
         </div>
       )}
-      {carritoWhatsappActivo && carritoAbierto && (
+      {mostrarModalTiendaCerrada && (
+        <div className="store-closed-modal-backdrop" role="presentation">
+          <section
+            className="store-closed-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="store-closed-modal-title"
+          >
+            <button
+              type="button"
+              className="store-closed-modal-close"
+              aria-label="Cerrar aviso de tienda cerrada"
+              onClick={() => setTiendaCerradaModalCerrado(true)}
+            >
+              <i className="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+            <div className="store-closed-modal-icon" aria-hidden="true">
+              <i className="bi bi-clock-history"></i>
+            </div>
+            <div>
+              <h2 id="store-closed-modal-title">La tienda está cerrada</h2>
+              <p>Solo podrás ver y revisar el menú.</p>
+              <small>Los pedidos estarán disponibles cuando la tienda esté abierta.</small>
+            </div>
+          </section>
+        </div>
+      )}
+      {carritoDisponible && carritoAbierto && (
         <div
           className="cart-modal-backdrop"
           role="presentation"
@@ -1713,7 +1810,7 @@ export default function Home() {
                     onChange={(e) => setTipoEntregaPedido(e.target.value)}
                   >
                     <option value="" disabled>Selecciona una opción</option>
-                    <option value="delivery">Delivery</option>
+                    {deliveryActivo && <option value="delivery">Delivery</option>}
                     <option value="retiro_local">Retiro en local</option>
                     <option value="para_llevar">Para llevar</option>
                   </select>

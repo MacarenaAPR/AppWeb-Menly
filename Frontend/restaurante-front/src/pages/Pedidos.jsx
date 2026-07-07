@@ -3,7 +3,8 @@ import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
 import { authFetch, readJsonResponse } from "../api";
 
-const ESTADOS_PEDIDO = ["recibido", "pendiente_confirmacion", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
+const ESTADOS_PEDIDO_BASE = ["recibido", "pendiente_confirmacion", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
+const ESTADO_EN_REPARTO = "en_reparto";
 const ESTADOS_PEDIDO_ESPECIAL = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado", "completado"];
 const PEDIDOS_POLLING_MS = 30000;
 
@@ -13,6 +14,7 @@ const estadoLabels = {
   pendiente: "Pendiente",
   confirmado: "Confirmado",
   en_preparacion: "En preparacion",
+  en_reparto: "En reparto",
   listo: "Listo",
   entregado: "Entregado",
   cancelado: "Cancelado",
@@ -93,6 +95,15 @@ export default function PedidosDashboard() {
 
   const whatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   const especialesActivo = restaurante?.solicitudes_especiales_activas === true;
+  const deliveryActivo = restaurante?.delivery_activo === true;
+  const obtenerEstadosPedidoWhatsapp = (pedido) => {
+    if (!deliveryActivo || pedido?.tipo_entrega !== "delivery") return ESTADOS_PEDIDO_BASE;
+
+    const estados = [...ESTADOS_PEDIDO_BASE];
+    const indiceListo = estados.indexOf("listo");
+    estados.splice(indiceListo >= 0 ? indiceListo + 1 : estados.length, 0, ESTADO_EN_REPARTO);
+    return estados;
+  };
 
   const tabsDisponibles = useMemo(() => {
     const tabs = [];
@@ -637,7 +648,7 @@ export default function PedidosDashboard() {
                                 <i className="bi bi-eye"></i>
                               </button>
                               <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("whatsapp", pedido.id, { estado: e.target.value })}>
-                                {ESTADOS_PEDIDO.map((estado) => (
+                                {obtenerEstadosPedidoWhatsapp(pedido).map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
@@ -751,7 +762,7 @@ export default function PedidosDashboard() {
                             value={detalle.pedido.estado}
                             onChange={(e) => actualizarEstadoDetalleWhatsapp(e.target.value)}
                           >
-                            {ESTADOS_PEDIDO.map((estado) => (
+                            {obtenerEstadosPedidoWhatsapp(detalle.pedido).map((estado) => (
                               <option key={estado} value={estado}>
                                 {estadoLabels[estado]}
                               </option>

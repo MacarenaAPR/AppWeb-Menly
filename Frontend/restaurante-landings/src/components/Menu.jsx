@@ -29,6 +29,7 @@ export default function Menu({
   carritoActivo = false,
   onAddToCart,
   maxCantidad = 5,
+  carritoMensajeInactivo = "",
 }) {
   const menuTabsRef = useRef(null);
   const dragStateRef = useRef({
@@ -172,6 +173,11 @@ export default function Menu({
       <div className="menu-header">
         <h2>Menú</h2>
         <p>Explora nuestras categorías y selecciona tus platos favoritos.</p>
+        {carritoMensajeInactivo && (
+          <span className="menu-order-disabled-message">
+            {carritoMensajeInactivo}
+          </span>
+        )}
       </div>
 
       <div
