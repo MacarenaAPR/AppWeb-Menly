@@ -217,6 +217,13 @@
     font-size: 13px;
     font-weight: 900;
 }
+
+@media (max-width: 1024px) {
+    .notificaciones-burbuja.is-hidden-by-mobile-menu {
+        display: none;
+    }
+}
+
 .notific{
     display: flex;
     width: 314px;

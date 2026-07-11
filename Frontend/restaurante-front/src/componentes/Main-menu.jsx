@@ -9,9 +9,12 @@ import { permisosPorRol } from "../utils/permisos";
 import { LuShoppingCart } from "react-icons/lu";
 import { TbMessage2Star } from "react-icons/tb";
 
-export default function MainMenu(){
+export default function MainMenu({
+    mobileMenuOpen: controlledMobileMenuOpen,
+    onMobileMenuOpenChange,
+} = {}){
     const [data, setData] = useState(null);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
     const { slug } = useParams();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -69,6 +72,13 @@ export default function MainMenu(){
   const permisos = permisosPorRol(usuario?.rol || restaurante?.rol);
   const restauranteSlug = restaurante?.slug;
   const paginaWebUrl = restauranteSlug ? `https://${restauranteSlug}.menly.cl` : "";
+  const mobileMenuOpen = controlledMobileMenuOpen ?? internalMobileMenuOpen;
+  const setMobileMenuOpen = (isOpen) => {
+    if (controlledMobileMenuOpen === undefined) {
+      setInternalMobileMenuOpen(isOpen);
+    }
+    onMobileMenuOpenChange?.(isOpen);
+  };
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
   const navigateAndClose = (path) => {

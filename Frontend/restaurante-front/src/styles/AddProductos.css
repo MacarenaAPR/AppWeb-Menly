@@ -177,6 +177,7 @@ textarea::placeholder {
     background: #0B0F13;
     font-size: 12px;
     font-weight: 700;
+    color:#fff;
 }
 .btn-add-productos{
     display: flex;
@@ -190,6 +191,7 @@ textarea::placeholder {
     background: #F8761D;
     font-size: 12px;
     font-weight: 700;
+    color:#fff;
 }
 .btns-adds-cancel{
     display: flex;

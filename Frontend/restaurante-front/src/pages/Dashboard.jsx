@@ -51,6 +51,7 @@ export default function Dashboard() {
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [aperturaLoading, setAperturaLoading] = useState(false);
   const [aperturaError, setAperturaError] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const actualizarContadorNotificaciones = useCallback((pendientes) => {
     setData((prev) => {
@@ -404,7 +405,10 @@ export default function Dashboard() {
         <div className="body">
             <main className="container-fluid" id="main">
                 {/*MENU */}
-                <MainMenu />
+                <MainMenu
+                  mobileMenuOpen={mobileMenuOpen}
+                  onMobileMenuOpenChange={setMobileMenuOpen}
+                />
                 {/*header + body ---- falta*/}
                 <section className="body-main1">
                     {cuentaInactiva && (
@@ -414,7 +418,7 @@ export default function Dashboard() {
                         </div>
                     )}
                     <button
-                      className="notificaciones-burbuja"
+                      className={`notificaciones-burbuja ${mobileMenuOpen ? "is-hidden-by-mobile-menu" : ""}`}
                       type="button"
                       disabled={cuentaInactiva}
                       title={cuentaInactiva ? "Cuenta inactiva" : "Ver notificaciones"}
