@@ -581,6 +581,132 @@ class PedidoEspecial(models.Model):
         return f"Pedido especial #{self.numero_pedido} - {self.restaurante.nombre_empresa}"
 
 
+class PedidoManual(models.Model):
+    ORIGEN_MENLY = "menly"
+
+    ORIGENES = [
+        (ORIGEN_MENLY, "Menly"),
+    ]
+
+    TIPO_MESA = "mesa"
+    TIPO_RETIRO = "retiro"
+    TIPO_DELIVERY = "delivery"
+    TIPO_PARA_LLEVAR = "para_llevar"
+
+    TIPOS_ENTREGA = [
+        (TIPO_MESA, "Mesa"),
+        (TIPO_RETIRO, "Retiro"),
+        (TIPO_DELIVERY, "Delivery"),
+        (TIPO_PARA_LLEVAR, "Para llevar"),
+    ]
+
+    ESTADO_PENDIENTE = "pendiente"
+    ESTADO_PREPARANDO = "preparando"
+    ESTADO_LISTO = "listo"
+    ESTADO_ENTREGADO = "entregado"
+    ESTADO_CANCELADO = "cancelado"
+
+    ESTADOS = [
+        (ESTADO_PENDIENTE, "Pendiente"),
+        (ESTADO_PREPARANDO, "Preparando"),
+        (ESTADO_LISTO, "Listo"),
+        (ESTADO_ENTREGADO, "Entregado"),
+        (ESTADO_CANCELADO, "Cancelado"),
+    ]
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="pedidos_manuales"
+    )
+    numero_pedido = models.PositiveIntegerField()
+    origen = models.CharField(max_length=20, choices=ORIGENES, default=ORIGEN_MENLY)
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE)
+    nombre_cliente = models.CharField(max_length=120, blank=True)
+    telefono_cliente = models.CharField(max_length=30, blank=True)
+    tipo_entrega = models.CharField(max_length=20, choices=TIPOS_ENTREGA)
+    direccion = models.TextField(blank=True)
+    numero_mesa = models.CharField(max_length=30, blank=True)
+    observaciones = models.TextField(blank=True)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=0, default=0)
+    total = models.DecimalField(max_digits=10, decimal_places=0, default=0)
+    tracking_token = models.CharField(max_length=32, unique=True, editable=False, db_index=True)
+    creado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pedidos_manuales_creados"
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-fecha_creacion"]
+        indexes = [
+            models.Index(fields=["restaurante", "-fecha_creacion"], name="pedman_rest_fecha_idx"),
+            models.Index(fields=["restaurante", "estado"], name="pedman_rest_estado_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["restaurante", "numero_pedido"],
+                name="unique_pedido_manual_numero_por_rest"
+            )
+        ]
+
+    def __str__(self):
+        return f"Pedido Menly #{self.numero_pedido} - {self.restaurante.nombre_empresa}"
+
+    @staticmethod
+    def generar_tracking_token():
+        return secrets.token_urlsafe(12)
+
+    def save(self, *args, **kwargs):
+        if not self.tracking_token:
+            for _ in range(8):
+                token = self.generar_tracking_token()
+                if (
+                    not PedidoManual.objects.filter(tracking_token=token).exists()
+                    and not PedidoWhatsApp.objects.filter(tracking_token=token).exists()
+                ):
+                    self.tracking_token = token
+                    break
+
+        if not self.tracking_token:
+            raise ValidationError("No se pudo generar un token de seguimiento unico.")
+
+        super().save(*args, **kwargs)
+
+
+class PedidoManualItem(models.Model):
+    pedido = models.ForeignKey(
+        PedidoManual,
+        on_delete=models.CASCADE,
+        related_name="items"
+    )
+    producto = models.ForeignKey(
+        Producto,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="items_pedidos_manuales"
+    )
+    nombre_producto = models.CharField(max_length=150)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=0)
+    cantidad = models.PositiveIntegerField()
+    subtotal = models.DecimalField(max_digits=10, decimal_places=0)
+    observaciones = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["id"]
+        indexes = [
+            models.Index(fields=["pedido"], name="pedman_item_pedido_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.cantidad} x {self.nombre_producto}"
+
+
 class Notificacion(models.Model):
     TIPO_RESERVA = "reserva"
     TIPO_SOLICITUD_ESPECIAL = "solicitud_especial"

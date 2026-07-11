@@ -6,6 +6,7 @@ import { authFetch, readJsonResponse } from "../api";
 const ESTADOS_PEDIDO_BASE = ["recibido", "pendiente_confirmacion", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
 const ESTADO_EN_REPARTO = "en_reparto";
 const ESTADOS_PEDIDO_ESPECIAL = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado", "completado"];
+const ESTADOS_PEDIDO_MANUAL = ["pendiente", "preparando", "listo", "entregado", "cancelado"];
 const PEDIDOS_POLLING_MS = 30000;
 
 const estadoLabels = {
@@ -14,6 +15,7 @@ const estadoLabels = {
   pendiente: "Pendiente",
   confirmado: "Confirmado",
   en_preparacion: "En preparacion",
+  preparando: "Preparando",
   en_reparto: "En reparto",
   listo: "Listo",
   entregado: "Entregado",
@@ -29,6 +31,16 @@ const formEspecialInicial = {
   fecha_entrega: "",
   estado: "pendiente",
   items: [{ nombre: "", descripcion: "", cantidad: 1, precio_unitario: 0 }],
+};
+
+const formManualInicial = {
+  nombre_cliente: "",
+  telefono_cliente: "",
+  tipo_entrega: "mesa",
+  direccion: "",
+  numero_mesa: "",
+  observaciones: "",
+  items: [],
 };
 
 const formatearMoneda = (valor) =>
@@ -58,6 +70,43 @@ const resumenItems = (items = [], etiquetaSingular = "producto", etiquetaPlural 
   );
 };
 
+const normalizarTelefonoWhatsappChile = (telefono) => {
+  const soloDigitos = String(telefono || "").replace(/\D/g, "");
+  if (/^9\d{8}$/.test(soloDigitos)) return `56${soloDigitos}`;
+  if (/^56\d{9}$/.test(soloDigitos)) return soloDigitos;
+  return "";
+};
+
+const obtenerNombreItemPedido = (item) => (
+  item?.nombre_producto || item?.nombre || "Producto"
+);
+
+const construirMensajeWhatsappPedidoManual = (pedido, restaurante) => {
+  const nombreCliente = (pedido?.nombre_cliente || pedido?.cliente_nombre || "").trim();
+  const saludo = nombreCliente ? `Hola ${nombreCliente}` : "Hola";
+  const restauranteNombre = restaurante?.nombre_empresa || restaurante?.nombre || "Menly";
+  const items = pedido?.items?.length
+    ? pedido.items.map((item) => `- ${item.cantidad} x ${obtenerNombreItemPedido(item)}`).join("\n")
+    : "- Pedido registrado";
+
+  return [
+    saludo,
+    "",
+    `Tu pedido #${pedido.numero_pedido} fue registrado correctamente en ${restauranteNombre}.`,
+    "",
+    "Detalle del pedido:",
+    items,
+    "",
+    `Total: ${formatearMoneda(pedido.total)}`,
+    `Tipo de entrega: ${pedido.tipo_entrega_display || pedido.tipo_entrega || "No informado"}`,
+    "",
+    "Puedes revisar el estado actualizado de tu pedido aqui:",
+    pedido.tracking_url || "",
+    "",
+    "Gracias por tu compra.",
+  ].join("\n");
+};
+
 const normalizarListaPedidos = (data) => {
   const lista = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
   const pedidosPorId = new Map();
@@ -77,21 +126,31 @@ export default function PedidosDashboard() {
   const [tabActiva, setTabActiva] = useState("");
   const [pedidosWhatsapp, setPedidosWhatsapp] = useState([]);
   const [pedidosEspeciales, setPedidosEspeciales] = useState([]);
+  const [pedidosManuales, setPedidosManuales] = useState([]);
   const [metricas, setMetricas] = useState({ whatsapp: {}, especiales: {} });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [detalle, setDetalle] = useState(null);
   const [mostrarFormularioEspecial, setMostrarFormularioEspecial] = useState(false);
+  const [mostrarFormularioManual, setMostrarFormularioManual] = useState(false);
   const [pedidoEditando, setPedidoEditando] = useState(null);
   const [formEspecial, setFormEspecial] = useState(formEspecialInicial);
+  const [formManual, setFormManual] = useState(formManualInicial);
+  const [guardandoManual, setGuardandoManual] = useState(false);
+  const [pedidoManualWhatsappListo, setPedidoManualWhatsappListo] = useState(null);
+  const [observacionManualEditor, setObservacionManualEditor] = useState(null);
   const [detalleItems, setDetalleItems] = useState([]);
   const [productoBusqueda, setProductoBusqueda] = useState("");
+  const [productoBusquedaManual, setProductoBusquedaManual] = useState("");
+  const [categoriaManual, setCategoriaManual] = useState("");
   const [productoSeleccionado, setProductoSeleccionado] = useState("");
   const [cantidadProductoNuevo, setCantidadProductoNuevo] = useState(1);
   const [direccionDetalle, setDireccionDetalle] = useState("");
   const detalleAbiertoRef = useRef(false);
   const formularioEspecialAbiertoRef = useRef(false);
+  const formularioManualAbiertoRef = useRef(false);
+  const observacionManualButtonsRef = useRef({});
 
   const whatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   const especialesActivo = restaurante?.solicitudes_especiales_activas === true;
@@ -106,7 +165,7 @@ export default function PedidosDashboard() {
   };
 
   const tabsDisponibles = useMemo(() => {
-    const tabs = [];
+    const tabs = ["menly"];
     if (whatsappActivo) tabs.push("whatsapp");
     if (especialesActivo) tabs.push("especiales");
     return tabs;
@@ -139,8 +198,11 @@ export default function PedidosDashboard() {
       requests.push(authFetch("/mi-restaurante/pedidos/especiales/"));
     }
 
+    requests.push(authFetch("/mi-restaurante/pedidos/manuales/"));
+
     const respuestas = await Promise.all(requests);
-    const [metricasResponse, whatsappResponse, especialesResponse] = respuestas;
+    const metricasResponse = respuestas[0];
+    const whatsappResponse = respuestas[1];
 
     const metricasData = await readJsonResponse(
       metricasResponse,
@@ -170,9 +232,18 @@ export default function PedidosDashboard() {
         "No se pudieron cargar los pedidos especiales."
       );
       setPedidosEspeciales(normalizarListaPedidos(data));
+      indice += 1;
     } else {
       setPedidosEspeciales([]);
     }
+
+    const manualesResponse = respuestas[indice];
+    const manualesData = await readJsonResponse(
+      manualesResponse,
+      "/mi-restaurante/pedidos/manuales/",
+      "No se pudieron cargar los pedidos Menly."
+    );
+    setPedidosManuales(normalizarListaPedidos(manualesData));
   }, []);
 
   useEffect(() => {
@@ -185,6 +256,8 @@ export default function PedidosDashboard() {
           setTabActiva("whatsapp");
         } else if (restauranteActual.solicitudes_especiales_activas) {
           setTabActiva("especiales");
+        } else {
+          setTabActiva("menly");
         }
         await cargarPedidos(restauranteActual);
       } catch (requestError) {
@@ -206,10 +279,14 @@ export default function PedidosDashboard() {
   }, [mostrarFormularioEspecial]);
 
   useEffect(() => {
+    formularioManualAbiertoRef.current = mostrarFormularioManual;
+  }, [mostrarFormularioManual]);
+
+  useEffect(() => {
     if (!restaurante) return undefined;
 
     const intervalId = window.setInterval(() => {
-      if (detalleAbiertoRef.current || formularioEspecialAbiertoRef.current) return;
+      if (detalleAbiertoRef.current || formularioEspecialAbiertoRef.current || formularioManualAbiertoRef.current) return;
 
       cargarPedidos(restaurante).catch(() => {
         // El polling es silencioso: conserva la vista actual si un refresco falla.
@@ -222,6 +299,7 @@ export default function PedidosDashboard() {
   const actualizarPedido = async (tipo, id, datos) => {
     setError("");
     setMensaje("");
+    setPedidoManualWhatsappListo(null);
 
     const esCambioSoloEstado =
       tipo === "whatsapp" &&
@@ -231,7 +309,9 @@ export default function PedidosDashboard() {
     const endpoint =
       tipo === "whatsapp"
         ? `/mi-restaurante/pedidos/whatsapp/${id}/${esCambioSoloEstado ? "estado/" : ""}`
-        : `/mi-restaurante/pedidos/especiales/${id}/`;
+        : tipo === "manual"
+          ? `/mi-restaurante/pedidos/manuales/${id}/`
+          : `/mi-restaurante/pedidos/especiales/${id}/`;
 
     try {
       const response = await authFetch(endpoint, {
@@ -249,6 +329,12 @@ export default function PedidosDashboard() {
 
       if (tipo === "whatsapp") {
         setPedidosWhatsapp((actuales) =>
+          actuales.map((pedido) =>
+            pedido.id === id ? pedidoActualizado : pedido
+          )
+        );
+      } else if (tipo === "manual") {
+        setPedidosManuales((actuales) =>
           actuales.map((pedido) =>
             pedido.id === id ? pedidoActualizado : pedido
           )
@@ -282,6 +368,15 @@ export default function PedidosDashboard() {
     setDetalleItems(
       tipo === "whatsapp"
         ? (pedido.productos_snapshot || []).map((item) => ({ ...item }))
+        : tipo === "manual"
+          ? (pedido.items || []).map((item) => ({
+              producto_id: item.producto_id,
+              nombre: item.nombre_producto,
+              precio_unitario: item.precio_unitario,
+              cantidad: item.cantidad,
+              subtotal: item.subtotal,
+              observaciones: item.observaciones || "",
+            }))
         : []
     );
   };
@@ -390,12 +485,26 @@ export default function PedidosDashboard() {
     }
   };
 
+  const actualizarEstadoDetalleManual = async (estado) => {
+    if (!detalle || detalle.tipo !== "manual") return;
+
+    const actualizado = await actualizarPedido("manual", detalle.pedido.id, { estado });
+
+    if (actualizado) {
+      setDetalle((actual) => actual
+        ? { ...actual, pedido: { ...actual.pedido, estado } }
+        : actual
+      );
+    }
+  };
+
   const abrirCrearEspecial = () => {
     setPedidoEditando(null);
     setFormEspecial(formEspecialInicial);
     setMostrarFormularioEspecial(true);
     setError("");
     setMensaje("");
+    setPedidoManualWhatsappListo(null);
   };
 
   const abrirEditarEspecial = (pedido) => {
@@ -417,6 +526,7 @@ export default function PedidosDashboard() {
     setMostrarFormularioEspecial(true);
     setError("");
     setMensaje("");
+    setPedidoManualWhatsappListo(null);
   };
 
   const actualizarItemEspecial = (index, campo, valor) => {
@@ -499,6 +609,235 @@ export default function PedidosDashboard() {
     }
   };
 
+  const categoriasManual = useMemo(() => {
+    const categorias = new Map();
+    catalogoProductos.forEach((producto) => {
+      const categoria = producto.categoria;
+      if (categoria?.id) {
+        categorias.set(String(categoria.id), categoria.nombre || "Categoria");
+      }
+    });
+    return Array.from(categorias, ([id, nombre]) => ({ id, nombre }));
+  }, [catalogoProductos]);
+
+  const productosManualFiltrados = useMemo(() => {
+    const texto = productoBusquedaManual.trim().toLowerCase();
+    return catalogoProductos.filter((producto) => {
+      const coincideTexto = !texto || `${producto.nombre} ${producto.categoria?.nombre || ""}`.toLowerCase().includes(texto);
+      const coincideCategoria = !categoriaManual || String(producto.categoria?.id) === String(categoriaManual);
+      return coincideTexto && coincideCategoria;
+    });
+  }, [catalogoProductos, categoriaManual, productoBusquedaManual]);
+
+  const abrirCrearManual = () => {
+    setFormManual(formManualInicial);
+    setProductoBusquedaManual("");
+    setCategoriaManual("");
+    setMostrarFormularioManual(true);
+    setError("");
+    setMensaje("");
+    setPedidoManualWhatsappListo(null);
+  };
+
+  const agregarProductoManual = (producto) => {
+    setFormManual((actual) => {
+      const existente = actual.items.find((item) => Number(item.producto_id) === Number(producto.id));
+      if (existente) {
+        return {
+          ...actual,
+          items: actual.items.map((item) => (
+            Number(item.producto_id) === Number(producto.id)
+              ? { ...item, cantidad: Number(item.cantidad || 0) + 1 }
+              : item
+          )),
+        };
+      }
+
+      return {
+        ...actual,
+        items: [
+          ...actual.items,
+          {
+            producto_id: producto.id,
+            nombre: producto.nombre,
+            imagen: producto.imagen || "",
+            precio_unitario: Number(producto.precio || 0),
+            cantidad: 1,
+            observaciones: "",
+          },
+        ],
+      };
+    });
+  };
+
+  const actualizarItemManual = (productoId, cambios) => {
+    setFormManual((actual) => ({
+      ...actual,
+      items: actual.items.map((item) => (
+        Number(item.producto_id) === Number(productoId)
+          ? { ...item, ...cambios }
+          : item
+      )),
+    }));
+  };
+
+  const cambiarCantidadManual = (productoId, cantidad) => {
+    actualizarItemManual(productoId, { cantidad: Math.max(1, Number(cantidad) || 1) });
+  };
+
+  const quitarItemManual = (productoId) => {
+    setFormManual((actual) => ({
+      ...actual,
+      items: actual.items.filter((item) => Number(item.producto_id) !== Number(productoId)),
+    }));
+  };
+
+  const abrirWhatsappPedidoManual = (pedido) => {
+    const telefono = normalizarTelefonoWhatsappChile(pedido?.telefono_cliente || pedido?.cliente_telefono);
+    if (!telefono) {
+      setError("El pedido no tiene un telefono valido para WhatsApp.");
+      return;
+    }
+
+    if (!pedido?.tracking_url) {
+      setError("El pedido no tiene un enlace de seguimiento disponible.");
+      return;
+    }
+
+    const mensajeWhatsapp = construirMensajeWhatsappPedidoManual(pedido, restaurante);
+    const url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensajeWhatsapp)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const abrirEditorObservacionManual = (item) => {
+    setObservacionManualEditor({
+      productoId: item.producto_id,
+      nombre: item.nombre,
+      borrador: item.observaciones || "",
+    });
+  };
+
+  const cerrarEditorObservacionManual = useCallback(() => {
+    const productoId = observacionManualEditor?.productoId;
+    setObservacionManualEditor(null);
+    if (productoId) {
+      window.requestAnimationFrame(() => {
+        observacionManualButtonsRef.current[productoId]?.focus();
+      });
+    }
+  }, [observacionManualEditor?.productoId]);
+
+  const guardarObservacionManual = () => {
+    if (!observacionManualEditor) return;
+    actualizarItemManual(observacionManualEditor.productoId, {
+      observaciones: observacionManualEditor.borrador.trim(),
+    });
+    cerrarEditorObservacionManual();
+  };
+
+  useEffect(() => {
+    if (!observacionManualEditor) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        cerrarEditorObservacionManual();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cerrarEditorObservacionManual, observacionManualEditor]);
+
+  const totalFormManual = formManual.items.reduce((total, item) => (
+    total + Number(item.cantidad || 0) * Number(item.precio_unitario || 0)
+  ), 0);
+
+  const cantidadTotalManual = formManual.items.reduce(
+    (total, item) => total + Number(item.cantidad || 0),
+    0
+  );
+  const cantidadPedidosMenlyHoy = metricas.cantidad_pedidos_menly_hoy ?? 0;
+
+  const pedidoManualValido =
+    formManual.items.length > 0 &&
+    !formManual.items.some((item) => Number(item.cantidad) < 1) &&
+    (formManual.tipo_entrega !== "delivery" || Boolean(formManual.direccion.trim())) &&
+    (formManual.tipo_entrega !== "mesa" || Boolean(formManual.numero_mesa.trim()));
+
+  const cantidadProductoManual = (productoId) => (
+    formManual.items.find((item) => Number(item.producto_id) === Number(productoId))?.cantidad || 0
+  );
+
+  const headerPedidoManualImagen = restaurante?.imgen_principal || restaurante?.logo || "";
+
+  const guardarManual = async (e) => {
+    e.preventDefault();
+    if (guardandoManual) return;
+
+    setError("");
+    setMensaje("");
+
+    if (formManual.items.length === 0) {
+      setError("Agrega al menos un producto al pedido.");
+      return;
+    }
+
+    if (formManual.items.some((item) => Number(item.cantidad) < 1)) {
+      setError("Las cantidades deben ser mayores que cero.");
+      return;
+    }
+
+    if (formManual.tipo_entrega === "delivery" && !formManual.direccion.trim()) {
+      setError("Debe ingresar una direccion para delivery.");
+      return;
+    }
+
+    if (formManual.tipo_entrega === "mesa" && !formManual.numero_mesa.trim()) {
+      setError("Debe ingresar el numero de mesa.");
+      return;
+    }
+
+    const payload = {
+      nombre_cliente: formManual.nombre_cliente.trim(),
+      telefono_cliente: formManual.telefono_cliente.trim(),
+      tipo_entrega: formManual.tipo_entrega,
+      direccion: formManual.tipo_entrega === "delivery" ? formManual.direccion.trim() : "",
+      numero_mesa: formManual.tipo_entrega === "mesa" ? formManual.numero_mesa.trim() : "",
+      observaciones: formManual.observaciones.trim(),
+      items: formManual.items.map((item) => ({
+        producto_id: Number(item.producto_id),
+        cantidad: Number(item.cantidad),
+        observaciones: (item.observaciones || "").trim(),
+      })),
+    };
+
+    try {
+      setGuardandoManual(true);
+      const response = await authFetch("/mi-restaurante/pedidos/manuales/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await readJsonResponse(
+        response,
+        "/mi-restaurante/pedidos/manuales/",
+        "No se pudo crear el pedido."
+      );
+      const pedidoCreado = data?.pedido;
+
+      setMostrarFormularioManual(false);
+      setFormManual(formManualInicial);
+      setTabActiva("menly");
+      setMensaje("Pedido creado correctamente.");
+      setPedidoManualWhatsappListo(pedidoCreado || null);
+      await cargarPedidos(restaurante);
+    } catch (requestError) {
+      setError(requestError.message || "No se pudo crear el pedido.");
+    } finally {
+      setGuardandoManual(false);
+    }
+  };
+
   const totalFormEspecial = formEspecial.items.reduce((total, item) => (
     total + Number(item.cantidad || 0) * Number(item.precio_unitario || 0)
   ), 0);
@@ -517,6 +856,19 @@ export default function PedidosDashboard() {
             <h1>Pedidos</h1>
             {error && <p className="reservas-error">{error}</p>}
             {mensaje && <p className="solicitudes-success">{mensaje}</p>}
+            {pedidoManualWhatsappListo && (
+              <div className="pedido-whatsapp-ready">
+                <span>Pedido #{pedidoManualWhatsappListo.numero_pedido} listo para enviar al cliente.</span>
+                <button
+                  type="button"
+                  onClick={() => abrirWhatsappPedidoManual(pedidoManualWhatsappListo)}
+                  disabled={!normalizarTelefonoWhatsappChile(pedidoManualWhatsappListo.telefono_cliente)}
+                >
+                  <i className="bi bi-whatsapp"></i>
+                  Enviar por WhatsApp
+                </button>
+              </div>
+            )}
 
             <div className="breadcrumb-reservas">
               <span>Inicio</span>
@@ -544,9 +896,9 @@ export default function PedidosDashboard() {
                 <div className="reserva-stat-card">
                   <div className="stat-icon"><i className="bi bi-calendar-heart"></i></div>
                   <div>
-                    <h3>{formatearMoneda(metricas.ventas?.venta_especiales_mes ?? 0)}</h3>
-                    <p>Pedidos especiales mes</p>
-                    <small>{metricas.canales?.especiales?.pedidos_creados_mes ?? 0} pedidos</small>
+                    <h3>{formatearMoneda(metricas.venta_diaria_menly ?? 0)}</h3>
+                    <p>Venta diaria Menly</p>
+                    <small>{cantidadPedidosMenlyHoy} {cantidadPedidosMenlyHoy === 1 ? "pedido" : "pedidos"}</small>
                   </div>
                 </div>
 
@@ -576,6 +928,7 @@ export default function PedidosDashboard() {
                     onChange={(event) => setTabActiva(event.target.value)}
                     aria-label="Seleccionar tipo de pedidos"
                   >
+                    <option value="menly">Pedidos Menly ({pedidosManuales.length})</option>
                     {whatsappActivo && (
                       <option value="whatsapp">Pedidos por WhatsApp ({pedidosWhatsapp.length})</option>
                     )}
@@ -583,6 +936,10 @@ export default function PedidosDashboard() {
                       <option value="especiales">Pedidos especiales ({pedidosEspeciales.length})</option>
                     )}
                   </select>
+                  <button className="crear-reserva-btn" type="button" onClick={abrirCrearManual}>
+                    <i className="bi bi-plus-lg"></i>
+                    Nuevo pedido
+                  </button>
                   {especialesActivo && (
                     <button className="crear-reserva-btn" type="button" onClick={abrirCrearEspecial}>
                       <i className="bi bi-plus-lg"></i>
@@ -592,6 +949,9 @@ export default function PedidosDashboard() {
                 </div>
 
                 <div className="tabs-row pedidos-tabs">
+                  <button className={`tab ${tabActiva === "menly" ? "active" : ""}`} onClick={() => setTabActiva("menly")}>
+                    Pedidos Menly ({pedidosManuales.length})
+                  </button>
                   {whatsappActivo && (
                     <button className={`tab ${tabActiva === "whatsapp" ? "active" : ""}`} onClick={() => setTabActiva("whatsapp")}>
                       Pedidos por WhatsApp ({pedidosWhatsapp.length})
@@ -608,8 +968,76 @@ export default function PedidosDashboard() {
                       Nuevo pedido especial
                     </button>
                   )}
+                  <button className="crear-reserva-btn" type="button" onClick={abrirCrearManual}>
+                    <i className="bi bi-plus-lg"></i>
+                    Nuevo pedido
+                  </button>
                 </div>
               </section>
+
+              {tabActiva === "menly" && (
+                <section className="reservas-table-card">
+                  <table className="reservas-table pedidos-table">
+                    <thead>
+                      <tr>
+                        <th>NÂ°</th>
+                        <th>Origen</th>
+                        <th>Cliente</th>
+                        <th>Entrega</th>
+                        <th>Productos</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pedidosManuales.length === 0 ? (
+                        <tr><td colSpan="8" className="empty-state">No hay pedidos creados desde Menly.</td></tr>
+                      ) : pedidosManuales.map((pedido) => (
+                        <tr key={pedido.id}>
+                          <td>#{pedido.numero_pedido}</td>
+                          <td><span className="pedido-origen-badge">Menly</span></td>
+                          <td>
+                            <strong>{pedido.nombre_cliente || "Cliente no informado"}</strong>
+                            {pedido.telefono_cliente && <small>{pedido.telefono_cliente}</small>}
+                          </td>
+                          <td>
+                            {pedido.tipo_entrega_display || pedido.tipo_entrega}
+                            {pedido.numero_mesa && <small>Mesa {pedido.numero_mesa}</small>}
+                            {pedido.direccion && <small>{pedido.direccion}</small>}
+                          </td>
+                          <td>{resumenItems(pedido.items)}</td>
+                          <td>{formatearMoneda(pedido.total)}</td>
+                          <td><span className={`estado-badge ${pedido.estado}`}>{estadoLabels[pedido.estado] || pedido.estado}</span></td>
+                          <td>
+                            <div className="acciones-cell">
+                              <button title="Ver detalle" onClick={() => abrirDetalle("manual", pedido)}>
+                                <i className="bi bi-eye"></i>
+                              </button>
+                              <button
+                                className="pedido-whatsapp-action"
+                                title="Enviar por WhatsApp"
+                                onClick={() => abrirWhatsappPedidoManual(pedido)}
+                                disabled={!normalizarTelefonoWhatsappChile(pedido.telefono_cliente)}
+                              >
+                                <i className="bi bi-whatsapp"></i>
+                              </button>
+                              <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("manual", pedido.id, { estado: e.target.value })}>
+                                {ESTADOS_PEDIDO_MANUAL.map((estado) => (
+                                  <option key={estado} value={estado}>{estadoLabels[estado]}</option>
+                                ))}
+                              </select>
+                              <button className="delete" title="Cancelar" onClick={() => actualizarPedido("manual", pedido.id, { estado: "cancelado" })}>
+                                <i className="bi bi-x-lg"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </section>
+              )}
 
               {tabActiva === "whatsapp" && (
                 <section className="reservas-table-card">
@@ -731,7 +1159,11 @@ export default function PedidosDashboard() {
                 <div>
                   <h2>Pedido #{detalle.pedido.numero_pedido}</h2>
                   <p className="pedido-detalle-subtitle">
-                    {detalle.tipo === "whatsapp" ? "Pedido por WhatsApp" : "Pedido especial"}
+                    {detalle.tipo === "whatsapp"
+                      ? "Pedido por WhatsApp"
+                      : detalle.tipo === "manual"
+                        ? "Pedido Menly"
+                        : "Pedido especial"}
                   </p>
                 </div>
                 <span className={`estado-badge ${detalle.pedido.estado}`}>
@@ -752,6 +1184,12 @@ export default function PedidosDashboard() {
                     {detalle.pedido.direccion_entrega && (
                       <div><dt>Direccion</dt><dd>{detalle.pedido.direccion_entrega}</dd></div>
                     )}
+                    {detalle.pedido.direccion && (
+                      <div><dt>Direccion</dt><dd>{detalle.pedido.direccion}</dd></div>
+                    )}
+                    {detalle.pedido.numero_mesa && (
+                      <div><dt>Mesa</dt><dd>{detalle.pedido.numero_mesa}</dd></div>
+                    )}
                     <div><dt>Estado</dt><dd>{estadoLabels[detalle.pedido.estado] || detalle.pedido.estado}</dd></div>
                     {detalle.tipo === "whatsapp" && (
                       <div className="pedido-detalle-estado-mobile">
@@ -763,6 +1201,24 @@ export default function PedidosDashboard() {
                             onChange={(e) => actualizarEstadoDetalleWhatsapp(e.target.value)}
                           >
                             {obtenerEstadosPedidoWhatsapp(detalle.pedido).map((estado) => (
+                              <option key={estado} value={estado}>
+                                {estadoLabels[estado]}
+                              </option>
+                            ))}
+                          </select>
+                        </dd>
+                      </div>
+                    )}
+                    {detalle.tipo === "manual" && (
+                      <div className="pedido-detalle-estado-mobile">
+                        <dt>Cambiar estado</dt>
+                        <dd>
+                          <select
+                            className="pedido-estado-select"
+                            value={detalle.pedido.estado}
+                            onChange={(e) => actualizarEstadoDetalleManual(e.target.value)}
+                          >
+                            {ESTADOS_PEDIDO_MANUAL.map((estado) => (
                               <option key={estado} value={estado}>
                                 {estadoLabels[estado]}
                               </option>
@@ -784,6 +1240,9 @@ export default function PedidosDashboard() {
 
                   {detalle.pedido.descripcion_original && (
                     <p className="pedido-descripcion">{detalle.pedido.descripcion_original}</p>
+                  )}
+                  {detalle.pedido.observaciones && (
+                    <p className="pedido-descripcion">{detalle.pedido.observaciones}</p>
                   )}
 
                   {detalle.tipo === "whatsapp" && detalle.pedido.tipo_entrega === "delivery" && (
@@ -876,6 +1335,39 @@ export default function PedidosDashboard() {
                         </button>
                       </div>
                     </>
+                  ) : detalle.tipo === "manual" ? (
+                    <>
+                      <div className="pedido-items-detalle">
+                        {(detalle.pedido.items || []).map((item, index) => (
+                          <div key={`${item.nombre_producto}-${index}`}>
+                            <span>{item.cantidad} x {item.nombre_producto}</span>
+                            <small>
+                              {formatearMoneda(item.precio_unitario)} c/u
+                              {item.observaciones ? ` - ${item.observaciones}` : ""}
+                            </small>
+                            <strong>{formatearMoneda(item.subtotal)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="pedido-total-line">
+                        <span>Total</span>
+                        <strong>{formatearMoneda(detalle.pedido.total)}</strong>
+                      </div>
+                      <div className="modal-actions pedido-manual-actions">
+                        <button className="button-cancelar" type="button" onClick={() => setDetalle(null)}>
+                          Cerrar
+                        </button>
+                        <button
+                          className="pedido-whatsapp-detail-btn"
+                          type="button"
+                          onClick={() => abrirWhatsappPedidoManual(detalle.pedido)}
+                          disabled={!normalizarTelefonoWhatsappChile(detalle.pedido.telefono_cliente)}
+                        >
+                          <i className="bi bi-whatsapp"></i>
+                          Enviar por WhatsApp
+                        </button>
+                      </div>
+                    </>
                   ) : (
                     <>
                       <div className="pedido-items-detalle">
@@ -896,6 +1388,278 @@ export default function PedidosDashboard() {
                 </section>
               </div>
             </section>
+          </div>
+        )}
+
+        {mostrarFormularioManual && (
+          <div className="modal-reserva-bg">
+            <form className="modal-reserva pedido-form-modal pedido-manual-modal" onSubmit={guardarManual}>
+              <button className="modal-close-btn" type="button" aria-label="Cerrar" onClick={() => setMostrarFormularioManual(false)}>
+                <i className="bi bi-x-lg"></i>
+              </button>
+
+              <div
+                className="pedido-modal-header pedido-manual-header"
+                style={headerPedidoManualImagen ? { "--pedido-header-image": `url("${headerPedidoManualImagen}")` } : undefined}
+              >
+                <div className="pedido-manual-title">
+                  <span className="pedido-manual-title-icon">
+                    <i className="bi bi-clipboard-check"></i>
+                  </span>
+                  <div>
+                  <h2>Nuevo pedido</h2>
+                    <p className="pedido-detalle-subtitle">Selecciona productos para agregar al pedido</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pedido-manual-layout">
+                <section className="pedido-form-section pedido-catalogo-manual">
+                  <div className="pedido-manual-filtros">
+                    <label className="pedido-manual-search">
+                      <i className="bi bi-search"></i>
+                      <input
+                        type="search"
+                        placeholder="Buscar producto..."
+                        value={productoBusquedaManual}
+                        onChange={(e) => setProductoBusquedaManual(e.target.value)}
+                      />
+                    </label>
+                    <label className="pedido-manual-category">
+                      <select
+                        value={categoriaManual}
+                        onChange={(e) => setCategoriaManual(e.target.value)}
+                      >
+                        <option value="">Todas las categorias</option>
+                        {categoriasManual.map((categoria) => (
+                          <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>
+                        ))}
+                      </select>
+                      <i className="bi bi-chevron-down"></i>
+                    </label>
+                  </div>
+
+                  <div className="pedido-productos-catalogo">
+                    {productosManualFiltrados.length === 0 ? (
+                      <p className="empty-state">No hay productos disponibles.</p>
+                    ) : productosManualFiltrados.map((producto) => {
+                      const cantidadSeleccionada = cantidadProductoManual(producto.id);
+                      const tieneImagen = Boolean(producto.imagen);
+                      return (
+                        <button
+                          type="button"
+                          className={`pedido-producto-catalogo ${cantidadSeleccionada ? "is-selected" : ""} ${!tieneImagen ? "sin-imagen" : ""}`}
+                          key={producto.id}
+                          onClick={() => agregarProductoManual(producto)}
+                          aria-label={`Agregar ${producto.nombre} al pedido`}
+                          style={tieneImagen ? { "--producto-imagen": `url("${producto.imagen}")` } : undefined}
+                        >
+                          <span className="pedido-producto-nombre">{producto.nombre}</span>
+                          {producto.destacado && <span className="pedido-producto-popular">Popular</span>}
+                          {cantidadSeleccionada > 0 && (
+                            <span className="pedido-producto-count">{cantidadSeleccionada}</span>
+                          )}
+                          {!tieneImagen && <i className="bi bi-image"></i>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <aside className="pedido-manual-side">
+                  <section className="pedido-form-section pedido-manual-panel">
+                    <h3><i className="bi bi-person"></i> Cliente y entrega</h3>
+                    <div className="pedido-form-grid pedido-manual-client-grid">
+                      <label>
+                        Nombre cliente <span>(opcional)</span>
+                        <input
+                          type="text"
+                          placeholder="Ej. Camila Soto"
+                          value={formManual.nombre_cliente}
+                          onChange={(e) => setFormManual({ ...formManual, nombre_cliente: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        Telefono <span>(opcional)</span>
+                        <input
+                          type="text"
+                          placeholder="Ej. +56 9 1234 5678"
+                          value={formManual.telefono_cliente}
+                          onChange={(e) => setFormManual({ ...formManual, telefono_cliente: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        Tipo de entrega
+                        <select
+                          value={formManual.tipo_entrega}
+                          onChange={(e) => setFormManual({
+                            ...formManual,
+                            tipo_entrega: e.target.value,
+                            direccion: e.target.value === "delivery" ? formManual.direccion : "",
+                            numero_mesa: e.target.value === "mesa" ? formManual.numero_mesa : "",
+                          })}
+                        >
+                          <option value="mesa">Mesa</option>
+                          <option value="retiro">Retiro</option>
+                          <option value="delivery">Delivery</option>
+                          <option value="para_llevar">Para llevar</option>
+                        </select>
+                      </label>
+                      {formManual.tipo_entrega === "delivery" && (
+                    <label>
+                      Direccion
+                      <input
+                        type="text"
+                        placeholder="Ej. Los Robles 123"
+                        value={formManual.direccion}
+                        onChange={(e) => setFormManual({ ...formManual, direccion: e.target.value })}
+                        required
+                      />
+                    </label>
+                      )}
+                      {formManual.tipo_entrega === "mesa" && (
+                    <label>
+                      Numero de mesa
+                      <input
+                        type="text"
+                        placeholder="Ej. 5"
+                        value={formManual.numero_mesa}
+                        onChange={(e) => setFormManual({ ...formManual, numero_mesa: e.target.value })}
+                        required
+                      />
+                    </label>
+                      )}
+                    </div>
+                    <label>
+                      Observaciones generales <span>(opcional)</span>
+                      <textarea
+                        placeholder="Ej. Sin mayonesa, por favor"
+                        value={formManual.observaciones}
+                        onChange={(e) => setFormManual({ ...formManual, observaciones: e.target.value })}
+                      />
+                    </label>
+                  </section>
+
+                  <section className="pedido-form-section pedido-carrito-manual pedido-manual-panel">
+                    <div className="pedido-carrito-header">
+                      <h3><i className="bi bi-cart3"></i> Tu pedido</h3>
+                      <strong>{cantidadTotalManual} productos</strong>
+                    </div>
+                    {formManual.items.length === 0 ? (
+                      <div className="pedido-manual-empty">
+                        <i className="bi bi-cart3"></i>
+                        <p>Agrega productos desde la izquierda</p>
+                      </div>
+                    ) : (
+                      <div className="pedido-manual-items">
+                        {formManual.items.map((item) => (
+                          <article className="pedido-manual-item" key={item.producto_id}>
+                            <div className={`pedido-manual-item-img ${!item.imagen ? "sin-imagen" : ""}`}>
+                              {item.imagen ? (
+                                <img src={item.imagen} alt={item.nombre} loading="lazy" />
+                              ) : (
+                                <i className="bi bi-image"></i>
+                              )}
+                            </div>
+                            <div className="pedido-manual-item-main">
+                              <strong>{item.nombre}</strong>
+                              <small>{formatearMoneda(item.precio_unitario)} c/u</small>
+                            </div>
+                            <div className="pedido-cantidad-control">
+                              <button type="button" onClick={() => cambiarCantidadManual(item.producto_id, Number(item.cantidad) - 1)}>
+                                <i className="bi bi-dash"></i>
+                              </button>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.cantidad}
+                                onChange={(e) => cambiarCantidadManual(item.producto_id, e.target.value)}
+                              />
+                              <button type="button" onClick={() => cambiarCantidadManual(item.producto_id, Number(item.cantidad) + 1)}>
+                                <i className="bi bi-plus"></i>
+                              </button>
+                            </div>
+                            <strong>{formatearMoneda(Number(item.cantidad || 0) * Number(item.precio_unitario || 0))}</strong>
+                            <div className="pedido-manual-item-actions">
+                              <button
+                                type="button"
+                                className={`pedido-icon-observacion ${item.observaciones ? "has-note" : ""}`}
+                                onClick={() => abrirEditorObservacionManual(item)}
+                                aria-label={`${item.observaciones ? "Editar observacion de" : "Agregar observacion a"} ${item.nombre}`}
+                                title={item.observaciones ? item.observaciones : "Agregar observacion"}
+                                ref={(node) => {
+                                  if (node) {
+                                    observacionManualButtonsRef.current[item.producto_id] = node;
+                                  }
+                                }}
+                              >
+                                <i className={item.observaciones ? "bi bi-chat-left-text-fill" : "bi bi-chat-left-text"}></i>
+                              </button>
+                              <button type="button" className="pedido-icon-danger" onClick={() => quitarItemManual(item.producto_id)} aria-label={`Eliminar ${item.nombre}`}>
+                                <i className="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+
+                  </section>
+                </aside>
+              </div>
+
+              <div className="pedido-manual-footer">
+                <div className="pedido-manual-footer-summary">
+                  <span>{cantidadTotalManual} productos seleccionados</span>
+                  <strong>Total: <b>{formatearMoneda(totalFormManual)}</b></strong>
+                </div>
+                <div className="modal-actions">
+                  <button className="button-cancelar" type="button" onClick={() => setMostrarFormularioManual(false)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" disabled={guardandoManual || !pedidoManualValido}>
+                    <i className="bi bi-check-circle"></i>
+                    {guardandoManual ? "Creando..." : "Confirmar pedido"}
+                  </button>
+                </div>
+              </div>
+
+              {observacionManualEditor && (
+                <div className="pedido-observacion-backdrop" role="dialog" aria-modal="true">
+                  <section className="pedido-observacion-modal">
+                    <div className="pedido-observacion-header">
+                      <div>
+                        <p>Observacion del producto</p>
+                        <h3>{observacionManualEditor.nombre}</h3>
+                      </div>
+                      <button type="button" aria-label="Cerrar observacion" onClick={cerrarEditorObservacionManual}>
+                        <i className="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                    <textarea
+                      maxLength={250}
+                      value={observacionManualEditor.borrador}
+                      placeholder="Ej: sin cebolla, salsa aparte, bien cocido"
+                      onChange={(e) => setObservacionManualEditor((actual) => (
+                        actual ? { ...actual, borrador: e.target.value } : actual
+                      ))}
+                      autoFocus
+                    />
+                    <div className="pedido-observacion-counter">
+                      {observacionManualEditor.borrador.length}/250
+                    </div>
+                    <div className="modal-actions">
+                      <button className="button-cancelar" type="button" onClick={cerrarEditorObservacionManual}>
+                        Cancelar
+                      </button>
+                      <button type="button" onClick={guardarObservacionManual}>
+                        Guardar observacion
+                      </button>
+                    </div>
+                  </section>
+                </div>
+              )}
+            </form>
           </div>
         )}
 

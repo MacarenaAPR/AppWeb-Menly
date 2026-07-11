@@ -8,18 +8,24 @@ const TRACKING_REFRESH_MS = 20000;
 const ESTADOS = [
   "recibido",
   "pendiente_confirmacion",
+  "pendiente",
   "confirmado",
   "en_preparacion",
-  "en_delivery",
+  "preparando",
   "listo",
+  "en_reparto",
+  "en_delivery",
   "entregado",
 ];
 
 const ESTADO_LABELS = {
   recibido: "Pedido recibido",
   pendiente_confirmacion: "Pendiente de confirmacion",
+  pendiente: "Pendiente",
   confirmado: "Confirmado",
   en_preparacion: "En preparacion",
+  preparando: "Preparando",
+  en_reparto: "En camino",
   en_delivery: "En camino",
   listo: "Listo",
   entregado: "Entregado",

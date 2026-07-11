@@ -10,7 +10,7 @@ from datetime import date, datetime, time, timedelta
 from importlib import import_module
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host
@@ -166,6 +166,289 @@ class DashboardMetricasResilienciaTests(BaseTestCase):
         self.assertEqual(data["ventas"]["venta_real_mes"], 0)
         self.assertEqual(data["productos"]["top_por_cantidad"][0]["nombre"], "Bebida")
         self.assertEqual(data["productos"]["top_por_cantidad"][0]["cantidad"], 2)
+
+
+class PedidoManualDashboardTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.dueno)
+        self.otro_producto = Producto.objects.create(
+            restaurante=self.otro_restaurante,
+            categoria=self.categoria_otro_restaurante,
+            nombre="Producto externo",
+            descripcion="No permitido",
+            precio=9990,
+            disponible=True,
+            destacado=False,
+            orden=1,
+        )
+
+    def payload_valido(self, **overrides):
+        payload = {
+            "nombre_cliente": "Camila",
+            "telefono_cliente": "+56912345678",
+            "tipo_entrega": "delivery",
+            "direccion": "Los Robles 123",
+            "numero_mesa": "",
+            "observaciones": "Tocar el timbre",
+            "items": [
+                {
+                    "producto_id": self.producto.id,
+                    "cantidad": 2,
+                    "observaciones": "Una sin cebolla",
+                }
+            ],
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_crear_pedido_manual_valido_calcula_total_y_origen_menly(self):
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoManual.objects.get()
+        self.assertEqual(pedido.restaurante, self.restaurante)
+        self.assertEqual(pedido.origen, PedidoManual.ORIGEN_MENLY)
+        self.assertEqual(pedido.creado_por, self.dueno)
+        self.assertEqual(int(pedido.total), 3000)
+        self.assertEqual(pedido.items.count(), 1)
+        item = pedido.items.first()
+        self.assertEqual(item.nombre_producto, self.producto.nombre)
+        self.assertEqual(int(item.precio_unitario), 1500)
+        self.assertEqual(int(item.subtotal), 3000)
+        data = response.json()["pedido"]
+        self.assertEqual(data["items"][0]["nombre_producto"], self.producto.nombre)
+        self.assertTrue(data["tracking_token"])
+        self.assertIn(f"/seguimiento/pedido/{data['tracking_token']}", data["tracking_url"])
+        self.assertEqual(data["cliente_nombre"], "Camila")
+        self.assertEqual(data["cliente_telefono"], "+56912345678")
+
+    def test_seguimiento_publico_manual_reutiliza_token_y_expone_payload_seguro(self):
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(tipo_entrega="mesa", direccion="", numero_mesa="7"),
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido_data = response.json()["pedido"]
+        token = pedido_data["tracking_token"]
+
+        response = self.client.get(f"/api/public/pedidos/seguimiento/{token}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["numero_pedido"], pedido_data["numero_pedido"])
+        self.assertEqual(data["restaurante_nombre"], self.restaurante.nombre_empresa)
+        self.assertEqual(data["estado"], PedidoManual.ESTADO_PENDIENTE)
+        self.assertEqual(data["tipo_entrega"], PedidoManual.TIPO_MESA)
+        self.assertEqual(data["observaciones_cliente"], "Mesa 7")
+        self.assertEqual(data["items"][0]["nombre"], self.producto.nombre)
+        self.assertNotIn("id", data)
+        self.assertNotIn("tracking_token", data)
+
+        pedido_id = pedido_data["id"]
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {"estado": PedidoManual.ESTADO_PREPARANDO},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["pedido"]["tracking_token"], token)
+
+        response = self.client.get(f"/api/public/pedidos/seguimiento/{token}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["estado"], PedidoManual.ESTADO_PREPARANDO)
+
+    def test_rechaza_pedido_manual_sin_items(self):
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(items=[]),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(PedidoManual.objects.exists())
+
+    def test_rechaza_delivery_sin_direccion(self):
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(direccion=""),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("direccion", response.json())
+
+    def test_rechaza_mesa_sin_numero_mesa(self):
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(tipo_entrega="mesa", direccion="", numero_mesa=""),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("numero_mesa", response.json())
+
+    def test_rechaza_producto_de_otro_restaurante(self):
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(items=[{"producto_id": self.otro_producto.id, "cantidad": 1}]),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(PedidoManual.objects.exists())
+
+    def test_listado_manual_es_tenant_safe(self):
+        pedido_propio = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            total=1500,
+            subtotal=1500,
+            creado_por=self.dueno,
+        )
+        PedidoManual.objects.create(
+            restaurante=self.otro_restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            total=9990,
+            subtotal=9990,
+        )
+
+        response = self.client.get("/api/mi-restaurante/pedidos/manuales/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.json()["results"]
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["id"], pedido_propio.id)
+
+    def test_cambio_estado_manual_respeta_flujo(self):
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(tipo_entrega="retiro", direccion=""),
+            format="json",
+        )
+        pedido_id = response.json()["pedido"]["id"]
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {"estado": PedidoManual.ESTADO_PREPARANDO},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {"estado": PedidoManual.ESTADO_PENDIENTE},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {"estado": PedidoManual.ESTADO_CANCELADO},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {"estado": PedidoManual.ESTADO_LISTO},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_metricas_pedidos_calcula_venta_diaria_menly_solo_hoy_no_cancelados(self):
+        hoy = timezone.localtime(timezone.now())
+        ayer = hoy - timedelta(days=1)
+
+        PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            origen=PedidoManual.ORIGEN_MENLY,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=1500,
+            total=1500,
+            estado=PedidoManual.ESTADO_PENDIENTE,
+            creado_por=self.dueno,
+        )
+        PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            origen=PedidoManual.ORIGEN_MENLY,
+            tipo_entrega=PedidoManual.TIPO_MESA,
+            numero_mesa="3",
+            subtotal=3000,
+            total=3000,
+            estado=PedidoManual.ESTADO_ENTREGADO,
+            creado_por=self.dueno,
+        )
+        PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=3,
+            origen=PedidoManual.ORIGEN_MENLY,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=9990,
+            total=9990,
+            estado=PedidoManual.ESTADO_CANCELADO,
+            creado_por=self.dueno,
+        )
+        pedido_ayer = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=4,
+            origen=PedidoManual.ORIGEN_MENLY,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=7000,
+            total=7000,
+            estado=PedidoManual.ESTADO_PENDIENTE,
+            creado_por=self.dueno,
+        )
+        PedidoManual.objects.filter(id=pedido_ayer.id).update(fecha_creacion=ayer)
+        PedidoManual.objects.create(
+            restaurante=self.otro_restaurante,
+            numero_pedido=1,
+            origen=PedidoManual.ORIGEN_MENLY,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=8000,
+            total=8000,
+            estado=PedidoManual.ESTADO_PENDIENTE,
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="WhatsApp",
+            telefono_cliente="999999999",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=5000,
+            estado=PedidoWhatsApp.ESTADO_ENTREGADO,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Especial",
+            telefono_cliente="999999999",
+            items=[],
+            total=6000,
+            fecha_entrega=timezone.localdate(),
+            estado=PedidoEspecial.ESTADO_ENTREGADO,
+        )
+
+        response = self.client.get("/api/mi-restaurante/pedidos/metricas/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(data["venta_diaria_menly"], 4500)
+        self.assertEqual(data["cantidad_pedidos_menly_hoy"], 2)
+        self.assertEqual(data["canales"]["menly"]["venta_diaria_menly"], 4500)
+        self.assertEqual(data["canales"]["menly"]["cantidad_pedidos_menly_hoy"], 2)
 
 
 class ConfiguracionRestauranteOperacionTests(BaseTestCase):

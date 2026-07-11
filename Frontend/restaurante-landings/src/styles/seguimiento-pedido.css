@@ -71,6 +71,13 @@
   color: #1f6b2b;
 }
 
+.tracking-status-preparando,
+.tracking-status-en_preparacion {
+  background: #fff3cd;
+  color: #8a5a00;
+}
+
+.tracking-status-en_reparto,
 .tracking-status-en_delivery {
   background: #e0e7ff;
   color: #3730a3;

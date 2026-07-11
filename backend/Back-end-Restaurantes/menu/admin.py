@@ -1,4 +1,4 @@
-from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,ReporteMetrica
+from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,ReporteMetrica
 from .forms import ProductoCSVImportForm
 
 import csv
@@ -435,6 +435,49 @@ class PedidoEspecialAdmin(admin.ModelAdmin):
         "fecha_actualizacion",
         "total",
     )
+
+
+class PedidoManualItemInline(admin.TabularInline):
+    model = PedidoManualItem
+    extra = 0
+    readonly_fields = ("producto", "nombre_producto", "precio_unitario", "cantidad", "subtotal", "observaciones")
+    can_delete = False
+
+
+@admin.register(PedidoManual)
+class PedidoManualAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "numero_pedido",
+        "restaurante",
+        "origen",
+        "nombre_cliente",
+        "tipo_entrega",
+        "total",
+        "estado",
+        "creado_por",
+        "fecha_creacion",
+    )
+    list_filter = ("estado", "tipo_entrega", "origen", "restaurante", "fecha_creacion")
+    search_fields = (
+        "nombre_cliente",
+        "telefono_cliente",
+        "numero_mesa",
+        "direccion",
+        "restaurante__nombre_empresa",
+        "restaurante__slug",
+    )
+    ordering = ("-fecha_creacion",)
+    readonly_fields = (
+        "numero_pedido",
+        "origen",
+        "subtotal",
+        "total",
+        "creado_por",
+        "fecha_creacion",
+        "fecha_actualizacion",
+    )
+    inlines = [PedidoManualItemInline]
 
 
 @admin.register(ReporteMetrica)

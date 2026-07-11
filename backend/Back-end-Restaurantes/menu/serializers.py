@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, ReporteMetrica
+from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica
 from .utils import crear_notificacion_pedido_especial
 from .services.pedidos_whatsapp import (
     crear_pedido_whatsapp,
@@ -995,6 +995,288 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
             self._completar_solicitud_si_entregado(instance)
 
         return instance
+
+
+class PedidoManualItemInputSerializer(serializers.Serializer):
+    producto_id = serializers.IntegerField(min_value=1)
+    cantidad = serializers.IntegerField(min_value=1, max_value=999)
+    observaciones = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+
+
+class PedidoManualItemSerializer(serializers.ModelSerializer):
+    producto_id = serializers.IntegerField(source="producto.id", read_only=True)
+
+    class Meta:
+        model = PedidoManualItem
+        fields = [
+            "id",
+            "producto_id",
+            "nombre_producto",
+            "precio_unitario",
+            "cantidad",
+            "subtotal",
+            "observaciones",
+        ]
+        read_only_fields = fields
+
+
+class PedidoManualSerializer(serializers.ModelSerializer):
+    origen_display = serializers.CharField(source="get_origen_display", read_only=True)
+    estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    tipo_entrega_display = serializers.CharField(source="get_tipo_entrega_display", read_only=True)
+    items = PedidoManualItemSerializer(many=True, read_only=True)
+    items_input = PedidoManualItemInputSerializer(many=True, write_only=True, required=False)
+    creado_por_nombre = serializers.SerializerMethodField()
+    tracking_url = serializers.SerializerMethodField()
+    cliente_nombre = serializers.CharField(source="nombre_cliente", read_only=True)
+    cliente_telefono = serializers.CharField(source="telefono_cliente", read_only=True)
+
+    class Meta:
+        model = PedidoManual
+        fields = [
+            "id",
+            "numero_pedido",
+            "tracking_token",
+            "tracking_url",
+            "origen",
+            "origen_display",
+            "estado",
+            "estado_display",
+            "nombre_cliente",
+            "telefono_cliente",
+            "cliente_nombre",
+            "cliente_telefono",
+            "tipo_entrega",
+            "tipo_entrega_display",
+            "direccion",
+            "numero_mesa",
+            "observaciones",
+            "subtotal",
+            "total",
+            "creado_por",
+            "creado_por_nombre",
+            "fecha_creacion",
+            "fecha_actualizacion",
+            "items",
+            "items_input",
+        ]
+        read_only_fields = [
+            "id",
+            "numero_pedido",
+            "tracking_token",
+            "tracking_url",
+            "origen",
+            "origen_display",
+            "estado_display",
+            "cliente_nombre",
+            "cliente_telefono",
+            "subtotal",
+            "total",
+            "creado_por",
+            "creado_por_nombre",
+            "fecha_creacion",
+            "fecha_actualizacion",
+            "items",
+        ]
+        extra_kwargs = {
+            "nombre_cliente": {"required": False, "allow_blank": True},
+            "telefono_cliente": {"required": False, "allow_blank": True},
+            "direccion": {"required": False, "allow_blank": True},
+            "numero_mesa": {"required": False, "allow_blank": True},
+            "observaciones": {"required": False, "allow_blank": True},
+            "estado": {"required": False},
+        }
+
+    def get_creado_por_nombre(self, pedido):
+        if not pedido.creado_por:
+            return None
+        return pedido.creado_por.get_full_name() or pedido.creado_por.username
+
+    def get_tracking_url(self, pedido):
+        return get_tracking_url(pedido, request=self.context.get("request"))
+
+    def to_internal_value(self, data):
+        if "items" in data and "items_input" not in data:
+            data = data.copy()
+            data["items_input"] = data.get("items")
+        return super().to_internal_value(data)
+
+    def validate_estado(self, value):
+        if value not in dict(PedidoManual.ESTADOS):
+            raise serializers.ValidationError("Estado invalido.")
+
+        if not self.instance:
+            return value
+
+        estado_actual = self.instance.estado
+        if estado_actual == value:
+            return value
+
+        if estado_actual == PedidoManual.ESTADO_CANCELADO:
+            raise serializers.ValidationError("Un pedido cancelado no puede volver al flujo normal.")
+
+        if estado_actual == PedidoManual.ESTADO_ENTREGADO and value != PedidoManual.ESTADO_CANCELADO:
+            raise serializers.ValidationError("Un pedido entregado no puede volver a estados anteriores.")
+
+        orden = [
+            PedidoManual.ESTADO_PENDIENTE,
+            PedidoManual.ESTADO_PREPARANDO,
+            PedidoManual.ESTADO_LISTO,
+            PedidoManual.ESTADO_ENTREGADO,
+        ]
+        if value != PedidoManual.ESTADO_CANCELADO:
+            if estado_actual in orden and value in orden and orden.index(value) < orden.index(estado_actual):
+                raise serializers.ValidationError("No se puede retroceder el estado del pedido.")
+
+        return value
+
+    def validate(self, data):
+        tipo_entrega = data.get("tipo_entrega", getattr(self.instance, "tipo_entrega", None))
+        direccion = (data.get("direccion", getattr(self.instance, "direccion", "")) or "").strip()
+        numero_mesa = (data.get("numero_mesa", getattr(self.instance, "numero_mesa", "")) or "").strip()
+
+        if tipo_entrega == PedidoManual.TIPO_DELIVERY and not direccion:
+            raise serializers.ValidationError({"direccion": "Debe ingresar una direccion para delivery."})
+
+        if tipo_entrega == PedidoManual.TIPO_MESA and not numero_mesa:
+            raise serializers.ValidationError({"numero_mesa": "Debe ingresar el numero de mesa."})
+
+        data["direccion"] = direccion
+        data["numero_mesa"] = numero_mesa
+        for campo in ["nombre_cliente", "telefono_cliente", "observaciones"]:
+            if campo in data:
+                data[campo] = (data.get(campo) or "").strip()
+
+        items = data.pop("items_input", None)
+        if not self.instance and not items:
+            raise serializers.ValidationError({"items": "Agrega al menos un producto al pedido."})
+        if self.instance and items is None:
+            return data
+        if not items:
+            raise serializers.ValidationError({"items": "Agrega al menos un producto al pedido."})
+
+        restaurante = self.context["restaurante"]
+        cantidades = {}
+        observaciones = {}
+        for item in items:
+            producto_id = item["producto_id"]
+            cantidades[producto_id] = cantidades.get(producto_id, 0) + item["cantidad"]
+            observaciones[producto_id] = item.get("observaciones", "")
+
+        productos = Producto.objects.filter(
+            restaurante=restaurante,
+            disponible=True,
+            id__in=cantidades.keys(),
+        ).in_bulk()
+
+        if len(productos) != len(cantidades):
+            raise serializers.ValidationError({
+                "items": "Uno o mas productos no pertenecen a este restaurante o ya no estan disponibles."
+            })
+
+        items_normalizados = []
+        total = 0
+        for producto_id, cantidad in cantidades.items():
+            producto = productos[producto_id]
+            precio = producto.precio
+            subtotal = precio * cantidad
+            total += subtotal
+            items_normalizados.append({
+                "producto": producto,
+                "nombre_producto": producto.nombre,
+                "precio_unitario": precio,
+                "cantidad": cantidad,
+                "subtotal": subtotal,
+                "observaciones": observaciones.get(producto_id, ""),
+            })
+
+        data["items_normalizados"] = items_normalizados
+        data["subtotal"] = total
+        data["total"] = total
+        return data
+
+    def create(self, validated_data):
+        restaurante = self.context["restaurante"]
+        usuario = self.context.get("usuario")
+        items = validated_data.pop("items_normalizados")
+
+        with transaction.atomic():
+            Restaurante.objects.select_for_update().get(id=restaurante.id)
+            ultimo_numero = PedidoManual.objects.filter(
+                restaurante=restaurante
+            ).aggregate(maximo=Max("numero_pedido"))["maximo"] or 0
+
+            pedido = PedidoManual.objects.create(
+                restaurante=restaurante,
+                numero_pedido=ultimo_numero + 1,
+                origen=PedidoManual.ORIGEN_MENLY,
+                creado_por=usuario,
+                **validated_data,
+            )
+            PedidoManualItem.objects.bulk_create([
+                PedidoManualItem(pedido=pedido, **item)
+                for item in items
+            ])
+        return pedido
+
+    def update(self, instance, validated_data):
+        items = validated_data.pop("items_normalizados", None)
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+
+            if items is not None:
+                instance.items.all().delete()
+                PedidoManualItem.objects.bulk_create([
+                    PedidoManualItem(pedido=instance, **item)
+                    for item in items
+                ])
+
+        return instance
+
+
+class PedidoManualSeguimientoPublicoSerializer(serializers.ModelSerializer):
+    restaurante_nombre = serializers.CharField(source="restaurante.nombre_empresa", read_only=True)
+    tipo_entrega_display = serializers.CharField(source="get_tipo_entrega_display", read_only=True)
+    estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    items = serializers.SerializerMethodField()
+    observaciones_cliente = serializers.SerializerMethodField()
+    fecha_actualizacion_estado = serializers.DateTimeField(source="fecha_actualizacion", read_only=True)
+
+    class Meta:
+        model = PedidoManual
+        fields = [
+            "restaurante_nombre",
+            "numero_pedido",
+            "estado",
+            "estado_display",
+            "fecha_creacion",
+            "fecha_actualizacion_estado",
+            "tipo_entrega",
+            "tipo_entrega_display",
+            "total",
+            "items",
+            "observaciones_cliente",
+        ]
+
+    def get_items(self, pedido):
+        return [
+            {
+                "nombre": item.nombre_producto,
+                "cantidad": item.cantidad,
+                "subtotal": int(item.subtotal),
+            }
+            for item in pedido.items.all()
+        ]
+
+    def get_observaciones_cliente(self, pedido):
+        if pedido.tipo_entrega == PedidoManual.TIPO_DELIVERY:
+            return pedido.direccion or ""
+        if pedido.tipo_entrega == PedidoManual.TIPO_MESA and pedido.numero_mesa:
+            return f"Mesa {pedido.numero_mesa}"
+        return ""
 
 
 class SolicitudEspecialDashboardSerializer(serializers.ModelSerializer):

@@ -1,4 +1,4 @@
-from menu.models import PedidoEspecial, PedidoWhatsApp
+from menu.models import PedidoEspecial, PedidoManual, PedidoWhatsApp
 
 
 WHATSAPP_FINALIZADOS = (PedidoWhatsApp.ESTADO_ENTREGADO,)
@@ -17,6 +17,13 @@ WHATSAPP_ACTIVOS = tuple(
 ESPECIALES_ACTIVOS = tuple(
     estado for estado, _ in PedidoEspecial.ESTADOS
     if estado not in ESPECIALES_FINALIZADOS and estado not in ESPECIALES_CANCELADOS
+)
+
+MANUALES_FINALIZADOS = (PedidoManual.ESTADO_ENTREGADO,)
+MANUALES_CANCELADOS = (PedidoManual.ESTADO_CANCELADO,)
+MANUALES_ACTIVOS = tuple(
+    estado for estado, _ in PedidoManual.ESTADOS
+    if estado not in MANUALES_FINALIZADOS and estado not in MANUALES_CANCELADOS
 )
 
 RESERVA_PENDIENTE = "pendiente"

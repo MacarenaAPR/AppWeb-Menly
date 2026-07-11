@@ -9,7 +9,7 @@ from django.core.mail import send_mail
 from django.core.validators import validate_email
 from .serializers import CustomTokenObtainPairSerializer, ContactoPlanesSerializer, ReservaManualSerializer, ProductoCreateSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer
 from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
-from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoWhatsAppEstadoUpdateSerializer, PedidoWhatsAppSeguimientoPublicoSerializer, PedidoEspecialSerializer
+from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoWhatsAppEstadoUpdateSerializer, PedidoWhatsAppSeguimientoPublicoSerializer, PedidoEspecialSerializer, PedidoManualSerializer, PedidoManualSeguimientoPublicoSerializer
 from .serializers import ReporteMetricaSerializer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from .serializers import serializar_plan_restaurante
@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, ReporteMetrica
+from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, PedidoManual, ReporteMetrica
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from django.db.models import Count, F, Q, Prefetch
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -118,6 +118,7 @@ def respuesta_metricas_vacia(error=None, status_code=status.HTTP_200_OK):
             "venta_real_mes": 0,
             "venta_whatsapp_mes": 0,
             "venta_especiales_mes": 0,
+            "venta_menly_mes": 0,
             "ticket_promedio_mes": 0,
         },
         "pedidos": {
@@ -151,7 +152,22 @@ def respuesta_metricas_vacia(error=None, status_code=status.HTTP_200_OK):
                 "pedidos_cancelados_mes": 0,
                 "pedidos_activos": 0,
             },
+            "menly": {
+                "venta_real_hoy": 0,
+                "venta_diaria_menly": 0,
+                "venta_real_semana": 0,
+                "venta_real_mes": 0,
+                "cantidad_pedidos_menly_hoy": 0,
+                "pedidos_creados_hoy": 0,
+                "pedidos_creados_mes": 0,
+                "pedidos_finalizados_hoy": 0,
+                "pedidos_finalizados_mes": 0,
+                "pedidos_cancelados_mes": 0,
+                "pedidos_activos": 0,
+            },
         },
+        "venta_diaria_menly": 0,
+        "cantidad_pedidos_menly_hoy": 0,
         "reservas": {
             "reservas_hoy": 0,
             "reservas_creadas_mes": 0,
@@ -1397,11 +1413,20 @@ class SeguimientoPedidoWhatsAppPublicoView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, tracking_token):
-        pedido = get_object_or_404(
-            PedidoWhatsApp.objects.select_related("restaurante"),
+        pedido_whatsapp = (
+            PedidoWhatsApp.objects
+            .select_related("restaurante")
+            .filter(tracking_token=tracking_token)
+            .first()
+        )
+        if pedido_whatsapp:
+            return Response(PedidoWhatsAppSeguimientoPublicoSerializer(pedido_whatsapp).data)
+
+        pedido_manual = get_object_or_404(
+            PedidoManual.objects.select_related("restaurante").prefetch_related("items"),
             tracking_token=tracking_token
         )
-        return Response(PedidoWhatsAppSeguimientoPublicoSerializer(pedido).data)
+        return Response(PedidoManualSeguimientoPublicoSerializer(pedido_manual).data)
 
 
 def get_perfil_solicitudes_especiales(request):
@@ -1734,6 +1759,84 @@ class PedidoEspecialDetalleDashboardView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class PedidosManualesDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get(self, request):
+        perfil = get_perfil_activo(request)
+        pedidos = PedidoManual.objects.filter(
+            restaurante=perfil.restaurante
+        ).prefetch_related("items").order_by("-fecha_creacion", "-id")
+
+        return paginated_response(
+            request,
+            pedidos,
+            lambda page: PedidoManualSerializer(page, many=True, context={"request": request}).data
+        )
+
+    def post(self, request):
+        perfil = get_perfil_activo(request)
+        bloqueo = bloquear_si_cuenta_inactiva(perfil)
+        if bloqueo:
+            return bloqueo
+
+        serializer = PedidoManualSerializer(
+            data=request.data,
+            context={
+                "restaurante": perfil.restaurante,
+                "usuario": request.user,
+                "request": request,
+            }
+        )
+
+        if serializer.is_valid():
+            pedido = serializer.save()
+            return Response({
+                "message": "Pedido creado correctamente.",
+                "pedido": PedidoManualSerializer(pedido, context={"request": request}).data,
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PedidoManualDetalleDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def get_pedido(self, request, pedido_id):
+        perfil = get_perfil_activo(request)
+        return get_object_or_404(
+            PedidoManual.objects.prefetch_related("items"),
+            id=pedido_id,
+            restaurante=perfil.restaurante,
+        )
+
+    def get(self, request, pedido_id):
+        pedido = self.get_pedido(request, pedido_id)
+        return Response(PedidoManualSerializer(pedido, context={"request": request}).data)
+
+    def patch(self, request, pedido_id):
+        pedido = self.get_pedido(request, pedido_id)
+        serializer = PedidoManualSerializer(
+            pedido,
+            data=request.data,
+            partial=True,
+            context={
+                "restaurante": pedido.restaurante,
+                "usuario": request.user,
+                "request": request,
+            }
+        )
+
+        if serializer.is_valid():
+            pedido = serializer.save()
+            return Response({
+                "message": "Pedido actualizado correctamente.",
+                "pedido": PedidoManualSerializer(pedido, context={"request": request}).data,
+            })
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class PedidosMetricasDashboardView(APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
@@ -1918,26 +2021,52 @@ class DashboardUltimosPedidosView(APIView):
 
         try:
             hoy = localtime(now()).date()
-            pedidos = PedidoWhatsApp.objects.filter(
+            pedidos_whatsapp = PedidoWhatsApp.objects.filter(
+                restaurante=perfil.restaurante,
+                fecha_creacion__date=hoy,
+            ).order_by("-fecha_creacion", "-id")[:10]
+            pedidos_manuales = PedidoManual.objects.filter(
                 restaurante=perfil.restaurante,
                 fecha_creacion__date=hoy,
             ).order_by("-fecha_creacion", "-id")[:10]
 
-            return Response([
-                {
-                    "id": pedido.id,
-                    "numero_pedido": pedido.numero_pedido,
-                    "nombre_cliente": pedido.nombre_cliente or "Cliente",
-                    "tipo_entrega": pedido.tipo_entrega or "",
-                    "fecha_creacion": pedido.fecha_creacion,
-                    "hora_formateada": (
-                        localtime(pedido.fecha_creacion).strftime("%H:%M")
-                        if pedido.fecha_creacion
-                        else ""
-                    ),
-                }
-                for pedido in pedidos
-            ])
+            pedidos = sorted(
+                [
+                    {
+                        "id": pedido.id,
+                        "numero_pedido": pedido.numero_pedido,
+                        "nombre_cliente": pedido.nombre_cliente or "Cliente",
+                        "tipo_entrega": pedido.tipo_entrega or "",
+                        "fecha_creacion": pedido.fecha_creacion,
+                        "hora_formateada": (
+                            localtime(pedido.fecha_creacion).strftime("%H:%M")
+                            if pedido.fecha_creacion
+                            else ""
+                        ),
+                        "origen": "whatsapp",
+                    }
+                    for pedido in pedidos_whatsapp
+                ] + [
+                    {
+                        "id": pedido.id,
+                        "numero_pedido": pedido.numero_pedido,
+                        "nombre_cliente": pedido.nombre_cliente or "Cliente",
+                        "tipo_entrega": pedido.tipo_entrega or "",
+                        "fecha_creacion": pedido.fecha_creacion,
+                        "hora_formateada": (
+                            localtime(pedido.fecha_creacion).strftime("%H:%M")
+                            if pedido.fecha_creacion
+                            else ""
+                        ),
+                        "origen": pedido.origen,
+                    }
+                    for pedido in pedidos_manuales
+                ],
+                key=lambda item: item["fecha_creacion"],
+                reverse=True,
+            )[:10]
+
+            return Response(pedidos)
         except Exception:
             logger.exception(
                 "Error al cargar ultimos pedidos del dashboard",

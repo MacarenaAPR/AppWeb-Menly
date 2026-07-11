@@ -336,8 +336,8 @@ export default function Dashboard() {
 
   const iconoPedido = (tipoEntrega) => {
     if (tipoEntrega === "delivery") return <FaMotorcycle/>;
-    if (tipoEntrega === "retiro_local") return <AiOutlineShop/>;
-    if (tipoEntrega === "para_llevar") return <TbShoppingBag/>;
+    if (tipoEntrega === "retiro_local","retiro") return <AiOutlineShop/>;
+    if (tipoEntrega === "para_llevar","llevar") return <TbShoppingBag/>;
     return "bi bi-receipt";
   };
 
