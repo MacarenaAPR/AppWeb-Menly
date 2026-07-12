@@ -11,12 +11,15 @@ import Historial from './pages/Historial'
 import ReservasDashboard from './pages/Reserva'
 import SolicitudesEspecialesDashboard from './pages/SolicitudesEspeciales'
 import PedidosDashboard from './pages/Pedidos'
+import PedidosCocina from './pages/PedidosCocina'
+import CocinaActivar from './pages/CocinaActivar'
 import MetricasDashboard from './pages/Metricas'
 import ConfiguracionRestaurante from './pages/Configuracion'
 import SaberMas from './pages/SaberMas'
 import Planes from './pages/Planes'
 import RequireRole from './componentes/RequireRole'
 import Footer from './componentes/Footer'
+import { useLocation } from 'react-router-dom';
 
 
 function MetricasPlaceholder() {
@@ -35,11 +38,15 @@ function MetricasPlaceholder() {
   );
 }
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+  const esRutaCocina = location.pathname.startsWith("/pedidos-cocina");
+
   return (
-    <BrowserRouter>
-      <div className="app-shell">
+      <div className={`app-shell ${esRutaCocina ? "app-shell-cocina" : ""}`}>
         <Routes>
+          <Route path="/pedidos-cocina/activar/:token" element={<CocinaActivar />} />
+          <Route path="/pedidos-cocina" element={<PedidosCocina />} />
           <Route path="/dashboard/:slug/configuracion" element={
             <RequireRole roles={["dueno", "admin"]}>
               <ConfiguracionRestaurante />
@@ -70,8 +77,15 @@ function App() {
             </RequireRole>
           } />
         </Routes>
-        <Footer />
+        {!esRutaCocina && <Footer />}
       </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   );
 }

@@ -10,7 +10,7 @@ from datetime import date, datetime, time, timedelta
 from importlib import import_module
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host
@@ -171,6 +171,8 @@ class DashboardMetricasResilienciaTests(BaseTestCase):
 class PedidoManualDashboardTests(BaseTestCase):
     def setUp(self):
         super().setUp()
+        self.restaurante.pedidos_pos = True
+        self.restaurante.save(update_fields=["pedidos_pos"])
         self.client.force_authenticate(user=self.dueno)
         self.otro_producto = Producto.objects.create(
             restaurante=self.otro_restaurante,
@@ -430,7 +432,7 @@ class PedidoManualDashboardTests(BaseTestCase):
             mensaje_whatsapp_generado="Pedido",
             whatsapp_destino="56911111111",
         )
-        PedidoEspecial.objects.create(
+        pedido_especial = PedidoEspecial.objects.create(
             restaurante=self.restaurante,
             numero_pedido=1,
             nombre_cliente="Especial",
@@ -449,6 +451,155 @@ class PedidoManualDashboardTests(BaseTestCase):
         self.assertEqual(data["cantidad_pedidos_menly_hoy"], 2)
         self.assertEqual(data["canales"]["menly"]["venta_diaria_menly"], 4500)
         self.assertEqual(data["canales"]["menly"]["cantidad_pedidos_menly_hoy"], 2)
+
+
+class CocinaComandasTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.restaurante.pedidos_pos = True
+        self.restaurante.save(update_fields=["pedidos_pos"])
+
+    def activar_cocina(self, usuario=None):
+        self.client.force_authenticate(user=usuario or self.dueno)
+        response = self.client.post("/api/mi-restaurante/cocina/activacion/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        token = response.json()["activation_url"].rstrip("/").split("/")[-1]
+        self.client.force_authenticate(user=None)
+        response = self.client.post(f"/api/cocina/activar/{token}/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return token
+
+    def test_dueno_y_admin_generan_activacion_empleado_no(self):
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.post("/api/mi-restaurante/cocina/activacion/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("activation_url", response.json())
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post("/api/mi-restaurante/cocina/activacion/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        self.client.force_authenticate(user=self.empleado)
+        response = self.client.post("/api/mi-restaurante/cocina/activacion/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_token_activacion_se_consume_una_sola_vez_y_crea_sesion(self):
+        token = self.activar_cocina()
+
+        self.assertEqual(ActivacionCocina.objects.count(), 1)
+        self.assertEqual(SesionCocina.objects.count(), 1)
+        self.assertIsNotNone(ActivacionCocina.objects.first().consumido_en)
+
+        response = self.client.post(f"/api/cocina/activar/{token}/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_comandas_filtra_estados_y_solo_restaurante_de_la_sesion(self):
+        self.activar_cocina()
+        pedido_wsp = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="WhatsApp",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{"nombre": "Completo", "cantidad": 2}],
+            total=3000,
+            estado=PedidoWhatsApp.ESTADO_EN_PREPARACION,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        pedido_manual = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_MESA,
+            numero_mesa="4",
+            subtotal=1500,
+            total=1500,
+            estado=PedidoManual.ESTADO_PREPARANDO,
+        )
+        pedido_manual.items.create(
+            nombre_producto=self.producto.nombre,
+            precio_unitario=1500,
+            cantidad=1,
+            subtotal=1500,
+            observaciones="Sin hielo",
+        )
+        pedido_especial = PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Especial",
+            telefono_cliente="56911111111",
+            items=[{"nombre": "Torta", "cantidad": 1}],
+            total=10000,
+            fecha_entrega=timezone.localdate(),
+            estado=PedidoEspecial.ESTADO_LISTO,
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.otro_restaurante,
+            numero_pedido=1,
+            nombre_cliente="Otro",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{"nombre": "Ajeno", "cantidad": 1}],
+            total=1000,
+            estado=PedidoWhatsApp.ESTADO_EN_PREPARACION,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Pendiente",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{"nombre": "Pendiente", "cantidad": 1}],
+            total=1000,
+            estado=PedidoWhatsApp.ESTADO_RECIBIDO,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+
+        response = self.client.get("/api/cocina/comandas/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = {item["id"] for item in response.json()["comandas"]}
+        self.assertEqual(ids, {f"whatsapp:{pedido_wsp.id}", f"menly:{pedido_manual.id}", f"especial:{pedido_especial.id}"})
+
+    def test_cocina_cambia_estado_listo_y_entregado(self):
+        self.activar_cocina()
+        pedido = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=1500,
+            total=1500,
+            estado=PedidoManual.ESTADO_PREPARANDO,
+        )
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/menly:{pedido.id}/estado/",
+            {"estado": "listo"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.estado, PedidoManual.ESTADO_LISTO)
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/menly:{pedido.id}/estado/",
+            {"estado": "entregado"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.estado, PedidoManual.ESTADO_ENTREGADO)
+
+    def test_cerrar_cocina_invalida_sesion(self):
+        self.activar_cocina()
+        response = self.client.post("/api/cocina/cerrar/", {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response = self.client.get("/api/cocina/comandas/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class ConfiguracionRestauranteOperacionTests(BaseTestCase):

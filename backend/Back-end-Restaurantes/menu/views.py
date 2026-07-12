@@ -49,6 +49,15 @@ from menu.services.metricas.resumen import (
     construir_resumen_metricas,
 )
 from menu.services.estado_restaurante import calcular_estado_abierto
+from menu.services.cocina import (
+    cambiar_estado_comanda,
+    consumir_activacion_cocina,
+    crear_activacion_cocina,
+    limpiar_cookie_cocina,
+    obtener_comandas_activas,
+    obtener_sesion_cocina,
+    set_cookie_cocina,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -314,6 +323,7 @@ RESTAURANTE_FEATURE_FLAGS = [
     "reservas_activas",
     "solicitudes_especiales_activas",
     "carrito_whatsapp_activo",
+    "pedidos_pos",
     "delivery_activo",
     "metricas_activas",
 ]
@@ -1764,6 +1774,11 @@ class PedidosManualesDashboardView(APIView):
 
     def get(self, request):
         perfil = get_perfil_activo(request)
+        if not perfil.restaurante.pedidos_pos:
+            return Response(
+                {"error": "El modulo de pedidos POS no esta activo para este restaurante."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         pedidos = PedidoManual.objects.filter(
             restaurante=perfil.restaurante
         ).prefetch_related("items").order_by("-fecha_creacion", "-id")
@@ -1776,6 +1791,11 @@ class PedidosManualesDashboardView(APIView):
 
     def post(self, request):
         perfil = get_perfil_activo(request)
+        if not perfil.restaurante.pedidos_pos:
+            return Response(
+                {"error": "El modulo de pedidos POS no esta activo para este restaurante."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         bloqueo = bloquear_si_cuenta_inactiva(perfil)
         if bloqueo:
             return bloqueo
@@ -1804,6 +1824,8 @@ class PedidoManualDetalleDashboardView(APIView):
 
     def get_pedido(self, request, pedido_id):
         perfil = get_perfil_activo(request)
+        if not perfil.restaurante.pedidos_pos:
+            raise PermissionDenied("El modulo de pedidos POS no esta activo para este restaurante.")
         return get_object_or_404(
             PedidoManual.objects.prefetch_related("items"),
             id=pedido_id,
@@ -1835,6 +1857,120 @@ class PedidoManualDetalleDashboardView(APIView):
             })
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def aplicar_headers_cocina(response):
+    response["Cache-Control"] = "no-store"
+    response["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
+class CocinaActivacionDashboardView(APIView):
+    permission_classes = [IsAuthenticated, CanManageReservas]
+
+    def post(self, request):
+        perfil = get_perfil_activo(request)
+        if perfil.rol not in ["dueno", "admin"]:
+            return Response({"error": "No autorizado"}, status=status.HTTP_403_FORBIDDEN)
+
+        bloqueo = bloquear_si_cuenta_inactiva(perfil)
+        if bloqueo:
+            return bloqueo
+
+        data = crear_activacion_cocina(perfil.restaurante, request.user, request)
+        return aplicar_headers_cocina(Response(data, status=status.HTTP_201_CREATED))
+
+
+class CocinaActivarView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request, token):
+        sesion, token_sesion, error = consumir_activacion_cocina(token)
+        if error:
+            return aplicar_headers_cocina(Response({"error": error}, status=status.HTTP_400_BAD_REQUEST))
+
+        response = Response({
+            "message": "Cocina activada correctamente.",
+            "redirect_to": "/pedidos-cocina",
+            "restaurante": {
+                "nombre_empresa": sesion.restaurante.nombre_empresa,
+                "slug": sesion.restaurante.slug,
+            },
+            "expires_at": sesion.expira_en,
+        })
+        set_cookie_cocina(response, token_sesion, sesion.expira_en)
+        return aplicar_headers_cocina(response)
+
+
+class CocinaComandasView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        sesion = obtener_sesion_cocina(request)
+        if not sesion:
+            response = Response({"error": "Sesion de cocina expirada o invalida."}, status=status.HTTP_401_UNAUTHORIZED)
+            limpiar_cookie_cocina(response)
+            return aplicar_headers_cocina(response)
+
+        comandas = obtener_comandas_activas(sesion.restaurante)
+        return aplicar_headers_cocina(Response({
+            "restaurante": {
+                "nombre_empresa": sesion.restaurante.nombre_empresa,
+                "slug": sesion.restaurante.slug,
+            },
+            "fecha_operativa": sesion.fecha_operativa,
+            "expires_at": sesion.expira_en,
+            "comandas": comandas,
+        }))
+
+
+class CocinaComandaEstadoView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def patch(self, request, pedido_id):
+        sesion = obtener_sesion_cocina(request)
+        if not sesion:
+            response = Response({"error": "Sesion de cocina expirada o invalida."}, status=status.HTTP_401_UNAUTHORIZED)
+            limpiar_cookie_cocina(response)
+            return aplicar_headers_cocina(response)
+
+        estado = request.data.get("estado")
+        if estado not in ["listo", "entregado"]:
+            return aplicar_headers_cocina(Response(
+                {"estado": "Cocina solo puede marcar pedidos como listo o entregado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            ))
+
+        pedido, error = cambiar_estado_comanda(sesion.restaurante, pedido_id, estado)
+        if error:
+            return aplicar_headers_cocina(Response({"error": error}, status=status.HTTP_400_BAD_REQUEST))
+
+        return aplicar_headers_cocina(Response({
+            "message": "Estado actualizado correctamente.",
+            "pedido": {
+                "id": pedido_id,
+                "estado": pedido.estado,
+            },
+        }))
+
+
+class CocinaCerrarView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        sesion = obtener_sesion_cocina(request)
+        if sesion:
+            sesion.activa = False
+            sesion.cerrada_en = now()
+            sesion.save(update_fields=["activa", "cerrada_en"])
+
+        response = Response({"message": "Sesion de cocina cerrada."})
+        limpiar_cookie_cocina(response)
+        return aplicar_headers_cocina(response)
 
 
 class PedidosMetricasDashboardView(APIView):

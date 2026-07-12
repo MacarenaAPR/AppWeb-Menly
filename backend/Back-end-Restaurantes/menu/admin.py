@@ -1,4 +1,4 @@
-from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,ReporteMetrica
+from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,ActivacionCocina,SesionCocina,ReporteMetrica
 from .forms import ProductoCSVImportForm
 
 import csv
@@ -37,6 +37,7 @@ class RestauranteAdmin(admin.ModelAdmin):
         "reservas_activas",
         "solicitudes_especiales_activas",
         "carrito_whatsapp_activo",
+        "pedidos_pos",
         "metricas_activas",
         "fecha_creacion",
         "imgen_principal",
@@ -49,6 +50,7 @@ class RestauranteAdmin(admin.ModelAdmin):
         "reservas_activas",
         "solicitudes_especiales_activas",
         "carrito_whatsapp_activo",
+        "pedidos_pos",
         "metricas_activas",
         "plan",
         "ciudad",
@@ -104,6 +106,7 @@ class RestauranteAdmin(admin.ModelAdmin):
                 "reservas_activas",
                 "solicitudes_especiales_activas",
                 "carrito_whatsapp_activo",
+                "pedidos_pos",
                 "delivery_activo",
                 "metricas_activas",
             )
@@ -119,6 +122,7 @@ class RestauranteAdmin(admin.ModelAdmin):
                 "reservas_activas",
                 "solicitudes_especiales_activas",
                 "carrito_whatsapp_activo",
+                "pedidos_pos",
                 "delivery_activo",
                 "abierto",
                 "metricas_activas",
@@ -478,6 +482,24 @@ class PedidoManualAdmin(admin.ModelAdmin):
         "fecha_actualizacion",
     )
     inlines = [PedidoManualItemInline]
+
+
+@admin.register(ActivacionCocina)
+class ActivacionCocinaAdmin(admin.ModelAdmin):
+    list_display = ("id", "restaurante", "creado_por", "creado_en", "expira_en", "consumido_en", "activa")
+    list_filter = ("activa", "restaurante")
+    search_fields = ("restaurante__nombre_empresa", "creado_por__username")
+    readonly_fields = ("token_hash", "creado_en", "consumido_en")
+    ordering = ("-creado_en",)
+
+
+@admin.register(SesionCocina)
+class SesionCocinaAdmin(admin.ModelAdmin):
+    list_display = ("id", "restaurante", "fecha_operativa", "creado_en", "expira_en", "cerrada_en", "activa")
+    list_filter = ("activa", "fecha_operativa", "restaurante")
+    search_fields = ("restaurante__nombre_empresa",)
+    readonly_fields = ("token_hash", "creado_en", "cerrada_en")
+    ordering = ("-creado_en",)
 
 
 @admin.register(ReporteMetrica)

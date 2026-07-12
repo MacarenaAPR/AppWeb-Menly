@@ -1,4 +1,5 @@
 import django
+import hashlib
 import secrets
 from django.db import models
 from cloudinary.models import CloudinaryField
@@ -82,6 +83,7 @@ class Restaurante(models.Model):
     reservas_activas = models.BooleanField(default=True)
     solicitudes_especiales_activas = models.BooleanField(default=False)
     carrito_whatsapp_activo = models.BooleanField(default=False)
+    pedidos_pos = models.BooleanField(default=False, verbose_name="Pedidos POS activos")
     delivery_activo = models.BooleanField(default=False)
     abierto = models.BooleanField(default=True)
     metricas_activas = models.BooleanField(default=True)
@@ -705,6 +707,105 @@ class PedidoManualItem(models.Model):
 
     def __str__(self):
         return f"{self.cantidad} x {self.nombre_producto}"
+
+
+class ActivacionCocina(models.Model):
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="activaciones_cocina",
+    )
+    token_hash = models.CharField(max_length=128, unique=True)
+    creado_por = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="activaciones_cocina_creadas",
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+    expira_en = models.DateTimeField()
+    consumido_en = models.DateTimeField(null=True, blank=True)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-creado_en"]
+        indexes = [
+            models.Index(fields=["restaurante", "-creado_en"], name="actcoc_rest_creado_idx"),
+            models.Index(fields=["token_hash"], name="actcoc_token_hash_idx"),
+        ]
+
+    @staticmethod
+    def generar_token():
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def hashear_token(token):
+        return hashlib.sha256(str(token).encode("utf-8")).hexdigest()
+
+    @classmethod
+    def crear(cls, restaurante, usuario, expira_en):
+        token = cls.generar_token()
+        activacion = cls.objects.create(
+            restaurante=restaurante,
+            creado_por=usuario,
+            token_hash=cls.hashear_token(token),
+            expira_en=expira_en,
+        )
+        return activacion, token
+
+    @property
+    def consumida(self):
+        return self.consumido_en is not None
+
+    def puede_consumirse(self):
+        return self.activa and not self.consumida and timezone.now() <= self.expira_en
+
+
+class SesionCocina(models.Model):
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="sesiones_cocina",
+    )
+    token_hash = models.CharField(max_length=128, unique=True)
+    fecha_operativa = models.DateField()
+    creado_en = models.DateTimeField(auto_now_add=True)
+    expira_en = models.DateTimeField()
+    cerrada_en = models.DateTimeField(null=True, blank=True)
+    activa = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-creado_en"]
+        indexes = [
+            models.Index(fields=["restaurante", "fecha_operativa", "activa"], name="sescoc_rest_fecha_idx"),
+            models.Index(fields=["token_hash"], name="sescoc_token_hash_idx"),
+        ]
+
+    @staticmethod
+    def generar_token():
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def hashear_token(token):
+        return hashlib.sha256(str(token).encode("utf-8")).hexdigest()
+
+    @classmethod
+    def crear(cls, restaurante, expira_en):
+        token = cls.generar_token()
+        sesion = cls.objects.create(
+            restaurante=restaurante,
+            token_hash=cls.hashear_token(token),
+            fecha_operativa=timezone.localdate(),
+            expira_en=expira_en,
+        )
+        return sesion, token
+
+    def esta_vigente(self):
+        return (
+            self.activa
+            and self.cerrada_en is None
+            and self.fecha_operativa == timezone.localdate()
+            and timezone.now() <= self.expira_en
+        )
 
 
 class Notificacion(models.Model):

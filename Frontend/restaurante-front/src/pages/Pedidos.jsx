@@ -122,6 +122,7 @@ const normalizarListaPedidos = (data) => {
 
 export default function PedidosDashboard() {
   const [restaurante, setRestaurante] = useState(null);
+  const [usuario, setUsuario] = useState(null);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
   const [tabActiva, setTabActiva] = useState("");
   const [pedidosWhatsapp, setPedidosWhatsapp] = useState([]);
@@ -138,6 +139,8 @@ export default function PedidosDashboard() {
   const [formEspecial, setFormEspecial] = useState(formEspecialInicial);
   const [formManual, setFormManual] = useState(formManualInicial);
   const [guardandoManual, setGuardandoManual] = useState(false);
+  const [abriendoCocina, setAbriendoCocina] = useState(false);
+  const [activacionCocinaUrl, setActivacionCocinaUrl] = useState("");
   const [pedidoManualWhatsappListo, setPedidoManualWhatsappListo] = useState(null);
   const [observacionManualEditor, setObservacionManualEditor] = useState(null);
   const [detalleItems, setDetalleItems] = useState([]);
@@ -154,7 +157,9 @@ export default function PedidosDashboard() {
 
   const whatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   const especialesActivo = restaurante?.solicitudes_especiales_activas === true;
+  const posActivo = restaurante?.pedidos_pos === true;
   const deliveryActivo = restaurante?.delivery_activo === true;
+  const puedeAbrirCocina = ["dueno", "admin"].includes(usuario?.rol);
   const obtenerEstadosPedidoWhatsapp = (pedido) => {
     if (!deliveryActivo || pedido?.tipo_entrega !== "delivery") return ESTADOS_PEDIDO_BASE;
 
@@ -165,11 +170,12 @@ export default function PedidosDashboard() {
   };
 
   const tabsDisponibles = useMemo(() => {
-    const tabs = ["menly"];
+    const tabs = [];
+    if (posActivo) tabs.push("menly");
     if (whatsappActivo) tabs.push("whatsapp");
     if (especialesActivo) tabs.push("especiales");
     return tabs;
-  }, [whatsappActivo, especialesActivo]);
+  }, [posActivo, whatsappActivo, especialesActivo]);
 
   const cargarRestaurante = useCallback(async () => {
     const response = await authFetch("/mi-restaurante/", { cache: "no-store" });
@@ -179,6 +185,7 @@ export default function PedidosDashboard() {
       "No se pudo cargar el restaurante."
     );
     setRestaurante(data.restaurante);
+    setUsuario(data.usuario || null);
     setCatalogoProductos((data.productos || []).filter((producto) => producto.disponible !== false));
     return data.restaurante;
   }, []);
@@ -198,7 +205,9 @@ export default function PedidosDashboard() {
       requests.push(authFetch("/mi-restaurante/pedidos/especiales/"));
     }
 
-    requests.push(authFetch("/mi-restaurante/pedidos/manuales/"));
+    if (restauranteActual.pedidos_pos === true) {
+      requests.push(authFetch("/mi-restaurante/pedidos/manuales/"));
+    }
 
     const respuestas = await Promise.all(requests);
     const metricasResponse = respuestas[0];
@@ -237,13 +246,17 @@ export default function PedidosDashboard() {
       setPedidosEspeciales([]);
     }
 
-    const manualesResponse = respuestas[indice];
-    const manualesData = await readJsonResponse(
-      manualesResponse,
-      "/mi-restaurante/pedidos/manuales/",
-      "No se pudieron cargar los pedidos Menly."
-    );
-    setPedidosManuales(normalizarListaPedidos(manualesData));
+    if (restauranteActual.pedidos_pos === true) {
+      const manualesResponse = respuestas[indice];
+      const manualesData = await readJsonResponse(
+        manualesResponse,
+        "/mi-restaurante/pedidos/manuales/",
+        "No se pudieron cargar los pedidos Menly."
+      );
+      setPedidosManuales(normalizarListaPedidos(manualesData));
+    } else {
+      setPedidosManuales([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -252,12 +265,12 @@ export default function PedidosDashboard() {
       setError("");
       try {
         const restauranteActual = await cargarRestaurante();
-        if (restauranteActual.carrito_whatsapp_activo) {
+        if (restauranteActual.pedidos_pos) {
+          setTabActiva("menly");
+        } else if (restauranteActual.carrito_whatsapp_activo) {
           setTabActiva("whatsapp");
         } else if (restauranteActual.solicitudes_especiales_activas) {
           setTabActiva("especiales");
-        } else {
-          setTabActiva("menly");
         }
         await cargarPedidos(restauranteActual);
       } catch (requestError) {
@@ -709,6 +722,42 @@ export default function PedidosDashboard() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const abrirCocina = async () => {
+    if (abriendoCocina) return;
+    setError("");
+    setMensaje("");
+    setActivacionCocinaUrl("");
+
+    try {
+      setAbriendoCocina(true);
+      const response = await authFetch("/mi-restaurante/cocina/activacion/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await readJsonResponse(
+        response,
+        "/mi-restaurante/cocina/activacion/",
+        "No se pudo abrir cocina."
+      );
+      const activationUrl = data?.activation_url;
+      if (!activationUrl) {
+        throw new Error("No se pudo generar el enlace de cocina.");
+      }
+
+      const nuevaVentana = window.open(activationUrl, "_blank", "noopener,noreferrer");
+      if (!nuevaVentana) {
+        setActivacionCocinaUrl(activationUrl);
+        setMensaje("El navegador bloqueo la nueva pestaña. Abre cocina con el enlace manual.");
+      } else {
+        setMensaje("Cocina autorizada en una nueva pestaña.");
+      }
+    } catch (requestError) {
+      setError(requestError.message || "No se pudo abrir cocina.");
+    } finally {
+      setAbriendoCocina(false);
+    }
+  };
+
   const abrirEditorObservacionManual = (item) => {
     setObservacionManualEditor({
       productoId: item.producto_id,
@@ -869,6 +918,17 @@ export default function PedidosDashboard() {
                 </button>
               </div>
             )}
+            {activacionCocinaUrl && (
+              <div className="pedido-cocina-manual-link">
+                <span>Enlace temporal de cocina generado.</span>
+                <a href={activacionCocinaUrl} target="_blank" rel="noreferrer">
+                  Abrir cocina
+                </a>
+                <button type="button" onClick={() => navigator.clipboard?.writeText(activacionCocinaUrl)}>
+                  Copiar enlace
+                </button>
+              </div>
+            )}
 
             <div className="breadcrumb-reservas">
               <span>Inicio</span>
@@ -928,7 +988,9 @@ export default function PedidosDashboard() {
                     onChange={(event) => setTabActiva(event.target.value)}
                     aria-label="Seleccionar tipo de pedidos"
                   >
-                    <option value="menly">Pedidos Menly ({pedidosManuales.length})</option>
+                    {posActivo && (
+                      <option value="menly">Pedidos Menly ({pedidosManuales.length})</option>
+                    )}
                     {whatsappActivo && (
                       <option value="whatsapp">Pedidos por WhatsApp ({pedidosWhatsapp.length})</option>
                     )}
@@ -946,12 +1008,20 @@ export default function PedidosDashboard() {
                       Nuevo pedido especial
                     </button>
                   )}
+                  {puedeAbrirCocina && (
+                    <button className="crear-reserva-btn pedido-cocina-btn" type="button" onClick={abrirCocina} disabled={abriendoCocina}>
+                      <i className="bi bi-display"></i>
+                      {abriendoCocina ? "Abriendo..." : "Abrir cocina"}
+                    </button>
+                  )}
                 </div>
 
                 <div className="tabs-row pedidos-tabs">
-                  <button className={`tab ${tabActiva === "menly" ? "active" : ""}`} onClick={() => setTabActiva("menly")}>
-                    Pedidos Menly ({pedidosManuales.length})
-                  </button>
+                  {posActivo && (
+                    <button className={`tab ${tabActiva === "menly" ? "active" : ""}`} onClick={() => setTabActiva("menly")}>
+                      Pedidos Menly ({pedidosManuales.length})
+                    </button>
+                  )}
                   {whatsappActivo && (
                     <button className={`tab ${tabActiva === "whatsapp" ? "active" : ""}`} onClick={() => setTabActiva("whatsapp")}>
                       Pedidos por WhatsApp ({pedidosWhatsapp.length})
@@ -968,14 +1038,22 @@ export default function PedidosDashboard() {
                       Nuevo pedido especial
                     </button>
                   )}
-                  <button className="crear-reserva-btn" type="button" onClick={abrirCrearManual}>
-                    <i className="bi bi-plus-lg"></i>
-                    Nuevo pedido
-                  </button>
+                  {posActivo && (
+                    <button className="crear-reserva-btn" type="button" onClick={abrirCrearManual}>
+                      <i className="bi bi-plus-lg"></i>
+                      Nuevo pedido
+                    </button>
+                  )}
+                  {puedeAbrirCocina && (
+                    <button className="crear-reserva-btn pedido-cocina-btn" type="button" onClick={abrirCocina} disabled={abriendoCocina}>
+                      <i className="bi bi-display"></i>
+                      {abriendoCocina ? "Abriendo..." : "Abrir cocina"}
+                    </button>
+                  )}
                 </div>
               </section>
 
-              {tabActiva === "menly" && (
+              {posActivo && tabActiva === "menly" && (
                 <section className="reservas-table-card">
                   <table className="reservas-table pedidos-table">
                     <thead>

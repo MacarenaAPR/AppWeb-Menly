@@ -78,7 +78,7 @@ export async function readJsonResponse(response, endpoint, fallbackMessage = "No
 
   try {
     data = JSON.parse(bodyText);
-  } catch (parseError) {
+  } catch {
     console.error(endpoint, response.status, bodyText);
     throw new Error(fallbackMessage);
   }
@@ -192,4 +192,27 @@ export async function authFetch(url, options = {}) {
 
   response = await hacerRequest(data.access);
   return response;
+}
+
+export async function cocinaFetch(url, options = {}) {
+  const finalUrl = buildApiUrl(url);
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(
+    () => controller.abort(),
+    options.timeout || REQUEST_TIMEOUT_MS
+  );
+
+  try {
+    return await fetch(finalUrl, {
+      ...options,
+      credentials: "include",
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        ...(options.headers || {}),
+      },
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }

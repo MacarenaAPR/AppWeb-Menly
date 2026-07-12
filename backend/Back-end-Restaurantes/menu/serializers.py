@@ -294,12 +294,14 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "reservas_activas",
             "solicitudes_especiales_activas",
             "carrito_whatsapp_activo",
+            "pedidos_pos",
             "metricas_activas",
         ]
         read_only_fields = [
             "reservas_activas",
             "solicitudes_especiales_activas",
             "carrito_whatsapp_activo",
+            "pedidos_pos",
             "metricas_activas",
             "plan",
             "abierto_ahora",
@@ -369,6 +371,7 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
             "reservas_activas",
             "solicitudes_especiales_activas",
             "carrito_whatsapp_activo",
+            "pedidos_pos",
             "metricas_activas",
         ]
 

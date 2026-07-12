@@ -100,7 +100,7 @@ export default function MainMenu({
       isActive: location.pathname === `/dashboard/${restaurante.slug}`,
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}`),
     },
-    (restaurante.carrito_whatsapp_activo === true || restaurante.solicitudes_especiales_activas === true) && permisos.canManageReservas && {
+    (restaurante.pedidos_pos === true || restaurante.carrito_whatsapp_activo === true || restaurante.solicitudes_especiales_activas === true) && permisos.canManageReservas && {
       key: "pedidos",
       icon: <LuShoppingCart />,
       name: "Pedidos",
