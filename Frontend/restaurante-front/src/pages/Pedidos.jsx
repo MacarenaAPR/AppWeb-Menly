@@ -732,6 +732,7 @@ export default function PedidosDashboard() {
       setAbriendoCocina(true);
       const response = await authFetch("/mi-restaurante/cocina/activacion/", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
       const data = await readJsonResponse(

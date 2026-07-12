@@ -1,6 +1,7 @@
 from datetime import datetime, time, timedelta
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 from menu.models import (
@@ -26,7 +27,7 @@ def fin_dia_actual():
 
 
 def construir_url_activacion(request, token):
-    base_url = (request.META.get("HTTP_ORIGIN") or request.build_absolute_uri("/")).rstrip("/")
+    base_url = settings.FRONTEND_PUBLIC_URL.rstrip("/")
     return f"{base_url}/pedidos-cocina/activar/{token}"
 
 
@@ -42,52 +43,25 @@ def crear_activacion_cocina(restaurante, usuario, request):
 def consumir_activacion_cocina(token):
     token_hash = ActivacionCocina.hashear_token(token)
 
-    activacion = (
-        ActivacionCocina.objects
-        .select_related("restaurante")
-        .filter(token_hash=token_hash)
-        .first()
-    )
+    with transaction.atomic():
+        activacion = (
+            ActivacionCocina.objects
+            .select_for_update()
+            .select_related("restaurante")
+            .filter(token_hash=token_hash)
+            .first()
+        )
 
-    if not activacion:
-        print("COCINA DEBUG: activación no encontrada")
-        print("Token recibido, longitud:", len(token))
-        print("Hash calculado:", token_hash[:15])
+        if not activacion or not activacion.puede_consumirse():
+            return None, None, "Este enlace de activacion ya no es valido."
 
-        ultima = ActivacionCocina.objects.order_by("-creado_en").first()
+        sesion, token_sesion = SesionCocina.crear(
+            activacion.restaurante,
+            expira_en=fin_dia_actual(),
+        )
 
-        if ultima:
-            print("Última activación ID:", ultima.id)
-            print("Hash guardado:", ultima.token_hash[:15])
-            print("Creada:", ultima.creado_en)
-            print("Expira:", ultima.expira_en)
-            print("Consumida:", ultima.consumido_en)
-
-        return None, None, "DEBUG: activacion no encontrada"
-
-    print("COCINA DEBUG: activación encontrada")
-    print("ID:", activacion.id)
-    print("Ahora:", timezone.now())
-    print("Expira:", activacion.expira_en)
-    print("Consumida:", activacion.consumido_en)
-    print("Puede consumirse:", activacion.puede_consumirse())
-
-    if not activacion.puede_consumirse():
-        if activacion.consumido_en:
-            return None, None, "DEBUG: activacion ya consumida"
-
-        if activacion.expira_en <= timezone.now():
-            return None, None, "DEBUG: activacion expirada"
-
-        return None, None, "DEBUG: activacion rechazada por puede_consumirse"
-
-    sesion, token_sesion = SesionCocina.crear(
-        activacion.restaurante,
-        expira_en=fin_dia_actual(),
-    )
-
-    activacion.consumido_en = timezone.now()
-    activacion.save(update_fields=["consumido_en"])
+        activacion.consumido_en = timezone.now()
+        activacion.save(update_fields=["consumido_en"])
 
     return sesion, token_sesion, ""
 
@@ -98,14 +72,20 @@ def set_cookie_cocina(response, token_sesion, expira_en):
         token_sesion,
         expires=expira_en,
         httponly=True,
-        secure=not settings.DEBUG,
+        secure=settings.IS_PRODUCTION,
         samesite="Lax",
         path="/",
+        domain=settings.COCINA_COOKIE_DOMAIN,
     )
 
 
 def limpiar_cookie_cocina(response):
-    response.delete_cookie(COOKIE_COCINA, path="/", samesite="Lax")
+    response.delete_cookie(
+        COOKIE_COCINA,
+        path="/",
+        samesite="Lax",
+        domain=settings.COCINA_COOKIE_DOMAIN,
+    )
 
 
 def obtener_sesion_cocina(request):

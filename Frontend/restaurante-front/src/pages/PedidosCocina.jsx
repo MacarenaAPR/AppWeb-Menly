@@ -92,6 +92,7 @@ export default function PedidosCocina() {
   const [comandas, setComandas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [sesionInvalida, setSesionInvalida] = useState(false);
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
   const [actualizandoId, setActualizandoId] = useState("");
   const [horaActual, setHoraActual] = useState(new Date());
@@ -104,6 +105,14 @@ export default function PedidosCocina() {
 
     try {
       const response = await cocinaFetch("/cocina/comandas/");
+      if (response.status === 401) {
+        setSesionInvalida(true);
+        setRestaurante(null);
+        setComandas([]);
+        setError("Sesion de cocina expirada o invalida.");
+        return;
+      }
+
       const data = await readJsonResponse(
         response,
         "/cocina/comandas/",
@@ -112,6 +121,7 @@ export default function PedidosCocina() {
       setRestaurante(data.restaurante || null);
       setComandas(data.comandas || []);
       setUltimaActualizacion(new Date());
+      setSesionInvalida(false);
       setError("");
     } catch (requestError) {
       if (!silent) {
@@ -124,7 +134,10 @@ export default function PedidosCocina() {
 
   useEffect(() => {
     cargarComandas();
+  }, [cargarComandas]);
 
+  useEffect(() => {
+    if (sesionInvalida) return undefined;
     const intervalId = window.setInterval(() => {
       if (document.hidden) return;
       cargarComandas({ silent: true });
@@ -135,7 +148,7 @@ export default function PedidosCocina() {
       window.clearInterval(intervalId);
       window.clearInterval(relojId);
     };
-  }, [cargarComandas]);
+  }, [cargarComandas, sesionInvalida]);
 
   const agrupadas = useMemo(() => ({
     en_preparacion: comandas.filter((comanda) => comanda.estado === "en_preparacion" || comanda.estado === "preparando"),
@@ -180,7 +193,7 @@ export default function PedidosCocina() {
     );
   }
 
-  if (error && !restaurante) {
+  if (sesionInvalida || (error && !restaurante)) {
     return (
       <main className="cocina-auth-page">
         <section className="cocina-auth-card">
