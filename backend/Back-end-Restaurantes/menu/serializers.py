@@ -296,6 +296,7 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "carrito_whatsapp_activo",
             "pedidos_pos",
             "metricas_activas",
+            "slogan",
         ]
         read_only_fields = [
             "reservas_activas",
@@ -373,6 +374,7 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
             "carrito_whatsapp_activo",
             "pedidos_pos",
             "metricas_activas",
+            "slogan",
         ]
 
     def get_logo_url(self, obj):

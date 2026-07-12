@@ -88,20 +88,15 @@
   gap: 7px;
   min-height: 76px;
   padding: 12px 10px 10px;
-  border-right: 1px solid var(--color-border);
   cursor: pointer;
   font: inherit;
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.1em;
   line-height: 1.1;
   box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.26);
   text-transform: uppercase;
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-  border: 1px solid var(--color-border-accent, var(--color-border));
-  background: color-mix(in srgb, var(--color-surface-translucent, var(--color-surface)) 72%, transparent);
-  color: var(--color-text-display, var(--color-text-primary));
-
   flex-direction: column;
   justify-content: center;
   border-radius: 14px;
@@ -230,9 +225,9 @@
   color: inherit
 }
 .page-shell .menu-tab.is-active {
-  border-color: var(--category-active-border);
-  background: var(--category-active-background);
-  color: #ffff;
+  border-color: var(--menu-tab-active-color-borde);
+  background: var(--menu-tab-active-color-bg);
+  color: var(--menu-tab-active-color-text)!important;
 }
 .page-shell .menu-bubble {
   padding: 0;

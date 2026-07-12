@@ -48,7 +48,6 @@ class Restaurante(models.Model):
     rut = models.CharField(max_length=20, blank=True)
     telefono = models.CharField(max_length=20)
     email_contacto = models.EmailField()
-    #creado por chatgpt luego esto lo verificas codex
     notificar_reservas = models.BooleanField(default=True)
     email_notificacion = models.EmailField(blank=True, null=True)
     direccion = models.CharField(max_length=255)

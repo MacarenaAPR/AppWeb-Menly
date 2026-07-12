@@ -30,7 +30,8 @@
   }
 
   .page-shell .promo-panel,
-  .reservation-showcase {
+  .reservation-showcase,
+  .restaurant-details-showcase {
     grid-template-columns: 1fr;
   }
 

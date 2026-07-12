@@ -49,7 +49,8 @@
 }
 .page-shell .promo-panel,
 .page-shell .menu-wrapper,
-.reservation-showcase {
+.reservation-showcase,
+.restaurant-details-showcase {
   width: min(100% - 48px, 1240px);
   margin-inline: auto
 }
@@ -136,6 +137,9 @@
 .page-shell .page-content > .reservation-showcase {
   order: 4
 }
+.page-shell .page-content > .restaurant-details-showcase {
+  order: 4
+}
 .page-shell .reservation-showcase {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
@@ -144,6 +148,13 @@
   max-width: 1160px;
   margin: 0 auto 72px;
   align-items: stretch
+}
+.page-shell .restaurant-details-showcase {
+  max-width: 1160px;
+  margin: 0 auto 72px
+}
+.page-shell .restaurant-details-showcase .restaurant-details-column {
+  width: 100%
 }
 .reservation-card {
   position: relative;
@@ -189,6 +200,9 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 28px;
   margin-top: 34px
+}
+.page-shell .reservation-showcase--una .reservation-card .action-cards {
+  grid-template-columns: minmax(0, 1fr)
 }
 .page-shell .reservation-card .action-card {
   display: flex;

@@ -681,7 +681,8 @@
 
   .page-shell .promo-panel,
   .page-shell .menu-wrapper,
-  .reservation-showcase {
+  .reservation-showcase,
+  .restaurant-details-showcase {
     width: calc(100% - 28px);
   }
 
@@ -1131,7 +1132,8 @@
     grid-template-columns: 1fr;
   }
 
-  .page-shell .reservation-showcase {
+  .page-shell .reservation-showcase,
+  .page-shell .restaurant-details-showcase {
     grid-template-columns: 1fr;
     width: calc(100% - 28px);
     margin-bottom: 42px;

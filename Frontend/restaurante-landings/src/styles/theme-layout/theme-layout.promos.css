@@ -322,13 +322,13 @@
 .featured-carousel .promo-item-small h3 {
   margin: 0;
   color: var(--color-text-display, var(--color-text-primary));
-  font-size: 1rem;
+  font-size: var(--product-card-font-size-title);
   line-height: 1.25;
 }
 .featured-carousel .promo-item-small strong {
   color: var(--color-accent, var(--color-primary));
   font-family: var(--font-family-base);
-  font-size: 1.12rem;
+  font-size: var(--product-card-font-size-price);
   font-weight: 950;
 }
 .promo-card-large .promo-slide-image.uses-fallback-image {
@@ -475,7 +475,6 @@
 .page-shell .featured-carousel .promo-item-small strong {
   margin: 0;
   font-family: var(--font-family-general);
-  font-size: 1.2rem;
   font-weight: 200;
   text-shadow: 0 2px 5px rgba(0, 0, 0, 0.65);
 }

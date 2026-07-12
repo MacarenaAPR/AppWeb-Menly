@@ -931,14 +931,17 @@ export default function Home() {
   const allowedThemes = ["theme_1", "theme_2", "theme_3", "theme_4", "theme_5", "theme_6", "theme_7", "theme_8", "theme_9"];
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
     ? restaurante.theme_color
-    : "theme_1";
+    : "theme_9";
   const heroBadgeText =
-    restaurante?.categoria ||
-    restaurante?.tipo_negocio ||
-    restaurante?.especialidad ||
-    "Especialidad";
-  const reservasActivas = restaurante?.reservas_activas === true;
-  const solicitudesEspecialesActivas = restaurante?.solicitudes_especiales_activas === true;
+    restaurante?.slogan || "Slogan";
+  const reservasActivas = Boolean(restaurante?.reservas_activas);
+  const solicitudesEspecialesActivas = Boolean(restaurante?.solicitudes_especiales_activas);
+  const mostrarSeccionAcciones = reservasActivas || solicitudesEspecialesActivas;
+  const cantidadAcciones = Number(reservasActivas) + Number(solicitudesEspecialesActivas);
+  const claseAcciones =
+    cantidadAcciones === 1
+      ? "reservation-showcase reservation-showcase--una"
+      : "reservation-showcase reservation-showcase--dos";
   const carritoWhatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   const deliveryActivo = restaurante?.delivery_activo === true;
   const tiendaCerradaConCarrito =
@@ -966,6 +969,147 @@ export default function Home() {
       return siguiente;
     });
   };
+
+  const detallesRestaurante = (
+    <div className="restaurant-details-column">
+      <section className="gallery-panel" aria-label="Galería del restaurante">
+        <h2>Galería</h2>
+        <div className="gallery-grid">
+          {imagenesRestaurante.length > 0 ? (
+            <div className="gallery-track">
+              <div className="gallery-group">
+                {imagenesRestaurante.map((imagen, index) => (
+                  <button
+                    key={imagen.id || imagen.url || index}
+                    type="button"
+                    className="gallery-card"
+                    onClick={() => setSelectedGalleryImage(imagen)}
+                    aria-label={`Ampliar ${imagen.label || `imagen ${index + 1}`}`}
+                  >
+                    <img
+                      src={getOptimizedImageUrl(imagen.url, {
+                        baseUrl: CLOUDINARY_BASE,
+                        width: 520,
+                        height: 390,
+                      })}
+                      alt={imagen.label || `Imagen ${index + 1} de ${restaurante?.nombre_empresa || "restaurante"}`}
+                      loading="lazy"
+                      width="520"
+                      height="390"
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <div className="gallery-group" aria-hidden="true">
+                {imagenesRestaurante.map((imagen, index) => (
+                  <button
+                    key={`gallery-copy-${imagen.id || imagen.url || index}`}
+                    type="button"
+                    className="gallery-card"
+                    tabIndex="-1"
+                    onClick={() => setSelectedGalleryImage(imagen)}
+                  >
+                    <img
+                      src={getOptimizedImageUrl(imagen.url, {
+                        baseUrl: CLOUDINARY_BASE,
+                        width: 520,
+                        height: 390,
+                      })}
+                      alt=""
+                      loading="lazy"
+                      width="520"
+                      height="390"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="gallery-empty">No hay imágenes disponibles.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="about-panel" id="nosotros">
+        <div className="about-panel-heading">
+          {logoOptimizado && (
+            <img
+              src={logoOptimizado}
+              alt={restaurante?.nombre_empresa}
+              loading="lazy"
+              width="110"
+              height="110"
+            />
+          )}
+          <div>
+            <h2>Sobre Nosotros</h2>
+            <p>
+              {restaurante?.sobre_nosotros ||
+                restaurante?.descripcion ||
+                "Sabores que convierten cualquier momento en algo especial."}
+            </p>
+          </div>
+        </div>
+
+        <div className="about-panel-details">
+          <article>
+            <h3>Horarios</h3>
+            {Array.isArray(restaurante?.horarios) && restaurante.horarios.length > 0 ? (
+              <ul className="about-schedule-list">
+                {restaurante.horarios.map((horario) => (
+                  <li key={horario.id || horario.dia}>
+                    <span>{horario.dia_nombre || horario.dia}</span>
+                    <strong>{formatearHorarioPublico(horario)}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>Consulta nuestros horarios de atención.</p>
+            )}
+          </article>
+          <article>
+            <h3>Ubicación</h3>
+            <p>{restaurante?.direccion}, {restaurante?.ciudad}</p>
+            {restaurante?.google_maps && (
+              <a href={restaurante.google_maps} target="_blank" rel="noreferrer">
+                Ver mapa
+              </a>
+            )}
+          </article>
+          <article>
+            <h3>Contacto</h3>
+            <p>{restaurante?.telefono || restaurante?.whatsapp}</p>
+          </article>
+          <article>
+            <h3>Síguenos</h3>
+            <div className="social-links">
+              {restaurante?.facebook && (
+                <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                  <i className="bi bi-facebook"></i>
+                </a>
+              )}
+              {restaurante?.instagram && (
+                <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                  <i className="bi bi-instagram"></i>
+                </a>
+              )}
+              {restaurante?.whatsapp && (
+                <a
+                  href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="WhatsApp"
+                >
+                  <i className="bi bi-whatsapp"></i>
+                </a>
+              )}
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  );
  
   return (
     <div
@@ -1163,20 +1307,6 @@ export default function Home() {
               </span>
               {destacadosConCarrusel && (
                 <div className="featured-controls" aria-label="Controles de destacados">
-                  <button
-                    type="button"
-                    aria-label="Ver destacados anteriores"
-                    onClick={() => moverDestacados(-1)}
-                  >
-                    <i className="bi bi-chevron-left" aria-hidden="true"></i>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Ver más destacados"
-                    onClick={() => moverDestacados(1)}
-                  >
-                    <i className="bi bi-chevron-right" aria-hidden="true"></i>
-                  </button>
                 </div>
               )}
             </div>
@@ -1420,27 +1550,27 @@ export default function Home() {
           />
         </section>
 
-        <section className="reservation-showcase">
-          <span id="reserva" className="landing-action-anchor" aria-hidden="true"></span>
-          <span id="solicitudes-especiales" className="landing-action-anchor" aria-hidden="true"></span>
+        {mostrarSeccionAcciones ? (
+          <section className={claseAcciones}>
+            <span id="reserva" className="landing-action-anchor" aria-hidden="true"></span>
+            <span id="solicitudes-especiales" className="landing-action-anchor" aria-hidden="true"></span>
 
-          <article
-            className="reservation-card"
-            style={{
-              "--about-bg": `url(${
-                imagenFormularioOptimizada
-              })`,
-            }}
-          >
-            <div className="reservation-card-copy">
-              <h2>{restaurante?.nombre_empresa}</h2>
-              <p>
-                {restaurante?.descripcion ||
-                  "Reserva tu momento perfecto o solicita preparaciones especiales para ti."}
-              </p>
-            </div>
+            <article
+              className="reservation-card"
+              style={{
+                "--about-bg": `url(${
+                  imagenFormularioOptimizada
+                })`,
+              }}
+            >
+              <div className="reservation-card-copy">
+                <h2>{restaurante?.nombre_empresa}</h2>
+                <p>
+                  {restaurante?.descripcion ||
+                    "Reserva tu momento perfecto o solicita preparaciones especiales para ti."}
+                </p>
+              </div>
 
-            {(solicitudesEspecialesActivas || reservasActivas) && (
               <div className="action-cards" aria-label="Acciones del restaurante">
                 {solicitudesEspecialesActivas && (
                   <button
@@ -1464,148 +1594,15 @@ export default function Home() {
                   </button>
                 )}
               </div>
-            )}
-          </article>
+            </article>
 
-          <div className="restaurant-details-column">
-            <section className="gallery-panel" aria-label="Galería del restaurante">
-              <h2>Galería</h2>
-              <div className="gallery-grid">
-                {imagenesRestaurante.length > 0 ? (
-                  <div className="gallery-track">
-                    <div className="gallery-group">
-                      {imagenesRestaurante.map((imagen, index) => (
-                        <button
-                          key={imagen.id || imagen.url || index}
-                          type="button"
-                          className="gallery-card"
-                          onClick={() => setSelectedGalleryImage(imagen)}
-                          aria-label={`Ampliar ${imagen.label || `imagen ${index + 1}`}`}
-                        >
-                          <img
-                            src={getOptimizedImageUrl(imagen.url, {
-                              baseUrl: CLOUDINARY_BASE,
-                              width: 520,
-                              height: 390,
-                            })}
-                            alt={imagen.label || `Imagen ${index + 1} de ${restaurante?.nombre_empresa || "restaurante"}`}
-                            loading="lazy"
-                            width="520"
-                            height="390"
-                          />
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="gallery-group" aria-hidden="true">
-                      {imagenesRestaurante.map((imagen, index) => (
-                        <button
-                          key={`gallery-copy-${imagen.id || imagen.url || index}`}
-                          type="button"
-                          className="gallery-card"
-                          tabIndex="-1"
-                          onClick={() => setSelectedGalleryImage(imagen)}
-                        >
-                          <img
-                            src={getOptimizedImageUrl(imagen.url, {
-                              baseUrl: CLOUDINARY_BASE,
-                              width: 520,
-                              height: 390,
-                            })}
-                            alt=""
-                            loading="lazy"
-                            width="520"
-                            height="390"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="gallery-empty">No hay imágenes disponibles.</p>
-                )}
-              </div>
-            </section>
-
-            <section className="about-panel" id="nosotros">
-              <div className="about-panel-heading">
-                {logoOptimizado && (
-                  <img
-                    src={logoOptimizado}
-                    alt={restaurante?.nombre_empresa}
-                    loading="lazy"
-                    width="110"
-                    height="110"
-                  />
-                )}
-                <div>
-                  <h2>Sobre Nosotros</h2>
-                  <p>
-                    {restaurante?.sobre_nosotros ||
-                      restaurante?.descripcion ||
-                      "Sabores que convierten cualquier momento en algo especial."}
-                  </p>
-                </div>
-              </div>
-
-              <div className="about-panel-details">
-                <article>
-                  <h3>Horarios</h3>
-                  {Array.isArray(restaurante?.horarios) && restaurante.horarios.length > 0 ? (
-                    <ul className="about-schedule-list">
-                      {restaurante.horarios.map((horario) => (
-                        <li key={horario.id || horario.dia}>
-                          <span>{horario.dia_nombre || horario.dia}</span>
-                          <strong>{formatearHorarioPublico(horario)}</strong>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>Consulta nuestros horarios de atención.</p>
-                  )}
-                </article>
-                <article>
-                  <h3>Ubicación</h3>
-                  <p>{restaurante?.direccion}, {restaurante?.ciudad}</p>
-                  {restaurante?.google_maps && (
-                    <a href={restaurante.google_maps} target="_blank" rel="noreferrer">
-                      Ver mapa
-                    </a>
-                  )}
-                </article>
-                <article>
-                  <h3>Contacto</h3>
-                  <p>{restaurante?.telefono || restaurante?.whatsapp}</p>
-                </article>
-                <article>
-                  <h3>Síguenos</h3>
-                  <div className="social-links">
-                    {restaurante?.facebook && (
-                      <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
-                        <i className="bi bi-facebook"></i>
-                      </a>
-                    )}
-                    {restaurante?.instagram && (
-                      <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
-                        <i className="bi bi-instagram"></i>
-                      </a>
-                    )}
-                    {restaurante?.whatsapp && (
-                      <a
-                        href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="WhatsApp"
-                      >
-                        <i className="bi bi-whatsapp"></i>
-                      </a>
-                    )}
-                  </div>
-                </article>
-              </div>
-            </section>
-          </div>
-        </section>
+            {detallesRestaurante}
+          </section>
+        ) : (
+          <section className="restaurant-details-showcase">
+            {detallesRestaurante}
+          </section>
+        )}
 
         <footer className="landing-footer">
           <p>

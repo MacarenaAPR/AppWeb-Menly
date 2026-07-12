@@ -1,0 +1,174 @@
+/*
+ * THEME 6 — HERO VISUAL OVERRIDES
+ * --------------------------------
+ * Hero de tres bloques inspirado en una estética fast-food premium.
+ * Todos los estilos quedan encapsulados en Theme 6.
+ */
+
+.page-shell.theme_6 {
+  --theme-6-hero-panel-bg: var(--color-cinco);
+  --theme-6-hero-accent: var(--color-tres);
+  --theme-6-hero-shadow: color-mix(
+    in srgb,
+    var(--color-cinco) 72%,
+    transparent
+  );
+  --theme-6-hero-shadow-hover: color-mix(
+    in srgb,
+    var(--color-tres) 42%,
+    transparent
+  );
+  --theme-6-hero-left-clip: polygon(
+    0 0,
+    100% 0,
+    88% 100%,
+    0 100%
+  );
+  --theme-6-hero-center-clip: polygon(
+    7% 0,
+    93% 0,
+    100% 100%,
+    0 100%
+  );
+  --theme-6-hero-right-clip: polygon(
+    0% 0,
+    100% 0,
+    100% 100%,
+    0 100%
+  );
+  --theme-6-hero-tablet-left-clip: polygon(
+    0 0,
+    100% 0,
+    100% 100%,
+    0 100%
+  );
+  --theme-6-hero-tablet-center-clip: polygon(
+    5% 0,
+    95% 0,
+    100% 100%,
+    0 100%
+  );
+  --theme-6-hero-tablet-right-clip: polygon(
+    6% 0,
+    100% 0,
+    100% 100%,
+    0 100%
+  );
+  --theme-6-hero-transition: 280ms ease;
+}
+
+.page-shell.theme_6 .hero-panel {
+  grid-template-columns: 28% 44% 28%;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--theme-6-hero-panel-bg);
+  box-shadow: inset 0 4px 0 var(--theme-6-hero-accent);
+}
+
+.page-shell.theme_6 .hero-visual {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  overflow: hidden;
+  transition:
+    clip-path var(--theme-6-hero-transition),
+    filter var(--theme-6-hero-transition);
+}
+
+.page-shell.theme_6 .hero-visual-left {
+  clip-path: var(--theme-6-hero-left-clip);
+}
+
+.page-shell.theme_6 .hero-visual-right {
+  clip-path: var(--theme-6-hero-right-clip);
+}
+
+.page-shell.theme_6 .hero-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.01);
+  transform-origin: center;
+  transition: transform var(--theme-6-hero-transition);
+}
+
+.page-shell.theme_6 .hero-copy {
+  z-index: 4;
+  min-width: 0;
+  margin-inline: clamp(-64px, -4vw, -36px);
+  padding-inline: clamp(68px, 7vw, 108px);
+  background: var(--theme-6-hero-panel-bg);
+  clip-path: var(--theme-6-hero-center-clip);
+  filter: drop-shadow(
+    0 12px 20px var(--theme-6-hero-shadow)
+  );
+  transition:
+    clip-path var(--theme-6-hero-transition),
+    filter var(--theme-6-hero-transition);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .page-shell.theme_6 .hero-panel:hover .hero-visual img {
+    transform: scale(1.035);
+  }
+
+  .page-shell.theme_6 .hero-panel:hover .hero-copy {
+    filter: drop-shadow(
+      0 14px 24px var(--theme-6-hero-shadow-hover)
+    );
+  }
+}
+
+@media (min-width: 801px) and (max-width: 1100px) {
+  .page-shell.theme_6 .hero-panel {
+    grid-template-columns: 27% 46% 27%;
+  }
+
+  .page-shell.theme_6 .hero-visual-left {
+    clip-path: var(--theme-6-hero-tablet-left-clip);
+  }
+
+  .page-shell.theme_6 .hero-visual-right {
+    clip-path: var(--theme-6-hero-tablet-right-clip);
+  }
+
+  .page-shell.theme_6 .hero-copy {
+    margin-inline: clamp(-38px, -3vw, -24px);
+    padding-inline: clamp(50px, 5.5vw, 74px);
+    clip-path: var(--theme-6-hero-tablet-center-clip);
+  }
+}
+
+@media (max-width: 800px) {
+  .page-shell.theme_6 .hero-panel {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-x: hidden;
+  }
+
+  .page-shell.theme_6 .hero-visual-right {
+    display: grid;
+    min-width: 0;
+    min-height: clamp(190px, 54vw, 260px);
+    clip-path: none;
+    filter: none;
+  }
+
+  .page-shell.theme_6 .hero-copy {
+    width: 100%;
+    min-width: 0;
+    margin-inline: 0;
+    padding: 34px 24px 28px;
+    background: var(--theme-6-hero-panel-bg);
+    clip-path: none;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-shell.theme_6 .hero-visual,
+  .page-shell.theme_6 .hero-visual img,
+  .page-shell.theme_6 .hero-copy {
+    transition: none;
+  }
+}
