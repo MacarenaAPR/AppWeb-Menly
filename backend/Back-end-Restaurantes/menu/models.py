@@ -844,8 +844,9 @@ class SesionCocina(models.Model):
         return (
             self.activa
             and self.cerrada_en is None
-            and self.fecha_operativa == timezone.localdate()
             and timezone.now() <= self.expira_en
+            and self.restaurante.activo
+            and self.restaurante.pedidos_pos
         )
 
 

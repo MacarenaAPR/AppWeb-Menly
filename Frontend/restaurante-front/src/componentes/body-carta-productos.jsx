@@ -8,6 +8,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { permisosPorRol } from "../utils/permisos";
+import { tieneSesionAdmin } from "../session/adminSession";
 
 export default function CartaProducto(){
   const [busqueda, setBusqueda] = useState("");
@@ -39,9 +40,7 @@ export default function CartaProducto(){
   useEffect(() => {
     const fetchRestaurante = async () => {
       try {
-        const token = localStorage.getItem("access");
-
-        if (!token) {
+        if (!tieneSesionAdmin()) {
           navigate("/");
           return;
         }

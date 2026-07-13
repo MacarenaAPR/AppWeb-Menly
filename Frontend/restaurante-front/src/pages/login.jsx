@@ -7,6 +7,10 @@ import logoMenly from "../assets/logoMenly2.png";
 import recursoLogin1 from "../assets/recursologin1.png";
 import recursoLogin2 from "../assets/recursologin2.png";
 import recursoLogin3 from "../assets/recursologin3.png";
+import {
+  consumirMensajeCierreAdmin,
+  iniciarSesionAdmin,
+} from "../session/adminSession";
 
 const MENLY_WHATSAPP_URL =
   "https://wa.me/56988424939?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Menly";
@@ -49,6 +53,7 @@ export default function Login() {
     password: "",
   });
   const [error, setError] = useState("");
+  const [sessionMessage] = useState(() => consumirMensajeCierreAdmin());
   const [showPassword, setShowPassword] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -168,10 +173,7 @@ export default function Login() {
         return;
       }
 
-      localStorage.setItem("access", data.access);
-      localStorage.setItem("refresh", data.refresh);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("restaurante", JSON.stringify(data.restaurante));
+      iniciarSesionAdmin(data);
 
       navigate(`/dashboard/${data.restaurante.slug}`);
     } catch (error) {
@@ -342,6 +344,7 @@ export default function Login() {
                 </div>
               </div>
 
+              {sessionMessage && <p className="form-message success">{sessionMessage}</p>}
               {error && <p className="form-message error">{error}</p>}
 
               <button className="login-submit" type="submit">

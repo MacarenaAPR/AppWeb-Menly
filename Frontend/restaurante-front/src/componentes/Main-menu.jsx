@@ -8,6 +8,7 @@ import { authFetch } from "../api";
 import { permisosPorRol } from "../utils/permisos";
 import { LuShoppingCart } from "react-icons/lu";
 import { TbMessage2Star } from "react-icons/tb";
+import { tieneSesionAdmin } from "../session/adminSession";
 
 export default function MainMenu({
     mobileMenuOpen: controlledMobileMenuOpen,
@@ -23,9 +24,7 @@ export default function MainMenu({
  useEffect(() => {
     const fetchRestaurante = async () => {
       try {
-        const token = localStorage.getItem("access");
-
-        if (!token) {
+        if (!tieneSesionAdmin()) {
           navigate("/");
           return;
         }

@@ -191,6 +191,11 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 FRONTEND_PUBLIC_URL = config("FRONTEND_PUBLIC_URL", default="http://localhost:5174")
 COCINA_COOKIE_DOMAIN = config("COCINA_COOKIE_DOMAIN", default="") or None
+ADMIN_COOKIE_DOMAIN = config("ADMIN_COOKIE_DOMAIN", default="") or None
+ADMIN_REFRESH_COOKIE_NAME = "menly_admin_refresh"
+COCINA_SESSION_LIFETIME = timedelta(
+    days=config("COCINA_SESSION_DAYS", default=30, cast=int)
+)
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -271,7 +276,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,

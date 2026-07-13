@@ -20,6 +20,7 @@ import Planes from './pages/Planes'
 import RequireRole from './componentes/RequireRole'
 import Footer from './componentes/Footer'
 import { useLocation } from 'react-router-dom';
+import useAdminInactivity from './hooks/useAdminInactivity';
 
 
 function MetricasPlaceholder() {
@@ -41,6 +42,7 @@ function MetricasPlaceholder() {
 function AppContent() {
   const location = useLocation();
   const esRutaCocina = location.pathname.startsWith("/pedidos-cocina");
+  useAdminInactivity(location.pathname);
 
   return (
       <div className={`app-shell ${esRutaCocina ? "app-shell-cocina" : ""}`}>

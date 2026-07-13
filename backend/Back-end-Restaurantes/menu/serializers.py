@@ -218,9 +218,9 @@ class HorarioSerializer(serializers.ModelSerializer):
                     "hora_cierre": "La hora de cierre es obligatoria si el dia no esta cerrado."
                 })
 
-            if hora_cierre <= hora_apertura:
+            if hora_cierre == hora_apertura:
                 raise serializers.ValidationError({
-                    "hora_cierre": "La hora de cierre debe ser mayor que la hora de apertura."
+                    "hora_cierre": "La hora de cierre debe ser distinta de la hora de apertura."
                 })
 
         return data

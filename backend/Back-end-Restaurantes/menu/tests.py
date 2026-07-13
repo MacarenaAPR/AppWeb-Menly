@@ -13,7 +13,8 @@ from unittest.mock import patch
 from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
-from .utils import get_slug_from_host
+from .utils import get_slug_from_host, validar_horario_reserva
+from .services.estado_restaurante import calcular_estado_abierto
 from django.core.cache import cache
 
 
@@ -712,6 +713,84 @@ class CocinaComandasTests(BaseTestCase):
 
         response = self.client.get("/api/cocina/comandas/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_sesion_cocina_persiste_entre_jornadas_y_al_recargar(self):
+        self.activar_cocina()
+        sesion = SesionCocina.objects.get()
+        sesion.fecha_operativa = timezone.localdate() - timedelta(days=1)
+        sesion.expira_en = timezone.now() + timedelta(days=20)
+        sesion.save(update_fields=["fecha_operativa", "expira_en"])
+
+        response = self.client.get("/api/cocina/comandas/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["restaurante"]["slug"], self.restaurante.slug)
+
+    def test_polling_renueva_sesion_cocina_cercana_a_expirar(self):
+        self.activar_cocina()
+        sesion = SesionCocina.objects.get()
+        expiracion_anterior = timezone.now() + timedelta(hours=1)
+        sesion.expira_en = expiracion_anterior
+        sesion.save(update_fields=["expira_en"])
+
+        response = self.client.get("/api/cocina/comandas/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        sesion.refresh_from_db()
+        self.assertGreater(sesion.expira_en, expiracion_anterior)
+        self.assertIn("menly_cocina_session", response.cookies)
+        self.assertTrue(response.cookies["menly_cocina_session"]["httponly"])
+
+    def test_desactivar_acceso_pos_revoca_sesion_cocina(self):
+        self.activar_cocina()
+        self.restaurante.pedidos_pos = False
+        self.restaurante.save(update_fields=["pedidos_pos"])
+
+        response = self.client.get("/api/cocina/comandas/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class AdminCookieSessionTests(BaseTestCase):
+    def login(self):
+        return self.client.post(
+            "/api/login/",
+            {"email": self.dueno.email, "password": "123456"},
+            format="json",
+        )
+
+    def test_login_guarda_refresh_httponly_y_no_lo_expone_en_json(self):
+        response = self.login()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+        self.assertNotIn("refresh", response.data)
+        cookie = response.cookies[settings.ADMIN_REFRESH_COOKIE_NAME]
+        self.assertTrue(cookie["httponly"])
+        self.assertEqual(cookie["samesite"], "Lax")
+        self.assertEqual(cookie["path"], "/api/")
+
+    def test_refresh_desde_cookie_rota_token_y_entrega_solo_access(self):
+        self.login()
+        refresh_anterior = self.client.cookies[settings.ADMIN_REFRESH_COOKIE_NAME].value
+
+        response = self.client.post("/api/token/refresh/", {}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+        self.assertNotIn("refresh", response.data)
+        refresh_nuevo = response.cookies[settings.ADMIN_REFRESH_COOKIE_NAME].value
+        self.assertNotEqual(refresh_nuevo, refresh_anterior)
+
+    def test_logout_revoca_refresh_y_elimina_cookie(self):
+        self.login()
+        response = self.client.post("/api/logout/", {}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
+        self.assertEqual(response.cookies[settings.ADMIN_REFRESH_COOKIE_NAME]["max-age"], 0)
+
+        refresh_response = self.client.post("/api/token/refresh/", {}, format="json")
+        self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class ConfiguracionRestauranteOperacionTests(BaseTestCase):
@@ -4023,4 +4102,120 @@ class SeguridadCriticaTests(BaseTestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+class HorariosNocturnosTests(BaseTestCase):
+    def crear_horario(self, dia, apertura, cierre):
+        return HorarioAtencion.objects.create(
+            restaurante=self.restaurante,
+            dia=dia,
+            hora_apertura=apertura,
+            hora_cierre=cierre,
+            cerrado=False,
+            activo=True,
+        )
+
+    def momento(self, anio, mes, dia, hora, minuto=0):
+        return timezone.make_aware(datetime(anio, mes, dia, hora, minuto))
+
+    def test_api_acepta_cierre_al_dia_siguiente_y_lo_muestra_sin_anotaciones(self):
+        self.client.force_authenticate(user=self.dueno)
+
+        response = self.client.post(
+            "/api/mi-restaurante/horarios/",
+            {
+                "dia": 1,
+                "hora_apertura": "18:00",
+                "hora_cierre": "01:00",
+                "cerrado": False,
+                "activo": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["hora_apertura"], "18:00:00")
+        self.assertEqual(response.data["hora_cierre"], "01:00:00")
+
+    def test_api_rechaza_apertura_y_cierre_iguales(self):
+        self.client.force_authenticate(user=self.dueno)
+
+        response = self.client.post(
+            "/api/mi-restaurante/horarios/",
+            {
+                "dia": 1,
+                "hora_apertura": "18:00",
+                "hora_cierre": "18:00",
+                "cerrado": False,
+                "activo": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("distinta", response.data["hora_cierre"][0])
+
+    def test_estado_abierto_cubre_ambos_tramos_del_horario_nocturno(self):
+        self.crear_horario(1, time(18, 0), time(1, 0))
+
+        casos = [
+            (self.momento(2026, 7, 13, 17, 0), False),
+            (self.momento(2026, 7, 13, 19, 0), True),
+            (self.momento(2026, 7, 13, 23, 30), True),
+            (self.momento(2026, 7, 14, 0, 45), True),
+            (self.momento(2026, 7, 14, 1, 10), False),
+        ]
+
+        for momento, esperado in casos:
+            with self.subTest(momento=momento):
+                self.assertEqual(
+                    calcular_estado_abierto(self.restaurante, ahora=momento),
+                    esperado,
+                )
+
+    def test_estado_abierto_tradicional_mantiene_comportamiento(self):
+        self.crear_horario(1, time(9, 0), time(18, 0))
+
+        self.assertTrue(
+            calcular_estado_abierto(
+                self.restaurante,
+                ahora=self.momento(2026, 7, 13, 12, 0),
+            )
+        )
+        self.assertFalse(
+            calcular_estado_abierto(
+                self.restaurante,
+                ahora=self.momento(2026, 7, 13, 18, 1),
+            )
+        )
+
+    def test_madrugada_del_lunes_consulta_horario_del_domingo(self):
+        self.crear_horario(7, time(20, 0), time(2, 0))
+
+        self.assertTrue(
+            calcular_estado_abierto(
+                self.restaurante,
+                ahora=self.momento(2026, 7, 13, 1, 30),
+            )
+        )
+
+    def test_reserva_de_madrugada_pertenece_al_horario_anterior(self):
+        fecha_lunes = date(2026, 7, 13)
+        fecha_martes = date(2026, 7, 14)
+        self.crear_horario(fecha_lunes.isoweekday(), time(18, 0), time(1, 0))
+
+        self.assertTrue(
+            validar_horario_reserva(
+                self.restaurante,
+                fecha_martes,
+                time(0, 45),
+            )
+        )
+        self.assertFalse(
+            validar_horario_reserva(
+                self.restaurante,
+                fecha_martes,
+                time(1, 10),
+            )
+        )
+
+
 # Create your tests here.

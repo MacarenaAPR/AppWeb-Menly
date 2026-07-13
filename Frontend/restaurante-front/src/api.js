@@ -1,3 +1,12 @@
+import {
+  descartarLegacyRefreshToken,
+  getAdminAccessToken,
+  getLegacyRefreshToken,
+  limpiarSesionAdminLocal,
+  setAdminAccessToken,
+  tieneSesionAdmin,
+} from "./session/adminSession";
+
 const trimTrailingSlash = (value = "") => String(value).replace(/\/+$/, "");
 const trimLeadingSlash = (value = "") => String(value).replace(/^\/+/, "");
 
@@ -92,12 +101,64 @@ export async function readJsonResponse(response, endpoint, fallbackMessage = "No
   return data;
 }
 
-export function limpiarSesionYRedirigir() {
-  localStorage.removeItem("access");
-  localStorage.removeItem("refresh");
-  localStorage.removeItem("user");
-  localStorage.removeItem("restaurante");
-  window.location.href = "/";
+export function limpiarSesionYRedirigir(motivo = "") {
+  limpiarSesionAdminLocal({ motivo });
+  window.location.replace("/");
+}
+
+let refreshPromise = null;
+
+const renovarAccessDesdeCookie = async () => {
+  if (!tieneSesionAdmin()) return null;
+
+  const ejecutar = async () => {
+    const legacyRefresh = getLegacyRefreshToken();
+    const response = await fetch(buildApiUrl("/token/refresh/"), {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        ...(legacyRefresh ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(legacyRefresh ? { body: JSON.stringify({ refresh: legacyRefresh }) } : {}),
+    });
+    if (legacyRefresh) descartarLegacyRefreshToken();
+    if (!response.ok) return null;
+
+    const data = await response.json().catch(() => null);
+    if (!data?.access) return null;
+    setAdminAccessToken(data.access);
+    return data.access;
+  };
+
+  if (navigator.locks?.request) {
+    return navigator.locks.request("menly-admin-refresh", ejecutar);
+  }
+  return ejecutar();
+};
+
+const renovarAccessUnaVez = () => {
+  if (!refreshPromise) {
+    refreshPromise = renovarAccessDesdeCookie().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+};
+
+export async function cerrarSesionAdmin({ motivo = "manual" } = {}) {
+  try {
+    await fetch(buildApiUrl("/logout/"), {
+      method: "POST",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+  } catch {
+    // El cierre local se completa aunque el backend no este disponible.
+  } finally {
+    limpiarSesionAdminLocal({ motivo });
+    window.location.replace("/");
+  }
 }
 
 export async function authFetch(url, options = {}) {
@@ -137,6 +198,7 @@ export async function authFetch(url, options = {}) {
   const hacerRequest = (accessToken) =>
     withTimeout(finalUrl, {
       ...options,
+      credentials: "include",
       headers: {
         Accept: "application/json",
         ...(options.headers || {}),
@@ -144,53 +206,33 @@ export async function authFetch(url, options = {}) {
       },
     });
 
-  let response = await hacerRequest(localStorage.getItem("access"));
+  let accessToken = getAdminAccessToken();
+  if (!accessToken && tieneSesionAdmin()) {
+    accessToken = await renovarAccessUnaVez();
+    if (!accessToken) {
+      limpiarSesionYRedirigir();
+      return new Response(null, { status: 401 });
+    }
+  }
+
+  let response = await hacerRequest(accessToken);
 
   if (response.status !== 401) {
     return response;
   }
 
-  const refresh = localStorage.getItem("refresh");
-
-  if (!refresh) {
+  if (!tieneSesionAdmin()) {
     limpiarSesionYRedirigir();
     return response;
   }
 
-  const refreshResponse = await withTimeout(buildApiUrl("/token/refresh/"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ refresh }),
-  });
-
-  if (!refreshResponse.ok) {
+  const renewedAccess = await renovarAccessUnaVez();
+  if (!renewedAccess) {
     limpiarSesionYRedirigir();
     return response;
   }
 
-  let data = null;
-
-  try {
-    data = await readJsonResponse(
-      refreshResponse,
-      "/token/refresh/",
-      "No se pudo renovar la sesion"
-    );
-  } catch {
-    limpiarSesionYRedirigir();
-    return response;
-  }
-
-  if (!data?.access) {
-    limpiarSesionYRedirigir();
-    return response;
-  }
-
-  localStorage.setItem("access", data.access);
-
-  response = await hacerRequest(data.access);
+  response = await hacerRequest(renewedAccess);
   return response;
 }
 

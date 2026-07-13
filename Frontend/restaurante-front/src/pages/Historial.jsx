@@ -3,6 +3,7 @@ import MainMenu from "../componentes/Main-menu";
 import "../styles/Historial.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { authFetch } from "../api";
+import { tieneSesionAdmin } from "../session/adminSession";
 
 const DESKTOP_PAGE_SIZE = 20;
 const MOBILE_PAGE_SIZE = 5;
@@ -80,9 +81,7 @@ export default function Historial() {
 
   useEffect(() => {
     const cargarHistorial = async () => {
-      const token = localStorage.getItem("access");
-
-      if (!token) {
+      if (!tieneSesionAdmin()) {
         setLoading(false);
         return;
       }
@@ -119,9 +118,7 @@ export default function Historial() {
 
   useEffect(() => {
     const cargarPedidos = async () => {
-      const token = localStorage.getItem("access");
-
-      if (!token) {
+      if (!tieneSesionAdmin()) {
         setLoading(false);
         return;
       }

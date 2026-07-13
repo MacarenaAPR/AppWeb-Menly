@@ -21,8 +21,8 @@ from django.http import JsonResponse, HttpResponse
 from core.debug_views import debug_time
 from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, ContactoView, ContactoPlanesAPIView, MiRestauranteView,ProductoListView,ProductoUpdateView, ProductoVariantesView, ProductoVarianteDetalleView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
+from rest_framework_simplejwt.views import TokenObtainPairView
+from menu.views import menu_api,CustomLoginView, CookieTokenRefreshView, PasswordResetRequestView, ContactoView, ContactoPlanesAPIView, MiRestauranteView,ProductoListView,ProductoUpdateView, ProductoVariantesView, ProductoVarianteDetalleView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
 from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, RestauranteEstadoAperturaView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SeguimientoPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
 from menu.views import NotificacionesDashboardView, NotificacionesContadorView, NotificacionDetalleView, NotificacionMarcarLeidaView
 from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidoWhatsAppEstadoDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosManualesDashboardView, PedidoManualDetalleDashboardView, CocinaActivacionDashboardView, CocinaActivarView, CocinaComandasView, CocinaComandaEstadoView, CocinaCerrarView, PedidosMetricasDashboardView, MetricasResumenView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
@@ -54,7 +54,7 @@ urlpatterns = [
     path("api/contacto/planes/", ContactoPlanesAPIView.as_view(), name="contacto-planes"),
 
     # 🔄 refresh token
-    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/token/refresh/", CookieTokenRefreshView.as_view(), name="token_refresh"),
 
     # 🏪 dashboard privado
     path("api/mi-restaurante/", MiRestauranteView.as_view(), name="mi-restaurante"),

@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
@@ -20,10 +20,8 @@ ORIGEN_MENLY = "menly"
 ORIGEN_ESPECIAL = "especial"
 
 
-def fin_dia_actual():
-    zona = timezone.get_current_timezone()
-    manana = timezone.localdate() + timedelta(days=1)
-    return timezone.make_aware(datetime.combine(manana, time.min), zona)
+def expiracion_sesion_cocina():
+    return timezone.now() + settings.COCINA_SESSION_LIFETIME
 
 
 def construir_url_activacion(request, token):
@@ -57,7 +55,7 @@ def consumir_activacion_cocina(token):
 
         sesion, token_sesion = SesionCocina.crear(
             activacion.restaurante,
-            expira_en=fin_dia_actual(),
+            expira_en=expiracion_sesion_cocina(),
         )
 
         activacion.consumido_en = timezone.now()
@@ -104,6 +102,22 @@ def obtener_sesion_cocina(request):
     if not sesion or not sesion.esta_vigente():
         return None
     return sesion
+
+
+def renovar_sesion_cocina(response, request, sesion):
+    """Renueva en forma deslizante sin escribir en cada polling del KDS."""
+    umbral = settings.COCINA_SESSION_LIFETIME / 2
+    if sesion.expira_en - timezone.now() > umbral:
+        return
+
+    try:
+        token = request.get_signed_cookie(COOKIE_COCINA)
+    except Exception:
+        return
+
+    sesion.expira_en = expiracion_sesion_cocina()
+    sesion.save(update_fields=["expira_en"])
+    set_cookie_cocina(response, token, sesion.expira_en)
 
 
 def _items_whatsapp(pedido):

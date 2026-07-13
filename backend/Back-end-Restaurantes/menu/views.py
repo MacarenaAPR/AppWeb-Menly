@@ -21,8 +21,9 @@ from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, P
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from django.db.models import Count, F, Q, Prefetch
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework.generics import CreateAPIView, UpdateAPIView
 from django.db import IntegrityError, transaction
 from django.utils.timezone import localtime, now
@@ -56,7 +57,13 @@ from menu.services.cocina import (
     limpiar_cookie_cocina,
     obtener_comandas_activas,
     obtener_sesion_cocina,
+    renovar_sesion_cocina,
     set_cookie_cocina,
+)
+from menu.services.auth_sessions import (
+    clear_admin_refresh_cookie,
+    get_admin_refresh_token,
+    set_admin_refresh_cookie,
 )
 
 
@@ -1915,7 +1922,7 @@ class CocinaComandasView(APIView):
             return aplicar_headers_cocina(response)
 
         comandas = obtener_comandas_activas(sesion.restaurante)
-        return aplicar_headers_cocina(Response({
+        response = Response({
             "restaurante": {
                 "nombre_empresa": sesion.restaurante.nombre_empresa,
                 "slug": sesion.restaurante.slug,
@@ -1923,7 +1930,9 @@ class CocinaComandasView(APIView):
             "fecha_operativa": sesion.fecha_operativa,
             "expires_at": sesion.expira_en,
             "comandas": comandas,
-        }))
+        })
+        renovar_sesion_cocina(response, request, sesion)
+        return aplicar_headers_cocina(response)
 
 
 class CocinaComandaEstadoView(APIView):
@@ -1948,13 +1957,15 @@ class CocinaComandaEstadoView(APIView):
         if error:
             return aplicar_headers_cocina(Response({"error": error}, status=status.HTTP_400_BAD_REQUEST))
 
-        return aplicar_headers_cocina(Response({
+        response = Response({
             "message": "Estado actualizado correctamente.",
             "pedido": {
                 "id": pedido_id,
                 "estado": pedido.estado,
             },
-        }))
+        })
+        renovar_sesion_cocina(response, request, sesion)
+        return aplicar_headers_cocina(response)
 
 
 class CocinaCerrarView(APIView):
@@ -2880,35 +2891,71 @@ class ActualizarDisponibilidadProductoView(APIView):
 
 #LOGIN Y LOGOUT DE USUARIOS
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
+        response = Response(
+            {"message": "Sesion cerrada correctamente"},
+            status=status.HTTP_205_RESET_CONTENT,
+        )
+        refresh_token = get_admin_refresh_token(request)
+        if refresh_token:
+            try:
+                RefreshToken(refresh_token).blacklist()
+            except TokenError:
+                pass
+
+        clear_admin_refresh_cookie(response)
+        return response
+
+
+class CookieTokenRefreshView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        refresh_token = get_admin_refresh_token(request)
+        if not refresh_token:
+            response = Response(
+                {"detail": "Sesion no disponible."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            clear_admin_refresh_cookie(response)
+            return response
+
+        serializer = TokenRefreshSerializer(data={"refresh": refresh_token})
         try:
-            refresh_token = request.data.get("refresh")
-
-            if not refresh_token:
-                return Response(
-                    {"error": "Refresh token requerido"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-
-            return Response(
-                {"message": "Sesión cerrada correctamente"},
-                status=status.HTTP_205_RESET_CONTENT
+            serializer.is_valid(raise_exception=True)
+        except (InvalidToken, TokenError):
+            response = Response(
+                {"detail": "Sesion expirada o revocada."},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
+            clear_admin_refresh_cookie(response)
+            return response
 
-        except TokenError:
-            return Response(
-                {"error": "Token inválido o expirado"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        data = dict(serializer.validated_data)
+        rotated_refresh = data.pop("refresh", None)
+        response = Response(data, status=status.HTTP_200_OK)
+        if rotated_refresh:
+            set_admin_refresh_cookie(response, rotated_refresh)
+        return response
+
 
 class CustomLoginView(TokenObtainPairView):
         serializer_class = CustomTokenObtainPairSerializer
         throttle_classes = [LoginRateThrottle]
+
+        def post(self, request, *args, **kwargs):
+            response = super().post(request, *args, **kwargs)
+            if response.status_code != status.HTTP_200_OK:
+                return response
+
+            refresh_token = response.data.pop("refresh", None)
+            if refresh_token:
+                set_admin_refresh_cookie(response, refresh_token)
+            return response
 
 
 class PasswordResetRequestView(APIView):

@@ -17,6 +17,7 @@ import IntegracionesConfig from "../componentes/configuraciones/integraciones";
 import SistemaConfig from "../componentes/configuraciones/sistema";
 import { authFetch } from "../api";
 import { getRolActual, permisosPorRol } from "../utils/permisos";
+import { tieneSesionAdmin } from "../session/adminSession";
 export default function ConfiguracionRestaurante() {
   const [data, setData] = useState(null);
   const [seccionActiva, setSeccionActiva] = useState("info");
@@ -34,9 +35,7 @@ export default function ConfiguracionRestaurante() {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("access");
-
-      if (!token) {
+      if (!tieneSesionAdmin()) {
         navigate("/");
         return;
       }

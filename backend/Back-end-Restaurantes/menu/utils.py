@@ -4,6 +4,10 @@ from django.conf import settings
 from django.core.mail import send_mail
 
 from .models import HorarioAtencion, Notificacion
+from .services.estado_restaurante import (
+    horario_cubre_hora_del_dia,
+    horario_cubre_madrugada_siguiente,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -49,34 +53,24 @@ def get_slug_from_host(host, base_domains=None):
 
 def validar_horario_reserva(restaurante, fecha, hora, permitir_sin_horario=False):
     dia_semana = fecha.isoweekday()
+    dia_anterior = 7 if dia_semana == 1 else dia_semana - 1
 
-    horarios = HorarioAtencion.objects.filter(
+    horarios = list(HorarioAtencion.objects.filter(
         restaurante=restaurante,
-        dia=dia_semana,
+        dia__in=[dia_semana, dia_anterior],
         activo=True
-    )
+    ))
+    horario_hoy = next((horario for horario in horarios if horario.dia == dia_semana), None)
+    horario_anterior = next((horario for horario in horarios if horario.dia == dia_anterior), None)
 
-    if not horarios.exists():
+    if not horario_hoy and not horario_anterior:
         return permitir_sin_horario
 
-    for horario in horarios:
-        if horario.cerrado:
-            continue
-
-        if not horario.hora_apertura or not horario.hora_cierre:
-            continue
-
-        apertura = horario.hora_apertura
-        cierre = horario.hora_cierre
-
-        if apertura <= cierre:
-            if apertura <= hora <= cierre:
-                return True
-        else:
-            if hora >= apertura or hora <= cierre:
-                return True
-
-    return False
+    if horario_cubre_hora_del_dia(horario_hoy, hora):
+        return True
+    if horario_cubre_madrugada_siguiente(horario_anterior, hora):
+        return True
+    return permitir_sin_horario if not horario_hoy else False
 
 def notificar_nueva_reserva(reserva):
     restaurante = reserva.restaurante

@@ -6,6 +6,7 @@ import Card from "../componentes/card-metric";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
+import { tieneSesionAdmin } from "../session/adminSession";
 import { FaMotorcycle } from "react-icons/fa6";
 import { AiOutlineShop } from "react-icons/ai";
 import { TbShoppingBag } from "react-icons/tb";
@@ -210,9 +211,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchRestaurante = async () => {
       try {
-        const token = localStorage.getItem("access");
-
-        if (!token) {
+        if (!tieneSesionAdmin()) {
           navigate("/");
           return;
         }
