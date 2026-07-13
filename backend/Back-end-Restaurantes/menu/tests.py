@@ -14,7 +14,7 @@ from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Produc
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host, validar_horario_reserva
-from .services.estado_restaurante import calcular_estado_abierto
+from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
 from .serializers import PedidoWhatsAppDashboardSerializer
 from django.core.cache import cache
 
@@ -4411,6 +4411,113 @@ class HorariosNocturnosTests(BaseTestCase):
                 time(1, 10),
             )
         )
+
+
+class EstadoAperturaExcepcionalTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.dueno)
+        HorarioAtencion.objects.create(
+            restaurante=self.restaurante,
+            dia=timezone.localtime().isoweekday(),
+            cerrado=True,
+            activo=True,
+        )
+
+    def test_dashboard_y_landing_comparten_apertura_excepcional_persistida(self):
+        dashboard_cerrado = self.client.get("/api/mi-restaurante/")
+        publico_cerrado = self.client.get(f"/api/restaurantes/{self.restaurante.slug}/")
+
+        self.assertFalse(dashboard_cerrado.data["restaurante"]["abierto_ahora"])
+        self.assertFalse(publico_cerrado.data["abierto_ahora"])
+        self.assertEqual(
+            dashboard_cerrado.data["restaurante"]["motivo_estado"],
+            "fuera_de_horario",
+        )
+
+        sin_confirmar = self.client.patch(
+            "/api/mi-restaurante/estado-apertura/",
+            {"abierto": True},
+            format="json",
+        )
+        self.assertEqual(sin_confirmar.status_code, status.HTTP_409_CONFLICT)
+        self.assertTrue(sin_confirmar.data["requiere_confirmacion"])
+
+        confirmar = self.client.patch(
+            "/api/mi-restaurante/estado-apertura/",
+            {"abierto": True, "forzar_fuera_de_horario": True},
+            format="json",
+        )
+        self.assertEqual(confirmar.status_code, status.HTTP_200_OK)
+        self.assertTrue(confirmar.data["abierto_ahora"])
+        self.assertEqual(confirmar.data["motivo_estado"], "apertura_excepcional")
+        self.assertTrue(confirmar.data["apertura_excepcional_activa"])
+
+        self.restaurante.refresh_from_db()
+        self.assertIsNotNone(self.restaurante.apertura_excepcional_hasta)
+        self.assertTrue(calcular_estado_abierto(self.restaurante))
+        self.assertTrue(
+            self.client.get("/api/mi-restaurante/").data["restaurante"]["abierto_ahora"]
+        )
+        self.assertTrue(
+            self.client.get(f"/api/restaurantes/{self.restaurante.slug}/").data["abierto_ahora"]
+        )
+
+    def test_cierre_manual_desactiva_excepcion_y_tiene_prioridad(self):
+        self.restaurante.apertura_excepcional_hasta = timezone.now() + timedelta(hours=2)
+        self.restaurante.save(update_fields=["apertura_excepcional_hasta"])
+
+        response = self.client.patch(
+            "/api/mi-restaurante/estado-apertura/",
+            {"abierto": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["abierto_ahora"])
+        self.assertEqual(response.data["motivo_estado"], "cierre_manual")
+        self.restaurante.refresh_from_db()
+        self.assertIsNone(self.restaurante.apertura_excepcional_hasta)
+
+    def test_excepcion_vencida_se_ignora(self):
+        self.restaurante.apertura_excepcional_hasta = timezone.now() - timedelta(minutes=1)
+        self.restaurante.save(update_fields=["apertura_excepcional_hasta"])
+
+        estado = calcular_estado_restaurante(self.restaurante)
+
+        self.assertFalse(estado["abierto_ahora"])
+        self.assertFalse(estado["apertura_excepcional_activa"])
+        self.assertEqual(estado["motivo"], "fuera_de_horario")
+
+    def test_reapertura_dentro_de_horario_no_crea_excepcion(self):
+        self.restaurante.horarios.all().delete()
+        self.restaurante.abierto = False
+        self.restaurante.save(update_fields=["abierto"])
+
+        response = self.client.patch(
+            "/api/mi-restaurante/estado-apertura/",
+            {"abierto": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["abierto_ahora"])
+        self.assertEqual(response.data["motivo_estado"], "dentro_de_horario")
+        self.restaurante.refresh_from_db()
+        self.assertIsNone(self.restaurante.apertura_excepcional_hasta)
+
+    def test_usuario_sin_permiso_no_puede_forzar_apertura(self):
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.patch(
+            "/api/mi-restaurante/estado-apertura/",
+            {"abierto": True, "forzar_fuera_de_horario": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.restaurante.refresh_from_db()
+        self.assertIsNone(self.restaurante.apertura_excepcional_hasta)
 
 
 class MetodosPagoPedidosTests(BaseTestCase):

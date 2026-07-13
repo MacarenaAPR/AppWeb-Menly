@@ -13,7 +13,7 @@ from .services.pedidos_whatsapp import (
     normalizar_productos_pedido,
     obtener_whatsapp_destino,
 )
-from .services.estado_restaurante import calcular_estado_abierto
+from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
 from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
@@ -273,6 +273,7 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField()
     plan = serializers.SerializerMethodField()
     abierto_ahora = serializers.SerializerMethodField()
+    estado_apertura = serializers.SerializerMethodField()
 
     class Meta:
         model = Restaurante
@@ -294,6 +295,8 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "delivery_activo",
             "abierto",
             "abierto_ahora",
+            "estado_apertura",
+            "apertura_excepcional_hasta",
             "descripcion",
             "logo",
             "logo_url",
@@ -313,6 +316,8 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
             "metricas_activas",
             "plan",
             "abierto_ahora",
+            "estado_apertura",
+            "apertura_excepcional_hasta",
         ]
 
     def get_logo_url(self, obj):
@@ -329,6 +334,9 @@ class RestauranteConfigSerializer(serializers.ModelSerializer):
 
     def get_abierto_ahora(self, obj):
         return calcular_estado_abierto(obj)
+
+    def get_estado_apertura(self, obj):
+        return calcular_estado_restaurante(obj)
 
 
 class ImagenRestaurantePublicaSerializer(serializers.ModelSerializer):
@@ -347,6 +355,7 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
     metodos_pago = serializers.SerializerMethodField()
     imagenes = serializers.SerializerMethodField()
     abierto_ahora = serializers.SerializerMethodField()
+    estado_apertura = serializers.SerializerMethodField()
 
     class Meta:
         model = Restaurante
@@ -368,6 +377,8 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
             "delivery_activo",
             "abierto",
             "abierto_ahora",
+            "estado_apertura",
+            "apertura_excepcional_hasta",
             "logo_url",
             "horarios",
             "metodos_pago",
@@ -409,6 +420,9 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
 
     def get_abierto_ahora(self, obj):
         return calcular_estado_abierto(obj)
+
+    def get_estado_apertura(self, obj):
+        return calcular_estado_restaurante(obj)
     
 class ReservaPublicaSerializer(serializers.ModelSerializer):
     class Meta:

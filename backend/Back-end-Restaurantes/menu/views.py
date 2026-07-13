@@ -50,7 +50,7 @@ from menu.services.metricas.resumen import (
     construir_payload_pedidos_compat,
     construir_resumen_metricas,
 )
-from menu.services.estado_restaurante import calcular_estado_abierto
+from menu.services.estado_restaurante import calcular_estado_restaurante
 from menu.services.cocina import (
     cambiar_estado_comanda,
     consumir_activacion_cocina,
@@ -343,6 +343,18 @@ def serializar_flags_restaurante(restaurante):
     return {
         campo: getattr(restaurante, campo)
         for campo in RESTAURANTE_FEATURE_FLAGS
+    }
+
+
+def serializar_estado_apertura(restaurante):
+    estado = calcular_estado_restaurante(restaurante)
+    return {
+        "abierto_ahora": estado["abierto_ahora"],
+        "motivo_estado": estado["motivo"],
+        "dentro_de_horario": estado["dentro_de_horario"],
+        "puede_abrirse_excepcionalmente": estado["puede_abrirse_excepcionalmente"],
+        "apertura_excepcional_activa": estado["apertura_excepcional_activa"],
+        "apertura_excepcional_hasta": estado["apertura_excepcional_hasta"],
     }
 
 
@@ -985,6 +997,7 @@ class RestauranteEstadoAperturaView(APIView):
         perfil = get_perfil_activo(request)
         restaurante = perfil.restaurante
         abierto = request.data.get("abierto")
+        forzar_fuera_de_horario = request.data.get("forzar_fuera_de_horario", False)
 
         if not isinstance(abierto, bool):
             return Response(
@@ -992,13 +1005,37 @@ class RestauranteEstadoAperturaView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        if not isinstance(forzar_fuera_de_horario, bool):
+            return Response(
+                {"forzar_fuera_de_horario": "Debe enviar true o false."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        estado_actual = calcular_estado_restaurante(restaurante)
+        update_fields = ["abierto", "apertura_excepcional_hasta"]
+
+        if abierto and not estado_actual["dentro_de_horario"]:
+            if not forzar_fuera_de_horario:
+                return Response(
+                    {
+                        "error": "La tienda está fuera de su horario de atención.",
+                        "requiere_confirmacion": True,
+                        "abierto": restaurante.abierto,
+                        **serializar_estado_apertura(restaurante),
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+            restaurante.apertura_excepcional_hasta = localtime(now()) + timedelta(hours=2)
+        else:
+            restaurante.apertura_excepcional_hasta = None
+
         restaurante.abierto = abierto
-        restaurante.save(update_fields=["abierto"])
+        restaurante.save(update_fields=update_fields)
         invalidate_menu_cache(restaurante)
 
         return Response({
             "abierto": restaurante.abierto,
-            "abierto_ahora": calcular_estado_abierto(restaurante),
+            **serializar_estado_apertura(restaurante),
         })
 
 class CategoriasView(TenantScopedQuerysetMixin, APIView):
@@ -3449,7 +3486,7 @@ class MiRestauranteView(APIView):
                     "slug": restaurante.slug,
                     "activo": restaurante.activo,
                     "abierto": restaurante.abierto,
-                    "abierto_ahora": calcular_estado_abierto(restaurante),
+                    **serializar_estado_apertura(restaurante),
                     "imgen_principal": request.build_absolute_uri(restaurante.imgen_principal.url) if restaurante.imgen_principal else None,
                     "plan": serializar_plan_restaurante(restaurante),
                     **serializar_flags_restaurante(restaurante),
@@ -3549,7 +3586,7 @@ def menu_api(request, slug):
             "id": restaurante.id,
             "slug": restaurante.slug,
             "abierto": restaurante.abierto,
-            "abierto_ahora": calcular_estado_abierto(restaurante),
+            **serializar_estado_apertura(restaurante),
             **serializar_flags_restaurante(restaurante),
         },
         "categorias": categorias_data,

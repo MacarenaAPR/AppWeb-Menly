@@ -519,6 +519,125 @@
     backdrop-filter: blur(4px);
 }
 
+.dashboard-apertura-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1450;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(3, 7, 12, 0.78);
+    backdrop-filter: blur(4px);
+}
+
+.dashboard-apertura-modal {
+    position: relative;
+    width: min(470px, 100%);
+    padding: 28px;
+    border: 1px solid #2f3b49;
+    border-radius: 16px;
+    background: #0d131a;
+    color: #f8fafc;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.52);
+}
+
+.dashboard-apertura-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid #2f4055;
+    border-radius: 9px;
+    background: #141d29;
+    color: #fff;
+}
+
+.dashboard-apertura-modal-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 16px;
+    border: 1px solid rgba(240, 107, 12, .4);
+    border-radius: 12px;
+    background: rgba(240, 107, 12, .1);
+    color: #F06B0C;
+    font-size: 20px;
+}
+
+.dashboard-apertura-modal h2 {
+    margin: 0 42px 12px 0;
+    font-size: 22px;
+}
+
+.dashboard-apertura-modal > p:not(.dashboard-apertura-modal-error) {
+    margin: 0 0 7px;
+    color: #e2e8f0;
+}
+
+.dashboard-apertura-modal > small {
+    display: block;
+    margin-top: 10px;
+    color: #94a3b8;
+    line-height: 1.5;
+}
+
+.dashboard-apertura-modal-error {
+    margin: 14px 0 0;
+    padding: 9px 11px;
+    border: 1px solid rgba(239, 68, 68, .38);
+    border-radius: 8px;
+    background: rgba(220, 38, 38, .1);
+    color: #fca5a5;
+    font-size: 13px;
+}
+
+.dashboard-apertura-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.dashboard-apertura-modal-actions button {
+    min-height: 40px;
+    padding: 0 15px;
+    border: 1px solid #2f4055;
+    border-radius: 10px;
+    background: #141d29;
+    color: #fff;
+    font-weight: 700;
+}
+
+.dashboard-apertura-modal-actions button:last-child {
+    border-color: #F06B0C;
+    background: #F06B0C;
+    color: #111827;
+}
+
+.dashboard-apertura-modal button:disabled {
+    cursor: wait;
+    opacity: .65;
+}
+
+@media (max-width: 480px) {
+    .dashboard-apertura-modal {
+        padding: 22px 18px 18px;
+    }
+
+    .dashboard-apertura-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .dashboard-apertura-modal-actions button {
+        width: 100%;
+    }
+}
+
 .dashboard-pedido-modal {
     width: min(620px, 100%);
     max-height: calc(100vh - 40px);

@@ -86,6 +86,7 @@ class Restaurante(models.Model):
     pedidos_pos = models.BooleanField(default=False, verbose_name="Pedidos POS activos")
     delivery_activo = models.BooleanField(default=False)
     abierto = models.BooleanField(default=True)
+    apertura_excepcional_hasta = models.DateTimeField(null=True, blank=True)
     metricas_activas = models.BooleanField(default=True)
 
     class Meta:

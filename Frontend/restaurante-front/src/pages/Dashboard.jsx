@@ -70,6 +70,7 @@ export default function Dashboard() {
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [aperturaLoading, setAperturaLoading] = useState(false);
   const [aperturaError, setAperturaError] = useState("");
+  const [confirmacionAperturaAbierta, setConfirmacionAperturaAbierta] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const actualizarContadorNotificaciones = useCallback((pendientes) => {
@@ -441,12 +442,22 @@ export default function Dashboard() {
   const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
   const ventaTotalMes = metricasPedidos?.ventas?.venta_real_mes ?? 0;
   const ventaTotalDiaria = metricasPedidos?.venta_total_diaria_operativa ?? 0;
-  const tiendaAbierta = restaurante?.abierto === true;
+  const tiendaAbierta = restaurante?.abierto_ahora === true;
 
-  const cambiarEstadoApertura = async () => {
+  const cambiarEstadoApertura = async (forzarFueraDeHorario = false) => {
     if (!restaurante || aperturaLoading) return;
 
     const siguienteEstado = !tiendaAbierta;
+    if (
+      siguienteEstado &&
+      restaurante?.puede_abrirse_excepcionalmente === true &&
+      !forzarFueraDeHorario
+    ) {
+      setAperturaError("");
+      setConfirmacionAperturaAbierta(true);
+      return;
+    }
+
     setAperturaLoading(true);
     setAperturaError("");
 
@@ -454,7 +465,10 @@ export default function Dashboard() {
       const response = await authFetch("/mi-restaurante/estado-apertura/", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ abierto: siguienteEstado }),
+        body: JSON.stringify({
+          abierto: siguienteEstado,
+          forzar_fuera_de_horario: forzarFueraDeHorario,
+        }),
       });
       const result = await readJsonResponse(
         response,
@@ -466,8 +480,7 @@ export default function Dashboard() {
         if (!prev) return prev;
         const restauranteActualizado = {
           ...prev.restaurante,
-          abierto: result.abierto,
-          abierto_ahora: result.abierto_ahora,
+          ...result,
         };
 
         localStorage.setItem("restaurante", JSON.stringify(restauranteActualizado));
@@ -477,8 +490,11 @@ export default function Dashboard() {
           restaurante: restauranteActualizado,
         };
       });
+      setConfirmacionAperturaAbierta(false);
+      return true;
     } catch (err) {
       setAperturaError(err.message || "No se pudo cambiar el estado de la tienda");
+      return false;
     } finally {
       setAperturaLoading(false);
     }
@@ -606,7 +622,7 @@ export default function Dashboard() {
                                   </span>
                                   <button
                                     type="button"
-                                    onClick={cambiarEstadoApertura}
+                                    onClick={() => cambiarEstadoApertura()}
                                     disabled={cuentaInactiva || aperturaLoading}
                                   >
                                     {aperturaLoading
@@ -822,6 +838,64 @@ export default function Dashboard() {
               <div className="dashboard-subscription-alert is-warning">
                 <i className="bi bi-info-circle"></i>
                 <span>{mensajeSuscripcion}</span>
+              </div>
+            )}
+            {confirmacionAperturaAbierta && (
+              <div
+                className="dashboard-apertura-modal-backdrop"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="dashboard-apertura-modal-title"
+                onMouseDown={(event) => {
+                  if (event.target === event.currentTarget && !aperturaLoading) {
+                    setConfirmacionAperturaAbierta(false);
+                    setAperturaError("");
+                  }
+                }}
+              >
+                <section className="dashboard-apertura-modal">
+                  <button
+                    className="dashboard-apertura-modal-close"
+                    type="button"
+                    aria-label="Cerrar confirmación"
+                    disabled={aperturaLoading}
+                    onClick={() => {
+                      setConfirmacionAperturaAbierta(false);
+                      setAperturaError("");
+                    }}
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                  <div className="dashboard-apertura-modal-icon" aria-hidden="true">
+                    <i className="bi bi-clock-history"></i>
+                  </div>
+                  <h2 id="dashboard-apertura-modal-title">Abrir tienda fuera de horario</h2>
+                  <p>La tienda se encuentra fuera de su horario de atención.</p>
+                  <p>¿Estás seguro de que deseas abrirla temporalmente?</p>
+                  <small>
+                    Durante las próximas 2 horas los clientes podrán realizar pedidos desde la página pública.
+                  </small>
+                  {aperturaError && <p className="dashboard-apertura-modal-error" role="alert">{aperturaError}</p>}
+                  <div className="dashboard-apertura-modal-actions">
+                    <button
+                      type="button"
+                      disabled={aperturaLoading}
+                      onClick={() => {
+                        setConfirmacionAperturaAbierta(false);
+                        setAperturaError("");
+                      }}
+                    >
+                      Volver
+                    </button>
+                    <button
+                      type="button"
+                      disabled={aperturaLoading}
+                      onClick={() => cambiarEstadoApertura(true)}
+                    >
+                      {aperturaLoading ? "Abriendo..." : "Sí, abrir tienda"}
+                    </button>
+                  </div>
+                </section>
               </div>
             )}
             {pedidoResumen && (
