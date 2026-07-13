@@ -133,6 +133,75 @@ class DashboardMetricasResilienciaTests(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json(), [])
 
+    def test_ultimos_pedidos_identifica_cada_origen_e_incluye_especiales_activos(self):
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.save(update_fields=["solicitudes_especiales_activas"])
+        pedido_whatsapp = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="WhatsApp",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=1000,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        pedido_manual = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Manual",
+            tipo_entrega=PedidoManual.TIPO_MESA,
+            subtotal=2000,
+            total=2000,
+        )
+        pedido_especial = PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Especial",
+            telefono_cliente="56911111111",
+            items=[],
+            total=3000,
+            fecha_entrega=timezone.localdate(),
+        )
+
+        response = self.client.get("/api/dashboard/ultimos-pedidos/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pedidos = response.json()
+        referencias = {(pedido["tipo"], pedido["id"]) for pedido in pedidos}
+        self.assertIn(("whatsapp", pedido_whatsapp.id), referencias)
+        self.assertIn(("manual", pedido_manual.id), referencias)
+        self.assertIn(("especial", pedido_especial.id), referencias)
+        self.assertTrue(all("estado" in pedido for pedido in pedidos))
+
+    def test_ultimos_pedidos_respeta_tenant_y_modulo_especiales(self):
+        PedidoWhatsApp.objects.create(
+            restaurante=self.otro_restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente ajeno",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=1000,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Especial inactivo",
+            telefono_cliente="56911111111",
+            items=[],
+            total=3000,
+            fecha_entrega=timezone.localdate(),
+        )
+
+        response = self.client.get("/api/dashboard/ultimos-pedidos/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json(), [])
+
     def test_metricas_resumen_sin_datos_devuelve_payload_vacio(self):
         response = self.client.get("/api/mi-restaurante/metricas/resumen/")
 

@@ -1,28 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
+import { useSearchParams } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { permisosPorRol } from "../utils/permisos";
-
-const ESTADOS_PEDIDO_BASE = ["recibido", "pendiente_confirmacion", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
-const ESTADO_EN_REPARTO = "en_reparto";
-const ESTADOS_PEDIDO_ESPECIAL = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado", "completado"];
-const ESTADOS_PEDIDO_MANUAL = ["pendiente", "preparando", "listo", "entregado", "cancelado"];
+import {
+  ESTADOS_PEDIDO_ESPECIAL,
+  ESTADOS_PEDIDO_MANUAL,
+  estadoLabels,
+  normalizarTipoPedido,
+  obtenerEndpointActualizacionPedido,
+  obtenerEndpointDetallePedido,
+  obtenerEstadosPedido,
+} from "../utils/pedidos";
 const PEDIDOS_POLLING_MS = 30000;
-
-const estadoLabels = {
-  recibido: "Pedido recibido",
-  pendiente_confirmacion: "Pendiente de confirmacion",
-  pendiente: "Pendiente",
-  confirmado: "Confirmado",
-  en_preparacion: "En preparacion",
-  preparando: "Preparando",
-  en_reparto: "En reparto",
-  listo: "Listo",
-  entregado: "Entregado",
-  cancelado: "Cancelado",
-  completado: "Completado",
-};
 
 const formEspecialInicial = {
   nombre_cliente: "",
@@ -135,6 +126,7 @@ const normalizarListaPedidos = (data) => {
 };
 
 export default function PedidosDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [restaurante, setRestaurante] = useState(null);
   const [usuario, setUsuario] = useState(null);
   const [catalogoProductos, setCatalogoProductos] = useState([]);
@@ -144,8 +136,6 @@ export default function PedidosDashboard() {
   const [pedidosManuales, setPedidosManuales] = useState([]);
   const [metricas, setMetricas] = useState({ whatsapp: {}, especiales: {} });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [mensaje, setMensaje] = useState("");
   const [detalle, setDetalle] = useState(null);
   const [mostrarFormularioEspecial, setMostrarFormularioEspecial] = useState(false);
   const [mostrarFormularioManual, setMostrarFormularioManual] = useState(false);
@@ -155,8 +145,6 @@ export default function PedidosDashboard() {
   const [formManual, setFormManual] = useState(formManualInicial);
   const [guardandoManual, setGuardandoManual] = useState(false);
   const [abriendoCocina, setAbriendoCocina] = useState(false);
-  const [activacionCocinaUrl, setActivacionCocinaUrl] = useState("");
-  const [pedidoManualWhatsappListo, setPedidoManualWhatsappListo] = useState(null);
   const [observacionManualEditor, setObservacionManualEditor] = useState(null);
   const [varianteManualSelector, setVarianteManualSelector] = useState(null);
   const [detalleItems, setDetalleItems] = useState([]);
@@ -170,6 +158,8 @@ export default function PedidosDashboard() {
   const formularioEspecialAbiertoRef = useRef(false);
   const formularioManualAbiertoRef = useRef(false);
   const observacionManualButtonsRef = useRef({});
+  const pedidoQueryTipo = normalizarTipoPedido(searchParams.get("tipo"));
+  const pedidoQueryId = searchParams.get("pedido");
 
   const whatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   const especialesActivo = restaurante?.solicitudes_especiales_activas === true;
@@ -177,14 +167,8 @@ export default function PedidosDashboard() {
   const deliveryActivo = restaurante?.delivery_activo === true;
   const esEmpleado = permisosPorRol(usuario?.rol).isEmpleado;
   const puedeAbrirCocina = ["dueno", "admin"].includes(usuario?.rol);
-  const obtenerEstadosPedidoWhatsapp = (pedido) => {
-    if (!deliveryActivo || pedido?.tipo_entrega !== "delivery") return ESTADOS_PEDIDO_BASE;
-
-    const estados = [...ESTADOS_PEDIDO_BASE];
-    const indiceListo = estados.indexOf("listo");
-    estados.splice(indiceListo >= 0 ? indiceListo + 1 : estados.length, 0, ESTADO_EN_REPARTO);
-    return estados;
-  };
+  const obtenerEstadosPedidoWhatsapp = (pedido) =>
+    obtenerEstadosPedido("whatsapp", pedido, { deliveryActivo });
 
   const tabsDisponibles = useMemo(() => {
     const tabs = [];
@@ -285,7 +269,6 @@ export default function PedidosDashboard() {
   useEffect(() => {
     const cargar = async () => {
       setLoading(true);
-      setError("");
       try {
         const datosRestaurante = await cargarRestaurante();
         const restauranteActual = datosRestaurante.restaurante;
@@ -297,8 +280,8 @@ export default function PedidosDashboard() {
           setTabActiva("especiales");
         }
         await cargarPedidos(restauranteActual, datosRestaurante.usuario?.rol);
-      } catch (requestError) {
-        setError(requestError.message || "No se pudieron cargar los pedidos.");
+      } catch {
+        // La pantalla conserva su estado sin insertar alertas sobre las métricas.
       } finally {
         setLoading(false);
       }
@@ -334,21 +317,8 @@ export default function PedidosDashboard() {
   }, [cargarPedidos, restaurante]);
 
   const actualizarPedido = async (tipo, id, datos) => {
-    setError("");
-    setMensaje("");
-    setPedidoManualWhatsappListo(null);
 
-    const esCambioSoloEstado =
-      tipo === "whatsapp" &&
-      Object.keys(datos || {}).length === 1 &&
-      Object.prototype.hasOwnProperty.call(datos, "estado");
-
-    const endpoint =
-      tipo === "whatsapp"
-        ? `/mi-restaurante/pedidos/whatsapp/${id}/${esCambioSoloEstado ? "estado/" : ""}`
-        : tipo === "manual"
-          ? `/mi-restaurante/pedidos/manuales/${id}/`
-          : `/mi-restaurante/pedidos/especiales/${id}/`;
+    const endpoint = obtenerEndpointActualizacionPedido(tipo, id, datos);
 
     try {
       const response = await authFetch(endpoint, {
@@ -386,17 +356,15 @@ export default function PedidosDashboard() {
         );
       }
 
-      setMensaje("Pedido actualizado correctamente.");
       await cargarPedidos(restaurante);
 
       return true;
-    } catch (requestError) {
-      setError(requestError.message || "No se pudo actualizar el pedido.");
+    } catch {
       return false;
     }
   };
 
-  const abrirDetalle = (tipo, pedido) => {
+  const abrirDetalle = useCallback((tipo, pedido) => {
     setDetalle({ tipo, pedido });
     setProductoBusqueda("");
     setProductoSeleccionado("");
@@ -418,7 +386,7 @@ export default function PedidosDashboard() {
             }))
         : []
     );
-  };
+  }, []);
 
   const totalDetalleWhatsapp = detalleItems.reduce((total, item) => (
     total + Number(item.cantidad || 0) * Number(item.precio_unitario || 0)
@@ -452,11 +420,9 @@ export default function PedidosDashboard() {
     const producto = catalogoProductos.find((item) => String(item.id) === String(productoSeleccionado));
     const cantidad = Math.max(1, Number(cantidadProductoNuevo) || 1);
     if (!producto) {
-      setError("Selecciona un producto del catalogo.");
       return;
     }
 
-    setError("");
     setDetalleItems((actuales) => {
       const existente = actuales.find((item) => Number(item.producto_id) === Number(producto.id));
       if (existente) {
@@ -489,12 +455,10 @@ export default function PedidosDashboard() {
     if (!detalle || detalle.tipo !== "whatsapp") return;
 
     if (detalleItems.length === 0) {
-      setError("El pedido debe tener al menos un producto.");
       return;
     }
 
     if (detalle.pedido.tipo_entrega === "delivery" && !direccionDetalle.trim()) {
-      setError("Debe ingresar una direccion para delivery.");
       return;
     }
 
@@ -508,7 +472,7 @@ export default function PedidosDashboard() {
     });
 
     if (actualizado) {
-      setDetalle(null);
+      cerrarDetalle();
     }
   };
 
@@ -542,10 +506,75 @@ export default function PedidosDashboard() {
     setPedidoEditando(null);
     setFormEspecial(formEspecialInicial);
     setMostrarFormularioEspecial(true);
-    setError("");
-    setMensaje("");
-    setPedidoManualWhatsappListo(null);
   };
+
+  const cerrarDetalle = useCallback(() => {
+    setDetalle(null);
+    setSearchParams((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      siguientes.delete("tipo");
+      siguientes.delete("pedido");
+      return siguientes;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  useEffect(() => {
+    const tiposValidos = ["whatsapp", "manual", "especial"];
+    if (loading || !tiposValidos.includes(pedidoQueryTipo) || !pedidoQueryId) return undefined;
+    if (
+      detalle?.tipo === pedidoQueryTipo &&
+      String(detalle?.pedido?.id) === String(pedidoQueryId)
+    ) return undefined;
+
+    const pedidosPorTipo = {
+      whatsapp: pedidosWhatsapp,
+      manual: pedidosManuales,
+      especial: pedidosEspeciales,
+    };
+    const pedidoCargado = pedidosPorTipo[pedidoQueryTipo]?.find(
+      (pedido) => String(pedido.id) === String(pedidoQueryId)
+    );
+
+    if (pedidoCargado) {
+      setTabActiva(pedidoQueryTipo === "manual" ? "menly" : pedidoQueryTipo === "especial" ? "especiales" : "whatsapp");
+      abrirDetalle(pedidoQueryTipo, pedidoCargado);
+      return undefined;
+    }
+
+    let cancelado = false;
+    const endpoint = obtenerEndpointDetallePedido(pedidoQueryTipo, pedidoQueryId);
+
+    const cargarDetalleEnlazado = async () => {
+      try {
+        const response = await authFetch(endpoint, { cache: "no-store" });
+        const pedido = await readJsonResponse(
+          response,
+          endpoint,
+          "No se pudo cargar el detalle del pedido."
+        );
+        if (!cancelado) {
+          setTabActiva(pedidoQueryTipo === "manual" ? "menly" : pedidoQueryTipo === "especial" ? "especiales" : "whatsapp");
+          abrirDetalle(pedidoQueryTipo, pedido);
+        }
+      } catch {
+        // La URL permanece disponible para reintentar sin agregar alertas al encabezado.
+      }
+    };
+
+    cargarDetalleEnlazado();
+    return () => {
+      cancelado = true;
+    };
+  }, [
+    abrirDetalle,
+    detalle,
+    loading,
+    pedidoQueryId,
+    pedidoQueryTipo,
+    pedidosEspeciales,
+    pedidosManuales,
+    pedidosWhatsapp,
+  ]);
 
   const abrirEditarEspecial = (pedido) => {
     setPedidoEditando(pedido);
@@ -564,9 +593,6 @@ export default function PedidosDashboard() {
       })) : formEspecialInicial.items,
     });
     setMostrarFormularioEspecial(true);
-    setError("");
-    setMensaje("");
-    setPedidoManualWhatsappListo(null);
   };
 
   const actualizarItemEspecial = (index, campo, valor) => {
@@ -596,8 +622,6 @@ export default function PedidosDashboard() {
 
   const guardarEspecial = async (e) => {
     e.preventDefault();
-    setError("");
-    setMensaje("");
 
     const itemsValidos = formEspecial.items.every((item) =>
       String(item.nombre || "").trim() &&
@@ -606,7 +630,6 @@ export default function PedidosDashboard() {
     );
 
     if (!itemsValidos || !formEspecial.fecha_entrega || !formEspecial.nombre_cliente || !formEspecial.telefono_cliente) {
-      setError("Completa cliente, telefono, fecha de entrega e items del pedido.");
       return;
     }
 
@@ -642,10 +665,9 @@ export default function PedidosDashboard() {
       setMostrarFormularioEspecial(false);
       setPedidoEditando(null);
       setFormEspecial(formEspecialInicial);
-      setMensaje(pedidoEditando ? "Pedido especial actualizado." : "Pedido especial creado.");
       await cargarPedidos(restaurante);
-    } catch (requestError) {
-      setError(requestError.message || "No se pudo guardar el pedido especial.");
+    } catch {
+      // Conserva el formulario abierto para permitir corregir o reintentar.
     }
   };
 
@@ -676,9 +698,6 @@ export default function PedidosDashboard() {
     setCategoriaManual("");
     setVarianteManualSelector(null);
     setMostrarFormularioManual(true);
-    setError("");
-    setMensaje("");
-    setPedidoManualWhatsappListo(null);
   };
 
   const cerrarFormularioManual = () => {
@@ -715,11 +734,8 @@ export default function PedidosDashboard() {
     setProductoBusquedaManual("");
     setCategoriaManual("");
     setVarianteManualSelector(null);
-    setDetalle(null);
+    cerrarDetalle();
     setMostrarFormularioManual(true);
-    setError("");
-    setMensaje("");
-    setPedidoManualWhatsappListo(null);
   };
 
   const agregarProductoManual = (producto, variante = null) => {
@@ -775,12 +791,10 @@ export default function PedidosDashboard() {
       (item) => String(item.id) === String(varianteManualSelector.varianteId)
     );
     if (!variante) {
-      setError("Selecciona una variante para agregar el producto.");
       return;
     }
     agregarProductoManual(varianteManualSelector.producto, variante);
     setVarianteManualSelector(null);
-    setError("");
   };
 
   const actualizarItemManual = (lineaId, cambios) => {
@@ -845,12 +859,10 @@ export default function PedidosDashboard() {
   const abrirWhatsappPedidoManual = (pedido) => {
     const telefono = normalizarTelefonoWhatsappChile(pedido?.telefono_cliente || pedido?.cliente_telefono);
     if (!telefono) {
-      setError("El pedido no tiene un telefono valido para WhatsApp.");
       return;
     }
 
     if (!pedido?.tracking_url) {
-      setError("El pedido no tiene un enlace de seguimiento disponible.");
       return;
     }
 
@@ -861,9 +873,6 @@ export default function PedidosDashboard() {
 
   const abrirCocina = async () => {
     if (abriendoCocina) return;
-    setError("");
-    setMensaje("");
-    setActivacionCocinaUrl("");
 
     try {
       setAbriendoCocina(true);
@@ -882,15 +891,9 @@ export default function PedidosDashboard() {
         throw new Error("No se pudo generar el enlace de cocina.");
       }
 
-      const nuevaVentana = window.open(activationUrl, "_blank", "noopener,noreferrer");
-      if (!nuevaVentana) {
-        setActivacionCocinaUrl(activationUrl);
-        setMensaje("El navegador bloqueo la nueva pestaña. Abre cocina con el enlace manual.");
-      } else {
-        setMensaje("Cocina autorizada en una nueva pestaña.");
-      }
-    } catch (requestError) {
-      setError(requestError.message || "No se pudo abrir cocina.");
+      window.open(activationUrl, "_blank", "noopener,noreferrer");
+    } catch {
+      // La acción puede reintentarse desde el mismo botón sin crear un banner persistente.
     } finally {
       setAbriendoCocina(false);
     }
@@ -963,26 +966,19 @@ export default function PedidosDashboard() {
     e.preventDefault();
     if (guardandoManual) return;
 
-    setError("");
-    setMensaje("");
-
     if (formManual.items.length === 0) {
-      setError("Agrega al menos un producto al pedido.");
       return;
     }
 
     if (formManual.items.some((item) => Number(item.cantidad) < 1)) {
-      setError("Las cantidades deben ser mayores que cero.");
       return;
     }
 
     if (formManual.tipo_entrega === "delivery" && !formManual.direccion.trim()) {
-      setError("Debe ingresar una direccion para delivery.");
       return;
     }
 
     if (formManual.tipo_entrega === "mesa" && !formManual.numero_mesa.trim()) {
-      setError("Debe ingresar el numero de mesa.");
       return;
     }
 
@@ -1011,24 +1007,19 @@ export default function PedidosDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await readJsonResponse(
+      await readJsonResponse(
         response,
         endpoint,
         pedidoManualEditando ? "No se pudo actualizar el pedido." : "No se pudo crear el pedido."
       );
-      const pedidoCreado = data?.pedido;
 
       setMostrarFormularioManual(false);
       setFormManual(formManualInicial);
       setPedidoManualEditando(null);
       setTabActiva("menly");
-      setMensaje(pedidoManualEditando ? "Pedido actualizado correctamente." : "Pedido creado correctamente.");
-      setPedidoManualWhatsappListo(pedidoManualEditando ? null : (pedidoCreado || null));
       await cargarPedidos(restaurante);
-    } catch (requestError) {
-      setError(requestError.message || (pedidoManualEditando
-        ? "No se pudo actualizar el pedido."
-        : "No se pudo crear el pedido."));
+    } catch {
+      // Conserva el formulario abierto para permitir corregir o reintentar.
     } finally {
       setGuardandoManual(false);
     }
@@ -1050,32 +1041,6 @@ export default function PedidosDashboard() {
         <section className="reservas-page pedidos-page">
           <header className="reservas-header">
             <h1>Pedidos</h1>
-            {error && <p className="reservas-error">{error}</p>}
-            {mensaje && <p className="solicitudes-success">{mensaje}</p>}
-            {pedidoManualWhatsappListo && (
-              <div className="pedido-whatsapp-ready">
-                <span>Pedido #{pedidoManualWhatsappListo.numero_pedido} listo para enviar al cliente.</span>
-                <button
-                  type="button"
-                  onClick={() => abrirWhatsappPedidoManual(pedidoManualWhatsappListo)}
-                  disabled={!normalizarTelefonoWhatsappChile(pedidoManualWhatsappListo.telefono_cliente)}
-                >
-                  <i className="bi bi-whatsapp"></i>
-                  Enviar por WhatsApp
-                </button>
-              </div>
-            )}
-            {activacionCocinaUrl && (
-              <div className="pedido-cocina-manual-link">
-                <span>Enlace temporal de cocina generado.</span>
-                <a href={activacionCocinaUrl} target="_blank" rel="noreferrer">
-                  Abrir cocina
-                </a>
-                <button type="button" onClick={() => navigator.clipboard?.writeText(activacionCocinaUrl)}>
-                  Copiar enlace
-                </button>
-              </div>
-            )}
 
             <div className="breadcrumb-reservas">
               <span>Inicio</span>
@@ -1374,7 +1339,7 @@ export default function PedidosDashboard() {
         {detalle && (
           <div className="modal-reserva-bg">
             <section className="modal-reserva pedido-detalle-modal">
-              <button className="modal-close-btn" type="button" aria-label="Cerrar" onClick={() => setDetalle(null)}>
+              <button className="modal-close-btn" type="button" aria-label="Cerrar" onClick={cerrarDetalle}>
                 <i className="bi bi-x-lg"></i>
               </button>
 
@@ -1556,7 +1521,7 @@ export default function PedidosDashboard() {
                       </div>
 
                       <div className="modal-actions">
-                        <button className="button-cancelar" type="button" onClick={() => setDetalle(null)}>
+                        <button className="button-cancelar" type="button" onClick={cerrarDetalle}>
                           Cancelar
                         </button>
                         <button type="button" onClick={guardarProductosWhatsapp}>
@@ -1586,7 +1551,7 @@ export default function PedidosDashboard() {
                         <strong>{formatearMoneda(detalle.pedido.total)}</strong>
                       </div>
                       <div className="modal-actions pedido-manual-actions">
-                        <button className="button-cancelar" type="button" onClick={() => setDetalle(null)}>
+                        <button className="button-cancelar" type="button" onClick={cerrarDetalle}>
                           Cerrar
                         </button>
                         <button type="button" onClick={() => abrirEditarManual(detalle.pedido)}>

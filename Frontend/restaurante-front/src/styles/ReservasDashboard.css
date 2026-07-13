@@ -322,7 +322,6 @@
 }
 
 .acciones-cell button:disabled,
-.pedido-whatsapp-ready button:disabled,
 .pedido-whatsapp-detail-btn:disabled {
   cursor: not-allowed;
   opacity: 0.48;
@@ -334,28 +333,6 @@
   background: rgba(34, 197, 94, 0.08);
 }
 
-.pedido-whatsapp-ready {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 12px;
-  padding: 10px 12px;
-  border: 1px solid rgba(34, 197, 94, 0.28);
-  border-radius: 8px;
-  background: rgba(34, 197, 94, 0.08);
-  color: #d1fae5;
-}
-
-.pedido-whatsapp-ready span {
-  color: #d1fae5;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.pedido-whatsapp-ready button,
 .pedido-whatsapp-detail-btn {
   display: inline-flex;
   align-items: center;
@@ -378,32 +355,6 @@
 .pedido-cocina-btn:disabled {
   cursor: wait;
   opacity: 0.65;
-}
-
-.pedido-cocina-manual-link {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 12px;
-  padding: 10px 12px;
-  border: 1px solid rgba(59, 130, 246, 0.32);
-  border-radius: 8px;
-  background: rgba(59, 130, 246, 0.08);
-  color: #dbeafe;
-}
-
-.pedido-cocina-manual-link a,
-.pedido-cocina-manual-link button {
-  border: 1px solid rgba(96, 165, 250, 0.48);
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: #0f172a;
-  color: #bfdbfe;
-  font-weight: 800;
-  text-decoration: none;
 }
 
 .pedido-manual-actions {

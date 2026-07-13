@@ -8,6 +8,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { tieneSesionAdmin } from "../session/adminSession";
 import { permisosPorRol } from "../utils/permisos";
+import {
+  estadoLabels,
+  obtenerEndpointActualizacionPedido,
+  obtenerEndpointDetallePedido,
+  obtenerEstadosPedido,
+  obtenerTipoPedidoDashboard,
+} from "../utils/pedidos";
 import { FaMotorcycle } from "react-icons/fa6";
 import { AiOutlineShop } from "react-icons/ai";
 import { TbShoppingBag } from "react-icons/tb";
@@ -44,6 +51,10 @@ export default function Dashboard() {
   const [ultimosPedidos, setUltimosPedidos] = useState([]);
   const [ultimosPedidosLoading, setUltimosPedidosLoading] = useState(false);
   const [ultimosPedidosError, setUltimosPedidosError] = useState("");
+  const [pedidoResumen, setPedidoResumen] = useState(null);
+  const [pedidoResumenLoading, setPedidoResumenLoading] = useState(false);
+  const [pedidoResumenError, setPedidoResumenError] = useState("");
+  const [pedidoResumenGuardando, setPedidoResumenGuardando] = useState(false);
   const [metricasPedidos, setMetricasPedidos] = useState(null);
   const [metricasPedidosLoading, setMetricasPedidosLoading] = useState(true);
   const [modalNotificacionesAbierto, setModalNotificacionesAbierto] = useState(false);
@@ -217,6 +228,86 @@ export default function Dashboard() {
       }
     }
   }, []);
+
+  const abrirResumenPedido = async (pedidoListado) => {
+    const tipo = obtenerTipoPedidoDashboard(pedidoListado);
+    const endpoint = obtenerEndpointDetallePedido(tipo, pedidoListado.id);
+    if (!endpoint) return;
+
+    setPedidoResumen({ tipo, pedido: pedidoListado });
+    setPedidoResumenLoading(true);
+    setPedidoResumenError("");
+
+    try {
+      const response = await authFetch(endpoint, { cache: "no-store" });
+      const pedido = await readJsonResponse(
+        response,
+        endpoint,
+        "No se pudo cargar el detalle del pedido"
+      );
+      setPedidoResumen({ tipo, pedido });
+    } catch (err) {
+      setPedidoResumenError(err.message || "No se pudo cargar el detalle del pedido");
+    } finally {
+      setPedidoResumenLoading(false);
+    }
+  };
+
+  const cerrarResumenPedido = () => {
+    if (pedidoResumenGuardando) return;
+    setPedidoResumen(null);
+    setPedidoResumenError("");
+  };
+
+  const actualizarEstadoResumen = async (nuevoEstado) => {
+    if (!pedidoResumen || pedidoResumenGuardando) return;
+
+    const { tipo, pedido } = pedidoResumen;
+    const estadoAnterior = pedido.estado;
+    const datos = { estado: nuevoEstado };
+    const endpoint = obtenerEndpointActualizacionPedido(tipo, pedido.id, datos);
+    const coincidePedido = (item) =>
+      obtenerTipoPedidoDashboard(item) === tipo && Number(item.id) === Number(pedido.id);
+
+    setPedidoResumenGuardando(true);
+    setPedidoResumenError("");
+    setPedidoResumen((actual) => actual
+      ? { ...actual, pedido: { ...actual.pedido, estado: nuevoEstado } }
+      : actual
+    );
+    setUltimosPedidos((actuales) => actuales.map((item) =>
+      coincidePedido(item) ? { ...item, estado: nuevoEstado } : item
+    ));
+
+    try {
+      const response = await authFetch(endpoint, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos),
+      });
+      const result = await readJsonResponse(
+        response,
+        endpoint,
+        "No se pudo actualizar el estado del pedido"
+      );
+      const pedidoActualizado = result.pedido || { ...pedido, estado: nuevoEstado };
+      setPedidoResumen({ tipo, pedido: pedidoActualizado });
+      setUltimosPedidos((actuales) => actuales.map((item) =>
+        coincidePedido(item) ? { ...item, ...pedidoActualizado, tipo } : item
+      ));
+    } catch (err) {
+      setPedidoResumen((actual) => actual
+        ? { ...actual, pedido: { ...actual.pedido, estado: estadoAnterior } }
+        : actual
+      );
+      setUltimosPedidos((actuales) => actuales.map((item) =>
+        coincidePedido(item) ? { ...item, estado: estadoAnterior } : item
+      ));
+      setPedidoResumenError(err.message || "No se pudo actualizar el estado del pedido");
+    } finally {
+      setPedidoResumenGuardando(false);
+    }
+  };
 
   useEffect(() => {
     const fetchRestaurante = async () => {
@@ -419,6 +510,21 @@ export default function Dashboard() {
     );
   };
 
+  const pedidoResumenActual = pedidoResumen?.pedido;
+  const itemsPedidoResumen = pedidoResumen?.tipo === "whatsapp"
+    ? pedidoResumenActual?.productos_snapshot || []
+    : pedidoResumenActual?.items || [];
+  const estadosPedidoResumen = pedidoResumenActual
+    ? obtenerEstadosPedido(pedidoResumen.tipo, pedidoResumenActual, {
+        deliveryActivo: restaurante?.delivery_activo === true,
+      })
+    : [];
+  const nombreMetodoPago =
+    pedidoResumenActual?.metodo_pago_nombre ||
+    pedidoResumenActual?.metodo_pago?.nombre ||
+    (typeof pedidoResumenActual?.metodo_pago === "string" ? pedidoResumenActual.metodo_pago : "") ||
+    "No informado";
+
   return (
         <div className="body">
             <main className="container-fluid" id="main">
@@ -544,7 +650,13 @@ export default function Dashboard() {
                                       <p className="empty-text">No hay pedidos registrados hoy.</p>
                                     ) : (
                                       ultimosPedidos.map((pedido) => (
-                                        <article key={pedido.id} className="ultimo-pedido-item">
+                                        <button
+                                          key={`${obtenerTipoPedidoDashboard(pedido)}:${pedido.id}`}
+                                          type="button"
+                                          className="ultimo-pedido-item"
+                                          onClick={() => abrirResumenPedido(pedido)}
+                                          aria-label={`Ver detalle del pedido ${pedido.numero_pedido}`}
+                                        >
                                           <div className="ultimo-pedido-icon">
                                             {iconoPedido(pedido.tipo_entrega)}
                                           </div>
@@ -553,7 +665,7 @@ export default function Dashboard() {
                                             <span>{pedido.nombre_cliente}</span>
                                           </div>
                                           <time>{pedido.hora_formateada}</time>
-                                        </article>
+                                        </button>
                                       ))
                                     )}
                                 </div>
@@ -669,6 +781,91 @@ export default function Dashboard() {
               <div className="dashboard-subscription-alert is-warning">
                 <i className="bi bi-info-circle"></i>
                 <span>{mensajeSuscripcion}</span>
+              </div>
+            )}
+            {pedidoResumen && (
+              <div className="dashboard-pedido-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="dashboard-pedido-modal-title">
+                <section className="dashboard-pedido-modal">
+                  <header className="dashboard-pedido-modal-header">
+                    <div>
+                      <span>{pedidoResumen.tipo === "whatsapp" ? "Pedido WhatsApp" : pedidoResumen.tipo === "manual" ? "Pedido Menly" : "Pedido especial"}</span>
+                      <h2 id="dashboard-pedido-modal-title">
+                        Pedido #{pedidoResumenActual?.numero_pedido || pedidoResumenActual?.id}
+                      </h2>
+                    </div>
+                    <button type="button" onClick={cerrarResumenPedido} disabled={pedidoResumenGuardando} aria-label="Cerrar detalle">
+                      <i className="bi bi-x-lg"></i>
+                    </button>
+                  </header>
+
+                  {pedidoResumenError && <p className="dashboard-pedido-modal-error">{pedidoResumenError}</p>}
+
+                  {pedidoResumenLoading ? (
+                    <p className="dashboard-pedido-modal-loading">Cargando detalle...</p>
+                  ) : (
+                    <>
+                      <div className="dashboard-pedido-modal-info">
+                        <div><span>Cliente</span><strong>{pedidoResumenActual?.nombre_cliente || "No informado"}</strong></div>
+                        <div><span>Teléfono</span><strong>{pedidoResumenActual?.telefono_cliente || "No informado"}</strong></div>
+                        <div><span>Pago</span><strong>{nombreMetodoPago}</strong></div>
+                        <div><span>Entrega</span><strong>{pedidoResumenActual?.tipo_entrega_display || pedidoResumenActual?.tipo_entrega || "No informado"}</strong></div>
+                      </div>
+
+                      <section className="dashboard-pedido-modal-products">
+                        <h3>Productos</h3>
+                        <div className="dashboard-pedido-modal-list">
+                          {itemsPedidoResumen.length === 0 ? (
+                            <p>Sin productos registrados.</p>
+                          ) : itemsPedidoResumen.map((item, index) => {
+                            const nombre = item.nombre_producto || item.nombre || "Producto";
+                            const cantidad = Number(item.cantidad || 0);
+                            const precio = Number(item.precio_unitario || 0);
+                            const subtotal = Number(item.subtotal ?? cantidad * precio);
+                            return (
+                              <div key={`${item.producto_id || nombre}-${item.variante_id || "base"}-${index}`}>
+                                <span>
+                                  <strong>{nombre}</strong>
+                                  {item.variante_nombre && <small>{item.variante_nombre}</small>}
+                                </span>
+                                <span>{cantidad} x {formatearMoneda(precio)}</span>
+                                <strong>{formatearMoneda(subtotal)}</strong>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+
+                      <div className="dashboard-pedido-modal-total">
+                        <span>Total</span>
+                        <strong>{formatearMoneda(pedidoResumenActual?.total)}</strong>
+                      </div>
+
+                      <label className="dashboard-pedido-modal-status">
+                        <span>Estado del pedido</span>
+                        <select
+                          value={pedidoResumenActual?.estado || ""}
+                          onChange={(event) => actualizarEstadoResumen(event.target.value)}
+                          disabled={pedidoResumenGuardando}
+                        >
+                          {estadosPedidoResumen.map((estado) => (
+                            <option key={estado} value={estado}>{estadoLabels[estado] || estado}</option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <footer className="dashboard-pedido-modal-actions">
+                        <button type="button" onClick={cerrarResumenPedido} disabled={pedidoResumenGuardando}>Cerrar</button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/dashboard/${restaurante.slug}/pedidos?tipo=${pedidoResumen.tipo}&pedido=${pedidoResumenActual.id}`)}
+                        >
+                          Ver más
+                          <i className="bi bi-arrow-right"></i>
+                        </button>
+                      </footer>
+                    </>
+                  )}
+                </section>
               </div>
             )}
             {modalNotificacionesAbierto && (

@@ -2248,6 +2248,14 @@ class DashboardUltimosPedidosView(APIView):
                 restaurante=perfil.restaurante,
                 fecha_creacion__date=hoy,
             ).order_by("-fecha_creacion", "-id")[:10]
+            pedidos_especiales = (
+                PedidoEspecial.objects.filter(
+                    restaurante=perfil.restaurante,
+                    fecha_creacion__date=hoy,
+                ).order_by("-fecha_creacion", "-id")[:10]
+                if perfil.restaurante.solicitudes_especiales_activas
+                else []
+            )
 
             pedidos = sorted(
                 [
@@ -2262,6 +2270,8 @@ class DashboardUltimosPedidosView(APIView):
                             if pedido.fecha_creacion
                             else ""
                         ),
+                        "estado": pedido.estado,
+                        "tipo": "whatsapp",
                         "origen": "whatsapp",
                     }
                     for pedido in pedidos_whatsapp
@@ -2277,9 +2287,28 @@ class DashboardUltimosPedidosView(APIView):
                             if pedido.fecha_creacion
                             else ""
                         ),
+                        "estado": pedido.estado,
+                        "tipo": "manual",
                         "origen": pedido.origen,
                     }
                     for pedido in pedidos_manuales
+                ] + [
+                    {
+                        "id": pedido.id,
+                        "numero_pedido": pedido.numero_pedido,
+                        "nombre_cliente": pedido.nombre_cliente or "Cliente",
+                        "tipo_entrega": "",
+                        "fecha_creacion": pedido.fecha_creacion,
+                        "hora_formateada": (
+                            localtime(pedido.fecha_creacion).strftime("%H:%M")
+                            if pedido.fecha_creacion
+                            else ""
+                        ),
+                        "estado": pedido.estado,
+                        "tipo": "especial",
+                        "origen": "especial",
+                    }
+                    for pedido in pedidos_especiales
                 ],
                 key=lambda item: item["fecha_creacion"],
                 reverse=True,
