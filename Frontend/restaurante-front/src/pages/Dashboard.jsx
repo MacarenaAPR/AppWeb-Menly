@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { tieneSesionAdmin } from "../session/adminSession";
+import { permisosPorRol } from "../utils/permisos";
 import { FaMotorcycle } from "react-icons/fa6";
 import { AiOutlineShop } from "react-icons/ai";
 import { TbShoppingBag } from "react-icons/tb";
@@ -239,9 +240,14 @@ export default function Dashboard() {
             rol: result.usuario?.rol,
           })
         );
+        const esEmpleado = permisosPorRol(result.usuario?.rol).isEmpleado;
+
         fetchClicks();
+
+        if (!esEmpleado) {
+          fetchMetricasPedidos();
+        }
         fetchUltimosPedidos();
-        fetchMetricasPedidos();
       } catch {
         setError("No se pudieron cargar los datos");
       } finally {
@@ -257,7 +263,9 @@ export default function Dashboard() {
 
     const intervalId = window.setInterval(() => {
       fetchUltimosPedidos({ silent: true });
-      fetchMetricasPedidos({ silent: true });
+      if (!permisosPorRol(data.usuario?.rol).isEmpleado) {
+        fetchMetricasPedidos({ silent: true });
+      }
       fetchNotificaciones({ silent: true });
     }, DASHBOARD_REFRESH_MS);
 
@@ -277,6 +285,7 @@ export default function Dashboard() {
   }
 
   const { usuario, restaurante } = data;
+  const esEmpleado = permisosPorRol(usuario?.rol).isEmpleado;
   const cuentaInactiva = data?.cuenta_inactiva || restaurante?.activo === false;
   const mensajeCuentaInactiva =
     data?.mensaje_cuenta || "Cuenta inactiva. Contacta al soporte de Menly para reactivar tu cuenta.";
@@ -456,7 +465,7 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div className="contenido-body">
-                        <div className="body-metric-notific">
+                        {!esEmpleado && <div className="body-metric-notific">
                             <div className="metric">
                                 <div className="card-metrics dashboard-platos-card">
                                   <div className="cards-icon-text">
@@ -503,8 +512,8 @@ export default function Dashboard() {
                                 />
                             </div>
                             
-                        </div>
-                        <div className="body-ultimos-cliks">
+                        </div>}
+                        <div className={esEmpleado ? "dashboard-empleado-grid" : "body-ultimos-cliks"}>
                             <div className="div-ultimos-cambios">
                                 <p><i className="bi bi-receipt-cutoff"></i> Últimos pedidos</p>
                                 <div className="reports-cambios">
@@ -534,7 +543,58 @@ export default function Dashboard() {
                                     <i className="bi bi-arrow-right-short"></i>
                                 </button>
                             </div>
-                            <div className="clicks">
+                            {esEmpleado ? (
+                              <aside className="dashboard-empleado-operacion">
+                                <section className="dashboard-empleado-disponibilidad">
+                                  <div className="dashboard-empleado-operacion-title">
+                                    <i className="bi bi-fork-knife"></i>
+                                    <p>Estado de productos</p>
+                                  </div>
+                                  <div className="dashboard-empleado-disponibilidad-grid">
+                                    <div>
+                                      <span>Disponibles</span>
+                                      <strong>{data?.resumen?.productos_disponibles ?? 0}</strong>
+                                    </div>
+                                    <div>
+                                      <span>No disponibles</span>
+                                      <strong>{data?.resumen?.productos_no_disponibles ?? 0}</strong>
+                                    </div>
+                                  </div>
+                                </section>
+
+                                <div className="clicks">
+                                  <p>
+                                    <i className="bi bi-fork-knife"></i> Productos más clickeados
+                                  </p>
+                                  <div className="div-clicks">
+                                    {productosClickeados.length === 0 ? (
+                                      <p className="empty-text">Sin datos aún</p>
+                                    ) : (
+                                      productosClickeados.slice(0, 5).map((p, i) => (
+                                        <div key={p.id} className="click-item">
+                                          <span className="click-rank">{i + 1}</span>
+                                          <div className="click-img">
+                                            {p.imagen ? (
+                                              <img src={p.imagen} alt={p.nombre} />
+                                            ) : (
+                                              <i className="bi bi-fork-knife"></i>
+                                            )}
+                                          </div>
+                                          <div className="click-info">
+                                            <strong>{p.nombre}</strong>
+                                            <p>{p.categoria}</p>
+                                          </div>
+                                          <div className="click-total">
+                                            <strong>{p.clicks}</strong>
+                                            <span>Clicks</span>
+                                          </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              </aside>
+                            ) : <div className="clicks">
                               <p>
                                 <i className="bi bi-fork-knife"></i> Platos más clickeados
                               </p>
@@ -574,7 +634,7 @@ export default function Dashboard() {
                                 )}
                               </div>
                              
-                            </div>
+                            </div>}
                         </div>
                     </div>
                 </section>

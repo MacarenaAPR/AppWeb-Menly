@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
 import { authFetch, readJsonResponse } from "../api";
+import { permisosPorRol } from "../utils/permisos";
 
 const ESTADOS_PEDIDO_BASE = ["recibido", "pendiente_confirmacion", "confirmado", "en_preparacion", "listo", "entregado", "cancelado"];
 const ESTADO_EN_REPARTO = "en_reparto";
@@ -174,6 +175,7 @@ export default function PedidosDashboard() {
   const especialesActivo = restaurante?.solicitudes_especiales_activas === true;
   const posActivo = restaurante?.pedidos_pos === true;
   const deliveryActivo = restaurante?.delivery_activo === true;
+  const esEmpleado = permisosPorRol(usuario?.rol).isEmpleado;
   const puedeAbrirCocina = ["dueno", "admin"].includes(usuario?.rol);
   const obtenerEstadosPedidoWhatsapp = (pedido) => {
     if (!deliveryActivo || pedido?.tipo_entrega !== "delivery") return ESTADOS_PEDIDO_BASE;
@@ -202,15 +204,18 @@ export default function PedidosDashboard() {
     setRestaurante(data.restaurante);
     setUsuario(data.usuario || null);
     setCatalogoProductos((data.productos || []).filter((producto) => producto.disponible !== false));
-    return data.restaurante;
+    return data;
   }, []);
 
-  const cargarPedidos = useCallback(async (restauranteActual) => {
+  const cargarPedidos = useCallback(async (restauranteActual, rolActual = usuario?.rol) => {
     if (!restauranteActual) return;
 
-    const requests = [
-      authFetch("/mi-restaurante/pedidos/metricas/"),
-    ];
+    const empleadoActual = permisosPorRol(rolActual).isEmpleado;
+    const requests = [];
+
+    if (!empleadoActual) {
+      requests.push(authFetch("/mi-restaurante/pedidos/metricas/"));
+    }
 
     if (restauranteActual.carrito_whatsapp_activo === true) {
       requests.push(authFetch("/mi-restaurante/pedidos/whatsapp/"));
@@ -225,20 +230,23 @@ export default function PedidosDashboard() {
     }
 
     const respuestas = await Promise.all(requests);
-    const metricasResponse = respuestas[0];
-    const whatsappResponse = respuestas[1];
+    let indice = 0;
 
-    const metricasData = await readJsonResponse(
-      metricasResponse,
-      "/mi-restaurante/pedidos/metricas/",
-      "No se pudieron cargar las metricas."
-    );
-    setMetricas(metricasData);
+    if (!empleadoActual) {
+      const metricasData = await readJsonResponse(
+        respuestas[indice],
+        "/mi-restaurante/pedidos/metricas/",
+        "No se pudieron cargar las metricas."
+      );
+      setMetricas(metricasData);
+      indice += 1;
+    } else {
+      setMetricas({ whatsapp: {}, especiales: {} });
+    }
 
-    let indice = 1;
     if (restauranteActual.carrito_whatsapp_activo === true) {
       const data = await readJsonResponse(
-        whatsappResponse,
+        respuestas[indice],
         "/mi-restaurante/pedidos/whatsapp/",
         "No se pudieron cargar los pedidos WhatsApp."
       );
@@ -272,14 +280,15 @@ export default function PedidosDashboard() {
     } else {
       setPedidosManuales([]);
     }
-  }, []);
+  }, [usuario?.rol]);
 
   useEffect(() => {
     const cargar = async () => {
       setLoading(true);
       setError("");
       try {
-        const restauranteActual = await cargarRestaurante();
+        const datosRestaurante = await cargarRestaurante();
+        const restauranteActual = datosRestaurante.restaurante;
         if (restauranteActual.pedidos_pos) {
           setTabActiva("menly");
         } else if (restauranteActual.carrito_whatsapp_activo) {
@@ -287,7 +296,7 @@ export default function PedidosDashboard() {
         } else if (restauranteActual.solicitudes_especiales_activas) {
           setTabActiva("especiales");
         }
-        await cargarPedidos(restauranteActual);
+        await cargarPedidos(restauranteActual, datosRestaurante.usuario?.rol);
       } catch (requestError) {
         setError(requestError.message || "No se pudieron cargar los pedidos.");
       } finally {
@@ -1081,7 +1090,7 @@ export default function PedidosDashboard() {
             </section>
           ) : (
             <>
-              <section className="reservas-stats pedidos-stats">
+              {!esEmpleado && <section className="reservas-stats pedidos-stats">
                 <div className="reserva-stat-card">
                   <div className="stat-icon"><i className="bi bi-whatsapp"></i></div>
                   <div>
@@ -1116,7 +1125,7 @@ export default function PedidosDashboard() {
                     <p>Cancelados mes</p>
                   </div>
                 </div>
-              </section>
+              </section>}
 
               <section className="reservas-tools">
                 <div className="pedidos-mobile-controls">

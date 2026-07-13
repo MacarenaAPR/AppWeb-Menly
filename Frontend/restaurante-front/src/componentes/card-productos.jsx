@@ -28,6 +28,8 @@ export default function CardsProductos({
   isListView = false,
   isCardsView = false,
   canManage = true,
+  canToggleAvailability = canManage,
+  isEmployeeView = false,
 }) {
   const [estado, setEstado] = useState(disponible);
   const [estadoDestacado, setEstadoDestacado] = useState(destacado);
@@ -104,6 +106,40 @@ export default function CardsProductos({
 
   await onDelete(id);
 };
+
+  if (isEmployeeView) {
+    return (
+      <article className="producto-empleado-row">
+        <div className="producto-empleado-image">
+          {img ? (
+            <img src={img} alt={titulo} />
+          ) : (
+            <span className="producto-img-placeholder" aria-hidden="true">
+              <i className="bi bi-image"></i>
+            </span>
+          )}
+        </div>
+
+        <strong className="producto-empleado-name">{titulo}</strong>
+        <span className="producto-empleado-category">{categoria || "Sin categoría"}</span>
+        <strong className="producto-empleado-price">{formatearPrecioClp(price)}</strong>
+
+        {canToggleAvailability && (
+          <label className="form-switch producto-empleado-available" htmlFor={`producto-empleado-disponible-${id}`}>
+            <span>{estado ? "Disponible" : "No disponible"}</span>
+            <input
+              id={`producto-empleado-disponible-${id}`}
+              className="form-check-input"
+              type="checkbox"
+              role="switch"
+              checked={estado}
+              onChange={handleDisponibleChange}
+            />
+          </label>
+        )}
+      </article>
+    );
+  }
 
   return (
     <>

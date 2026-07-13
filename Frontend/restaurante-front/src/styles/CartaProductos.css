@@ -1565,3 +1565,148 @@ scroll-behavior: smooth;
         height: 56px;
     }
 }
+
+/* Vista operativa exclusiva para usuarios EMPLEADO. */
+.carta-productos-page .contenido-cards.is-employee {
+    display: flex !important;
+    width: 100%;
+    min-height: 0;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.carta-productos-page .producto-empleado-row {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 76px;
+    padding: 10px 14px;
+    grid-template-columns: 56px minmax(180px, 1.5fr) minmax(120px, 0.9fr) minmax(100px, 0.7fr) minmax(150px, auto);
+    align-items: center;
+    gap: 14px;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    background: #0f141a;
+}
+
+.carta-productos-page .producto-empleado-image {
+    width: 56px;
+    height: 56px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: #111820;
+}
+
+.carta-productos-page .producto-empleado-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.carta-productos-page .producto-empleado-name,
+.carta-productos-page .producto-empleado-category {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.carta-productos-page .producto-empleado-name {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.carta-productos-page .producto-empleado-category {
+    color: #8d96a0;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.carta-productos-page .producto-empleado-price {
+    color: #f8761d;
+    font-size: 14px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.carta-productos-page .producto-empleado-available {
+    display: inline-flex;
+    min-width: 0;
+    margin: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    color: #d8dee6;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.carta-productos-page .producto-empleado-available .form-check-input {
+    width: 38px;
+    height: 22px;
+    margin: 0;
+    flex: 0 0 38px;
+    cursor: pointer;
+    border-radius: 999px;
+}
+
+@media (max-width: 1024px) {
+    .carta-productos-page .carta-productos-mobile-selects.is-employee {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .carta-productos-page .producto-empleado-row {
+        min-height: 88px;
+        padding: 11px;
+        grid-template-columns: 56px minmax(0, 1fr) auto;
+        grid-template-areas:
+            "image name price"
+            "image category available";
+        gap: 7px 10px;
+    }
+
+    .carta-productos-page .producto-empleado-image {
+        grid-area: image;
+    }
+
+    .carta-productos-page .producto-empleado-name {
+        grid-area: name;
+    }
+
+    .carta-productos-page .producto-empleado-category {
+        grid-area: category;
+    }
+
+    .carta-productos-page .producto-empleado-price {
+        grid-area: price;
+        text-align: right;
+    }
+
+    .carta-productos-page .producto-empleado-available {
+        grid-area: available;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 420px) {
+    .carta-productos-page .producto-empleado-row {
+        grid-template-columns: 50px minmax(0, 1fr) auto;
+    }
+
+    .carta-productos-page .producto-empleado-image {
+        width: 50px;
+        height: 50px;
+    }
+
+    .carta-productos-page .producto-empleado-available span {
+        max-width: 78px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

@@ -130,7 +130,7 @@ export default function MainMenu({
       onClick: () => navigateAndClose(`/dashboard/${restaurante.slug}/reservas`),
     },
     
-    restaurante.metricas_activas === true && {
+    restaurante.metricas_activas === true && permisos.canViewMetricas && {
       key: "metricas",
       icon: <i className="bi bi-bar-chart-line"></i>,
       name: "Métricas",

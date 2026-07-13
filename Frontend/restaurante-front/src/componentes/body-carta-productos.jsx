@@ -76,6 +76,7 @@ export default function CartaProducto(){
   const categorias_todas = data?.categorias_todas;
   const usuario = data?.usuario;
   const permisos = permisosPorRol(usuario?.rol);
+  const esEmpleado = permisos.isEmpleado;
   const categoriasBase = categorias_todas || categorias;
   const categoriasFiltradas = categoriasBase.filter((cat) => {
     if (estadoCategoria === "activas") return cat.activa !== false;
@@ -376,7 +377,8 @@ export default function CartaProducto(){
                     </div>
 
                     <div className="carta-productos-toolbar">
-                      <div className="carta-productos-mobile-selects">
+                      <div className={`carta-productos-mobile-selects ${esEmpleado ? "is-employee" : ""}`}>
+                        {!esEmpleado && (
                         <select
                           className="mobile-menly-select"
                           value={viewMode}
@@ -386,6 +388,7 @@ export default function CartaProducto(){
                           <option value="cards">Tarjetas</option>
                           <option value="list">Lista</option>
                         </select>
+                        )}
 
                         <select
                           className="mobile-menly-select"
@@ -402,7 +405,7 @@ export default function CartaProducto(){
                         </select>
                       </div>
 
-                      <div className="view-mode-toggle" aria-label="Cambiar vista de productos">
+                      {!esEmpleado && <div className="view-mode-toggle" aria-label="Cambiar vista de productos">
                         <button
                           type="button"
                           className={viewMode === "cards" ? "active" : ""}
@@ -422,7 +425,7 @@ export default function CartaProducto(){
                           <i className="bi bi-list-ul"></i>
                           Lista
                         </button>
-                      </div>
+                      </div>}
 
                       <div className="availability-filter-toggle" aria-label="Filtrar productos por disponibilidad">
                         <button
@@ -464,11 +467,13 @@ export default function CartaProducto(){
                     </div>
                     
 
-                    <div className={`contenido-cards ${viewMode === "list" ? "is-list" : "is-cards"}`}>
+                    <div className={`contenido-cards ${esEmpleado ? "is-employee" : viewMode === "list" ? "is-list" : "is-cards"}`}>
+                      {!esEmpleado && <>
                       <span className="carta-productos-heading carta-productos-heading-categoria">Categoría</span>
                       <span className="carta-productos-heading carta-productos-heading-precio">Precio</span>
                       <span className="carta-productos-heading carta-productos-heading-disponible">Disponible</span>
                       <span className="carta-productos-heading carta-productos-heading-destacado">Destacado</span>
+                      </>}
                       {productosActuales.length === 0 ? (
                         <p>No hay productos disponibles.</p>
                       ) : (
@@ -492,6 +497,8 @@ export default function CartaProducto(){
                           isCardsView={viewMode === "cards"}
                           deleting={deletingId === p.id}
                           canManage={permisos.canManageProductos}
+                          canToggleAvailability={permisos.canToggleProductAvailability}
+                          isEmployeeView={esEmpleado}
                           onDelete={permisos.canManageProductos ? handleDeleteProducto : null}
                           onEdit={permisos.canManageProductos ? (id) => navigate(`/carta-productos/${slug}/editar/${id}`) : null}
                           onDestacadoChange={handleDestacadoProducto}

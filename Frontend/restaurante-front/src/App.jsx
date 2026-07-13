@@ -57,7 +57,11 @@ function AppContent() {
           <Route path="/dashboard/:slug/reservas" element={<ReservasDashboard />} />
           <Route path="/dashboard/:slug/solicitudes-especiales" element={<SolicitudesEspecialesDashboard />} />
           <Route path="/dashboard/:slug/pedidos" element={<PedidosDashboard />} />
-          <Route path="/dashboard/:slug/metricas" element={<MetricasDashboard />} />
+          <Route path="/dashboard/:slug/metricas" element={
+            <RequireRole roles={["dueno", "admin"]}>
+              <MetricasDashboard />
+            </RequireRole>
+          } />
           <Route path="/carta-add/:slug" element={
             <RequireRole roles={["dueno", "admin"]}>
               <AddProductos />
