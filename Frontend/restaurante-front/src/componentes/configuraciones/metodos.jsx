@@ -11,6 +11,7 @@ export default function MetodoPago({onUpdate}) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
+    orden: 0,
     activo: true,
   });
 
@@ -47,6 +48,7 @@ export default function MetodoPago({onUpdate}) {
     setEditando(null);
     setForm({
       nombre: "",
+      orden: metodos.length,
       activo: true,
     });
     setError("");
@@ -58,6 +60,7 @@ export default function MetodoPago({onUpdate}) {
     setEditando(metodo);
     setForm({
       nombre: metodo.nombre || "",
+      orden: Number(metodo.orden || 0),
       activo: metodo.activo ?? true,
     });
     setError("");
@@ -101,7 +104,7 @@ export default function MetodoPago({onUpdate}) {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || data.nombre?.[0] || "No se pudo guardar el método de pago");
+        setError(data.error || data.nombre?.[0] || data.orden?.[0] || "No se pudo guardar el método de pago");
         return;
       }
 
@@ -180,7 +183,7 @@ export default function MetodoPago({onUpdate}) {
       <div className="usuarios-title">
         <i className="bi bi-credit-card"></i>
         <div>
-          <h2>Métodos de pago</h2>
+          <h2>Métodos de pago aceptados</h2>
           <p>Configura cómo pueden pagar tus clientes.</p>
         </div>
       </div>
@@ -266,6 +269,19 @@ export default function MetodoPago({onUpdate}) {
                   name="nombre"
                   placeholder="Ej: Efectivo, Transferencia, Débito"
                   value={form.nombre}
+                  onChange={handleChange}
+                  required
+                />
+              </label>
+
+              <label>
+                Orden
+                <input
+                  name="orden"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={form.orden}
                   onChange={handleChange}
                   required
                 />

@@ -102,6 +102,11 @@ def generar_mensaje_whatsapp(pedido, request=None):
         )
         for item in pedido.productos_snapshot
     )
+    metodo_pago_linea = (
+        f"💳 Método de pago: {pedido.metodo_pago_nombre}\n"
+        if pedido.metodo_pago_nombre
+        else ""
+    )
 
     return (
         "Hola, quiero hacer este pedido:\n\n"
@@ -109,6 +114,7 @@ def generar_mensaje_whatsapp(pedido, request=None):
         f"{productos}\n\n"
         f"Total: ${int(pedido.total)}\n"
         f"Tipo entrega: {tipo_entrega}\n"
+        f"{metodo_pago_linea}"
         f"{direccion}"
         f"Cliente: {pedido.nombre_cliente}\n"
         f"Telefono: {pedido.telefono_cliente}\n\n"
@@ -131,12 +137,18 @@ def generar_mensaje_legacy(pedido):
         )
         for item in pedido.productos_snapshot
     )
+    metodo_pago_linea = (
+        f"💳 Método de pago: {pedido.metodo_pago_nombre}\n\n"
+        if pedido.metodo_pago_nombre
+        else ""
+    )
 
     return (
         "Hola, quiero hacer un pedido desde Menly.\n\n"
         f"Cliente: {pedido.nombre_cliente}\n"
         f"Teléfono: {pedido.telefono_cliente}\n"
         f"Tipo de entrega: {tipo_entrega}\n\n"
+        f"{metodo_pago_linea}"
         f"{direccion}"
         "Productos:\n\n"
         f"{productos}\n\n"
@@ -155,6 +167,7 @@ def crear_pedido_whatsapp(restaurante, datos_pedido, request=None):
     total = datos_pedido.pop("total")
     whatsapp_destino = datos_pedido.pop("whatsapp_destino")
     datos_pedido.pop("productos", None)
+    datos_pedido.pop("metodo_pago_id", None)
 
     with transaction.atomic():
         Restaurante.objects.select_for_update().get(id=restaurante.id)

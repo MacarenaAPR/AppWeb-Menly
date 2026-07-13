@@ -131,6 +131,10 @@ export default function Home() {
   const [pedidoEnviando, setPedidoEnviando] = useState(false);
   const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [tipoEntregaPedido, setTipoEntregaPedido] = useState("");
+  const [metodosPago, setMetodosPago] = useState([]);
+  const [metodosPagoLoading, setMetodosPagoLoading] = useState(false);
+  const [metodosPagoError, setMetodosPagoError] = useState("");
+  const [metodoPagoId, setMetodoPagoId] = useState("");
   const [mostrarCarritoFlotante, setMostrarCarritoFlotante] = useState(false);
   const [cantidadPromocion, setCantidadPromocion] = useState(1);
   const [toastCarrito, setToastCarrito] = useState("");
@@ -322,6 +326,14 @@ export default function Home() {
   };
 
   const cambiarCantidadCarrito = (lineId, delta) => {
+    if (
+      delta < 0 &&
+      carrito.length === 1 &&
+      carrito[0].lineId === lineId &&
+      carrito[0].cantidad <= 1
+    ) {
+      setMetodoPagoId("");
+    }
     setCarrito((items) =>
       items
         .map((item) =>
@@ -340,6 +352,9 @@ export default function Home() {
   };
 
   const eliminarDelCarrito = (lineId) => {
+    if (carrito.length === 1 && carrito[0].lineId === lineId) {
+      setMetodoPagoId("");
+    }
     setCarrito((items) => items.filter((item) => item.lineId !== lineId));
   };
 
@@ -360,6 +375,7 @@ export default function Home() {
       telefono_cliente: String(formData.get("telefono_cliente") || "").trim(),
       tipo_entrega: formData.get("tipo_entrega"),
       direccion_entrega: String(formData.get("direccion_entrega") || "").trim(),
+      metodo_pago_id: metodoPagoId ? Number(metodoPagoId) : null,
       productos: carrito.map((item) => ({
         producto_id: item.producto_id,
         variante_id: item.variantId,
@@ -388,6 +404,11 @@ export default function Home() {
       return;
     }
 
+    if (metodosPago.length > 0 && !data.metodo_pago_id) {
+      setPedidoError("Selecciona un método de pago.");
+      return;
+    }
+
     if (data.tipo_entrega === "delivery" && !data.direccion_entrega) {
       setPedidoError("Debe ingresar una dirección para delivery.");
       return;
@@ -409,6 +430,7 @@ export default function Home() {
       setCarrito([]);
       setCarritoAbierto(false);
       setTipoEntregaPedido("");
+      setMetodoPagoId("");
       form.reset();
       window.open(pedido.whatsapp_url, "_blank", "noopener,noreferrer");
     } catch (requestError) {
@@ -416,6 +438,7 @@ export default function Home() {
         requestError?.payload?.error ||
         requestError?.payload?.detail ||
         requestError?.payload?.carrito ||
+        requestError?.payload?.metodo_pago_id?.[0] ||
         requestError?.payload?.productos ||
         requestError?.payload?.non_field_errors?.[0] ||
         "No se pudo guardar el pedido. Intenta nuevamente.";
@@ -724,6 +747,7 @@ export default function Home() {
     setCarrito([]);
     setCarritoAbierto(false);
     setTipoEntregaPedido("");
+    setMetodoPagoId("");
     setPedidoMensaje("");
     setPedidoError("");
   }, [restaurante]);
@@ -877,6 +901,42 @@ export default function Home() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [carritoAbierto]);
+
+  useEffect(() => {
+    if (!carritoAbierto || !slug) return undefined;
+
+    let cancelado = false;
+    const cargarMetodosPago = async () => {
+      setMetodosPagoLoading(true);
+      setMetodosPagoError("");
+      try {
+        const data = await apiFetch(
+          `/public/restaurantes/${slug}/metodos-pago/`,
+          { retries: 0 }
+        );
+        if (cancelado) return;
+        const disponibles = Array.isArray(data) ? data : [];
+        setMetodosPago(disponibles);
+        setMetodoPagoId((actual) =>
+          disponibles.some((metodo) => String(metodo.id) === String(actual))
+            ? actual
+            : ""
+        );
+      } catch {
+        if (cancelado) return;
+        setMetodosPago([]);
+        setMetodoPagoId("");
+        setMetodosPagoError("No pudimos cargar los métodos de pago.");
+      } finally {
+        if (!cancelado) setMetodosPagoLoading(false);
+      }
+    };
+
+    cargarMetodosPago();
+    return () => {
+      cancelado = true;
+    };
+  }, [carritoAbierto, slug]);
 
   useEffect(() => {
     if (!modalActivo) return undefined;
@@ -1883,6 +1943,31 @@ export default function Home() {
                   </label>
                 )}
 
+                <label>
+                  <span>Método de pago{metodosPago.length > 0 ? " *" : ""}</span>
+                  <select
+                    name="metodo_pago_id"
+                    value={metodoPagoId}
+                    onChange={(e) => setMetodoPagoId(e.target.value)}
+                    required={metodosPago.length > 0}
+                    disabled={metodosPagoLoading || Boolean(metodosPagoError)}
+                  >
+                    <option value="" disabled>
+                      {metodosPagoLoading
+                        ? "Cargando métodos de pago..."
+                        : metodosPago.length > 0
+                          ? "Selecciona cómo pagarás"
+                          : "Sin métodos configurados"}
+                    </option>
+                    {metodosPago.map((metodo) => (
+                      <option key={metodo.id} value={metodo.id}>
+                        {metodo.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {metodosPagoError && <p className="form-error">{metodosPagoError}</p>}
+
                 <div className="cart-total">
                   <span>Total</span>
                   <strong>${totalCarrito.toLocaleString("es-CL")}</strong>
@@ -1894,7 +1979,12 @@ export default function Home() {
                 <button
                   type="submit"
                   className="button-primary cart-submit"
-                  disabled={pedidoEnviando || carrito.length === 0}
+                  disabled={
+                    pedidoEnviando ||
+                    carrito.length === 0 ||
+                    metodosPagoLoading ||
+                    Boolean(metodosPagoError)
+                  }
                 >
                   {pedidoEnviando ? "Enviando pedido..." : "Enviar pedido por WhatsApp"}
                 </button>

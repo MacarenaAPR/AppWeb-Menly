@@ -1404,6 +1404,12 @@ export default function PedidosDashboard() {
                     {detalle.pedido.numero_mesa && (
                       <div><dt>Mesa</dt><dd>{detalle.pedido.numero_mesa}</dd></div>
                     )}
+                    {detalle.tipo === "whatsapp" && (
+                      <div>
+                        <dt>Pago</dt>
+                        <dd>{detalle.pedido.metodo_pago_nombre || "No informado"}</dd>
+                      </div>
+                    )}
                     <div><dt>Estado</dt><dd>{estadoLabels[detalle.pedido.estado] || detalle.pedido.estado}</dd></div>
                     {detalle.tipo === "whatsapp" && (
                       <div className="pedido-detalle-estado-mobile">

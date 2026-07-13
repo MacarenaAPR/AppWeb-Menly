@@ -15,6 +15,7 @@ from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoC
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host, validar_horario_reserva
 from .services.estado_restaurante import calcular_estado_abierto
+from .serializers import PedidoWhatsAppDashboardSerializer
 from django.core.cache import cache
 
 
@@ -4216,6 +4217,145 @@ class HorariosNocturnosTests(BaseTestCase):
                 time(1, 10),
             )
         )
+
+
+class MetodosPagoPedidosTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.whatsapp = "56999999999"
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
+
+    def crear_metodo(self, restaurante, nombre, activo=True, orden=0):
+        return MetodoPago.objects.create(
+            restaurante=restaurante,
+            nombre=nombre,
+            activo=activo,
+            orden=orden,
+        )
+
+    def payload_pedido(self, metodo_pago_id=None):
+        payload = {
+            "nombre_cliente": "Cliente Pago",
+            "telefono_cliente": "912345678",
+            "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            "productos": [{"producto_id": self.producto.id, "cantidad": 1}],
+        }
+        if metodo_pago_id is not None:
+            payload["metodo_pago_id"] = metodo_pago_id
+        return payload
+
+    def crear_pedido_publico(self, payload):
+        return self.client.post(
+            f"/api/pedidos-whatsapp/{self.restaurante.slug}/",
+            payload,
+            format="json",
+        )
+
+    def test_endpoint_publico_devuelve_solo_activos_en_orden(self):
+        self.crear_metodo(self.restaurante, "Efectivo", activo=True, orden=2)
+        transferencia = self.crear_metodo(
+            self.restaurante, "Transferencia", activo=True, orden=1
+        )
+        self.crear_metodo(self.restaurante, "Cheque", activo=False, orden=0)
+
+        response = self.client.get(
+            f"/api/public/restaurantes/{self.restaurante.slug}/metodos-pago/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [metodo["nombre"] for metodo in response.data],
+            ["Transferencia", "Efectivo"],
+        )
+        self.assertEqual(
+            set(response.data[0]),
+            {"id", "codigo", "nombre"},
+        )
+        self.assertEqual(response.data[0]["id"], transferencia.id)
+
+    def test_endpoint_publico_no_mezcla_metodos_entre_restaurantes(self):
+        self.crear_metodo(self.restaurante, "Efectivo")
+        self.crear_metodo(self.otro_restaurante, "Tarjeta")
+
+        response = self.client.get(
+            f"/api/public/restaurantes/{self.restaurante.slug}/metodos-pago/"
+        )
+
+        self.assertEqual(
+            [metodo["nombre"] for metodo in response.data],
+            ["Efectivo"],
+        )
+
+    def test_pedido_guarda_referencia_nombre_historico_y_mensaje(self):
+        metodo = self.crear_metodo(self.restaurante, "Transferencia")
+
+        response = self.crear_pedido_publico(self.payload_pedido(metodo.id))
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoWhatsApp.objects.get(id=response.data["pedido_id"])
+        self.assertEqual(pedido.metodo_pago_id, metodo.id)
+        self.assertEqual(pedido.metodo_pago_nombre, "Transferencia")
+        self.assertIn("💳 Método de pago: Transferencia", pedido.mensaje_whatsapp_generado)
+
+        metodo.delete()
+        pedido.refresh_from_db()
+        self.assertIsNone(pedido.metodo_pago_id)
+        self.assertEqual(pedido.metodo_pago_nombre, "Transferencia")
+
+    def test_pedido_rechaza_metodo_de_otro_restaurante(self):
+        metodo_ajeno = self.crear_metodo(self.otro_restaurante, "Tarjeta")
+
+        response = self.crear_pedido_publico(self.payload_pedido(metodo_ajeno.id))
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("metodo_pago_id", response.data)
+
+    def test_pedido_rechaza_metodo_inactivo(self):
+        inactivo = self.crear_metodo(self.restaurante, "Cheque", activo=False)
+
+        response = self.crear_pedido_publico(self.payload_pedido(inactivo.id))
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("metodo_pago_id", response.data)
+
+    def test_pedido_exige_metodo_si_hay_opciones_activas(self):
+        self.crear_metodo(self.restaurante, "Efectivo")
+
+        response = self.crear_pedido_publico(self.payload_pedido())
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("metodo_pago_id", response.data)
+
+    def test_pedido_sin_metodos_configurados_mantiene_compatibilidad(self):
+        response = self.crear_pedido_publico(self.payload_pedido())
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoWhatsApp.objects.get(id=response.data["pedido_id"])
+        self.assertIsNone(pedido.metodo_pago_id)
+        self.assertEqual(pedido.metodo_pago_nombre, "")
+
+    def test_pedido_antiguo_sin_metodo_serializa_como_no_informado_en_ui(self):
+        response = self.crear_pedido_publico(self.payload_pedido())
+        pedido = PedidoWhatsApp.objects.get(id=response.data["pedido_id"])
+
+        data = PedidoWhatsAppDashboardSerializer(pedido).data
+
+        self.assertIsNone(data["metodo_pago"])
+        self.assertEqual(data["metodo_pago_nombre"], "")
+
+    def test_no_permite_desactivar_el_ultimo_metodo_activo(self):
+        metodo = self.crear_metodo(self.restaurante, "Efectivo")
+        self.client.force_authenticate(user=self.dueno)
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/metodos-pago/{metodo.id}/",
+            {"activo": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("al menos un metodo", response.data["error"])
 
 
 # Create your tests here.

@@ -174,6 +174,7 @@ def _normalizar_comanda(pedido, tipo_origen, estado, items):
             if hasattr(pedido, "get_tipo_entrega_display")
             else "Especial"
         ),
+        "metodo_pago_nombre": getattr(pedido, "metodo_pago_nombre", "") or "",
         "numero_mesa": getattr(pedido, "numero_mesa", ""),
         "cliente_nombre": getattr(pedido, "nombre_cliente", "") or "Cliente",
         "observaciones": getattr(pedido, "observaciones", "") or getattr(pedido, "descripcion_original", ""),

@@ -73,7 +73,14 @@ class ContactoPlanesSerializer(serializers.Serializer):
 class MetodoPagoSerializer(serializers.ModelSerializer):
     class Meta:
         model = MetodoPago
-        fields = ["id", "nombre", "activo"]
+        fields = ["id", "nombre", "codigo", "activo", "orden"]
+        read_only_fields = ["id", "codigo"]
+
+
+class MetodoPagoPublicoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MetodoPago
+        fields = ["id", "codigo", "nombre"]
 
 
 class RespaldoRestauranteSerializer(serializers.ModelSerializer):
@@ -397,8 +404,8 @@ class RestaurantePublicoDetalleSerializer(serializers.ModelSerializer):
         return HorarioSerializer(horarios, many=True).data
 
     def get_metodos_pago(self, obj):
-        metodos_pago = obj.metodos_pago.filter(activo=True).order_by("nombre")
-        return MetodoPagoSerializer(metodos_pago, many=True).data
+        metodos_pago = obj.metodos_pago.filter(activo=True).order_by("orden", "id")
+        return MetodoPagoPublicoSerializer(metodos_pago, many=True).data
 
     def get_abierto_ahora(self, obj):
         return calcular_estado_abierto(obj)
@@ -468,6 +475,7 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
     telefono_cliente = serializers.CharField(max_length=30, trim_whitespace=True)
     tipo_entrega = serializers.ChoiceField(choices=PedidoWhatsApp.TIPOS_ENTREGA)
     direccion_entrega = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    metodo_pago_id = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     productos = PedidoWhatsAppProductoInputSerializer(many=True)
 
     def validate(self, data):
@@ -486,6 +494,24 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
             })
 
         data["direccion_entrega"] = direccion_entrega or None
+
+        metodos_activos = MetodoPago.objects.filter(restaurante=restaurante, activo=True)
+        metodo_pago_id = data.get("metodo_pago_id")
+        if metodos_activos.exists() and not metodo_pago_id:
+            raise serializers.ValidationError({
+                "metodo_pago_id": "Selecciona un metodo de pago."
+            })
+
+        metodo_pago = None
+        if metodo_pago_id:
+            metodo_pago = metodos_activos.filter(id=metodo_pago_id).first()
+            if not metodo_pago:
+                raise serializers.ValidationError({
+                    "metodo_pago_id": "El metodo de pago no es valido para este restaurante."
+                })
+
+        data["metodo_pago"] = metodo_pago
+        data["metodo_pago_nombre"] = metodo_pago.nombre if metodo_pago else ""
 
         if not restaurante.carrito_whatsapp_activo:
             raise serializers.ValidationError({
@@ -549,6 +575,7 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
             "tracking_token": pedido.tracking_token,
             "tracking_url": self.get_tracking_url(pedido),
             "total": int(pedido.total),
+            "metodo_pago_nombre": pedido.metodo_pago_nombre,
             "mensaje_whatsapp": pedido.mensaje_whatsapp_generado,
             "whatsapp_url": getattr(
                 pedido,
@@ -573,6 +600,8 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
             "tipo_entrega",
             "tipo_entrega_display",
             "direccion_entrega",
+            "metodo_pago",
+            "metodo_pago_nombre",
             "productos_snapshot",
             "productos",
             "total",
@@ -590,6 +619,8 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
             "telefono_cliente",
             "tipo_entrega",
             "tipo_entrega_display",
+            "metodo_pago",
+            "metodo_pago_nombre",
             "productos_snapshot",
             "total",
             "estado_display",
@@ -713,6 +744,7 @@ class PedidoWhatsAppSeguimientoPublicoSerializer(serializers.ModelSerializer):
             "fecha_actualizacion_estado",
             "tipo_entrega",
             "tipo_entrega_display",
+            "metodo_pago_nombre",
             "total",
             "items",
             "observaciones_cliente",

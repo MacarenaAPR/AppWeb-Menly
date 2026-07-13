@@ -11,7 +11,7 @@ from .serializers import CustomTokenObtainPairSerializer, ContactoPlanesSerializ
 from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
 from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoWhatsAppEstadoUpdateSerializer, PedidoWhatsAppSeguimientoPublicoSerializer, PedidoEspecialSerializer, PedidoManualSerializer, PedidoManualSeguimientoPublicoSerializer
 from .serializers import ReporteMetricaSerializer
-from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
+from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MetodoPagoPublicoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from .serializers import serializar_plan_restaurante
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -19,7 +19,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, ProductoVariante, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, PedidoManual, ReporteMetrica
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
-from django.db.models import Count, F, Q, Prefetch
+from django.db.models import Count, F, Max, Q, Prefetch
+from django.utils.text import slugify
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -537,6 +538,16 @@ def reordenar_producto(producto, categoria, nuevo_orden):
     return producto
 
 #METODOS DE PAGO
+def generar_codigo_metodo_pago(restaurante, nombre):
+    base = slugify(nombre)[:40] or "metodo-pago"
+    codigo = base
+    sufijo = 2
+    while MetodoPago.objects.filter(restaurante=restaurante, codigo=codigo).exists():
+        codigo = f"{base[:45]}-{sufijo}"
+        sufijo += 1
+    return codigo
+
+
 class MetodosPagoView(APIView):
     permission_classes = [IsAuthenticated, CanManageMetodosPago]
 
@@ -570,6 +581,7 @@ class MetodosPagoView(APIView):
 
         if serializer.is_valid():
             nombre = serializer.validated_data.get("nombre")
+            activo = serializer.validated_data.get("activo", True)
 
             if MetodoPago.objects.filter(
                 restaurante=restaurante,
@@ -580,8 +592,28 @@ class MetodosPagoView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            if not activo and not MetodoPago.objects.filter(
+                restaurante=restaurante,
+                activo=True,
+            ).exists():
+                return Response(
+                    {"error": "Debes mantener al menos un metodo de pago activo para recibir pedidos."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            orden = serializer.validated_data.get("orden")
+            if orden is None:
+                orden = (
+                    MetodoPago.objects.filter(restaurante=restaurante)
+                    .aggregate(maximo=Max("orden"))["maximo"] or 0
+                ) + 1
+
             try:
-                serializer.save(restaurante=restaurante)
+                serializer.save(
+                    restaurante=restaurante,
+                    codigo=generar_codigo_metodo_pago(restaurante, nombre),
+                    orden=orden,
+                )
             except IntegrityError:
                 return respuesta_duplicado(
                     "Ya existe un metodo de pago con ese nombre en este restaurante."
@@ -597,9 +629,15 @@ class MetodoPagoDetalleView(APIView):
     def patch(self, request, pk):
         perfil = get_perfil_activo(request)
 
-        if perfil.rol != "dueno":
+        if perfil.rol == "admin" and not contiene_solo_campos(request, ["activo"]):
             return Response(
-                {"error": "No tienes permiso para editar métodos de pago"},
+                {"error": "Admin solo puede activar o desactivar metodos de pago"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if perfil.rol not in ["dueno", "admin"]:
+            return Response(
+                {"error": "No tienes permiso para editar metodos de pago"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -622,6 +660,16 @@ class MetodoPagoDetalleView(APIView):
 
         if serializer.is_valid():
             nombre = serializer.validated_data.get("nombre")
+            activo = serializer.validated_data.get("activo", metodo.activo)
+
+            if metodo.activo and not activo and not MetodoPago.objects.filter(
+                restaurante=perfil.restaurante,
+                activo=True,
+            ).exclude(id=metodo.id).exists():
+                return Response(
+                    {"error": "Debes mantener al menos un metodo de pago activo para recibir pedidos."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             if nombre and MetodoPago.objects.filter(
                 restaurante=perfil.restaurante,
@@ -662,10 +710,32 @@ class MetodoPagoDetalleView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        if metodo.activo and not MetodoPago.objects.filter(
+            restaurante=perfil.restaurante,
+            activo=True,
+        ).exclude(id=metodo.id).exists():
+            return Response(
+                {"error": "Debes mantener al menos un metodo de pago activo para recibir pedidos."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         metodo.delete()
         return Response(
             {"mensaje": "Método de pago eliminado correctamente"}
         )
+
+
+class MetodosPagoPublicosView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, slug):
+        restaurante = get_object_or_404(Restaurante, slug=slug, activo=True)
+        metodos = MetodoPago.objects.filter(
+            restaurante=restaurante,
+            activo=True,
+        ).order_by("orden", "id")
+        return Response(MetodoPagoPublicoSerializer(metodos, many=True).data)
 
 
 #PERFIL ACTIVO PARA LOGIN

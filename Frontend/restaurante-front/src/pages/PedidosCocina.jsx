@@ -52,6 +52,7 @@ function ComandaCard({ comanda, onCambiarEstado, actualizando }) {
         <span>{estadoLabels[estado] || estado}</span>
         <span>{formatearHora(comanda.hora_creacion)}</span>
         <span>{comanda.tipo_entrega_display || comanda.tipo_entrega}</span>
+        {comanda.metodo_pago_nombre && <span>Pago: {comanda.metodo_pago_nombre}</span>}
         {comanda.numero_mesa && <span>Mesa {comanda.numero_mesa}</span>}
       </div>
 

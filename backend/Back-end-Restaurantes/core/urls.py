@@ -29,7 +29,7 @@ from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashbo
 from menu.views import CategoriasView, CategoriaDetalleView
 from menu.views import MesasView, MesaDetalleView,IconosView
 from menu.views import HorariosView, HorarioDetalleView
-from menu.views import MetodosPagoView, MetodoPagoDetalleView, ProductoClickView
+from menu.views import MetodosPagoView, MetodoPagoDetalleView, MetodosPagoPublicosView, ProductoClickView
 from menu.views import RespaldosRestauranteView, UltimoRespaldoRestauranteView
 
 urlpatterns = [
@@ -322,6 +322,7 @@ urlpatterns = [
     #MEOTODOS DE PAGO
     path("api/mi-restaurante/metodos-pago/",MetodosPagoView.as_view(),name="metodos-pago"),
     path("api/mi-restaurante/metodos-pago/<int:pk>/",MetodoPagoDetalleView.as_view(),name="metodo-pago-detalle"),
+    path("api/public/restaurantes/<slug:slug>/metodos-pago/", MetodosPagoPublicosView.as_view(), name="metodos-pago-publicos"),
 
     #RESPALDOS
     path("api/mi-restaurante/respaldos/", RespaldosRestauranteView.as_view(), name="respaldos-restaurante"),

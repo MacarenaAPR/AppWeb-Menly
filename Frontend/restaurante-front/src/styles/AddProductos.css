@@ -392,10 +392,10 @@ textarea::placeholder {
 .variantes-list-header,
 .variante-list-row {
   display: grid;
-  grid-template-columns: minmax(160px, 1.8fr) minmax(100px, .8fr) minmax(90px, .7fr) 60px 88px;
+  grid-template-columns: minmax(100px, 1.8fr) minmax(50px, .8fr) minmax(90px, .7fr) 50px 88px;
   align-items: center;
   gap: .75rem;
-  padding: .75rem 1rem;
+  padding: .25rem 1rem;
 }
 
 .variantes-list-header {
@@ -408,7 +408,7 @@ textarea::placeholder {
 }
 
 .variante-list-row {
-  min-height: 58px;
+  min-height: 40px;
   color: #fff;
   font-size: 13px;
   border-top: 1px solid #263442;

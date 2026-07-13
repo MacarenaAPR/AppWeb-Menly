@@ -6,6 +6,7 @@ from cloudinary.models import CloudinaryField
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.utils.text import slugify
 
 
 class Icono(models.Model):
@@ -470,6 +471,14 @@ class PedidoWhatsApp(models.Model):
     telefono_cliente = models.CharField(max_length=30)
     tipo_entrega = models.CharField(max_length=20, choices=TIPOS_ENTREGA)
     direccion_entrega = models.TextField(blank=True, null=True)
+    metodo_pago = models.ForeignKey(
+        "MetodoPago",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pedidos_whatsapp",
+    )
+    metodo_pago_nombre = models.CharField(max_length=100, blank=True, default="")
     productos_snapshot = models.JSONField()
     total = models.DecimalField(max_digits=10, decimal_places=0)
     tracking_token = models.CharField(max_length=32, unique=True, editable=False, db_index=True)
@@ -1002,19 +1011,39 @@ class MetodoPago(models.Model):
     )
 
     nombre = models.CharField(max_length=100)
+    codigo = models.SlugField(max_length=50)
     activo = models.BooleanField(default=True)
+    orden = models.PositiveIntegerField(default=0)
 
     class Meta:
-        ordering = ["nombre"]
+        ordering = ["orden", "id"]
         constraints = [
             models.UniqueConstraint(
                 fields=["restaurante", "nombre"],
                 name="unique_metodo_pago_por_restaurante"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["restaurante", "codigo"],
+                name="unique_codigo_metodo_pago_por_restaurante",
+            ),
         ]
 
     def __str__(self):
         return f"{self.nombre} - {self.restaurante.nombre_empresa}"
+
+    def save(self, *args, **kwargs):
+        if not self.codigo:
+            base = slugify(self.nombre)[:40] or "metodo-pago"
+            codigo = base
+            sufijo = 2
+            existentes = MetodoPago.objects.filter(restaurante_id=self.restaurante_id)
+            if self.pk:
+                existentes = existentes.exclude(pk=self.pk)
+            while existentes.filter(codigo=codigo).exists():
+                codigo = f"{base[:45]}-{sufijo}"
+                sufijo += 1
+            self.codigo = codigo
+        super().save(*args, **kwargs)
 
 class Mesa(models.Model):
     restaurante = models.ForeignKey(
