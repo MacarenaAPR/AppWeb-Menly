@@ -139,9 +139,32 @@ class DashboardMetricasResilienciaTests(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["ventas"]["venta_real_mes"], 0)
+        self.assertEqual(data["venta_total_diaria_operativa"], 0)
         self.assertEqual(data["reservas"]["reservas_hoy"], 0)
         self.assertEqual(data["productos"]["top_por_cantidad"], [])
         self.assertIsNone(data["productos"]["mas_vendido_mes"])
+
+    @patch("menu.services.metricas.pedidos.metricas_canal_especiales")
+    @patch("menu.services.metricas.productos.pedidos_especiales_finalizados")
+    @patch("menu.services.metricas.resumen.metricas_reservas")
+    def test_metricas_no_consulta_modulos_inactivos(
+        self,
+        mock_reservas,
+        mock_productos_especiales,
+        mock_metricas_especiales,
+    ):
+        self.restaurante.reservas_activas = False
+        self.restaurante.solicitudes_especiales_activas = False
+        self.restaurante.save(update_fields=["reservas_activas", "solicitudes_especiales_activas"])
+
+        response = self.client.get("/api/mi-restaurante/metricas/resumen/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_reservas.assert_not_called()
+        mock_productos_especiales.assert_not_called()
+        mock_metricas_especiales.assert_not_called()
+        self.assertEqual(response.json()["reservas"]["reservas_hoy"], 0)
+        self.assertEqual(response.json()["canales"]["especiales"]["venta_real_hoy"], 0)
 
     def test_metricas_resumen_tolera_items_snapshot_invalidos(self):
         PedidoWhatsApp.objects.create(
@@ -160,12 +183,37 @@ class DashboardMetricasResilienciaTests(BaseTestCase):
             mensaje_whatsapp_generado="Pedido",
             whatsapp_destino="56911111111",
         )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=2,
+            nombre_cliente="Cancelado",
+            telefono_cliente="999999999",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=4000,
+            estado=PedidoWhatsApp.ESTADO_CANCELADO,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        PedidoWhatsApp.objects.create(
+            restaurante=self.otro_restaurante,
+            numero_pedido=1,
+            nombre_cliente="Otro restaurante",
+            telefono_cliente="999999999",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=7000,
+            estado=PedidoWhatsApp.ESTADO_ENTREGADO,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
 
         response = self.client.get("/api/mi-restaurante/metricas/resumen/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(data["ventas"]["venta_real_mes"], 0)
+        self.assertEqual(data["venta_total_diaria_operativa"], 0)
         self.assertEqual(data["productos"]["top_por_cantidad"][0]["nombre"], "Bebida")
         self.assertEqual(data["productos"]["top_por_cantidad"][0]["cantidad"], 2)
 
@@ -565,6 +613,8 @@ class PedidoManualDashboardTests(BaseTestCase):
         self.assertEqual(data["cantidad_pedidos_menly_hoy"], 2)
         self.assertEqual(data["canales"]["menly"]["venta_diaria_menly"], 4500)
         self.assertEqual(data["canales"]["menly"]["cantidad_pedidos_menly_hoy"], 2)
+        self.assertEqual(data["canales"]["whatsapp"]["venta_diaria_whatsapp"], 5000)
+        self.assertEqual(data["venta_total_diaria_operativa"], 9500)
 
 
 class CocinaComandasTests(BaseTestCase):

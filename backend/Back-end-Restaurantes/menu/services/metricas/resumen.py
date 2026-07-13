@@ -7,7 +7,17 @@ def construir_resumen_metricas(restaurante):
     """Payload canónico para Dashboard, Pedidos y Métricas."""
     pedidos = metricas_pedidos_combinadas(restaurante)
     productos = metricas_productos(restaurante)
-    reservas = metricas_reservas(restaurante)
+    reservas = (
+        metricas_reservas(restaurante)
+        if restaurante.reservas_activas
+        else {
+            "reservas_hoy": 0,
+            "reservas_creadas_mes": 0,
+            "reservas_programadas_mes": 0,
+            "reservas_pendientes_futuras": 0,
+            "reservas_canceladas_mes": 0,
+        }
+    )
 
     return {
         **pedidos,

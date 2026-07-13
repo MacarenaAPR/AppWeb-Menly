@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [ultimosPedidosLoading, setUltimosPedidosLoading] = useState(false);
   const [ultimosPedidosError, setUltimosPedidosError] = useState("");
   const [metricasPedidos, setMetricasPedidos] = useState(null);
+  const [metricasPedidosLoading, setMetricasPedidosLoading] = useState(true);
   const [modalNotificacionesAbierto, setModalNotificacionesAbierto] = useState(false);
   const [notificaciones, setNotificaciones] = useState([]);
   const [notificacionesLoading, setNotificacionesLoading] = useState(false);
@@ -190,6 +191,10 @@ export default function Dashboard() {
   }, []);
 
   const fetchMetricasPedidos = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setMetricasPedidosLoading(true);
+    }
+
     try {
       const response = await authFetch("/mi-restaurante/metricas/resumen/", {
         cache: "no-store",
@@ -205,6 +210,10 @@ export default function Dashboard() {
       console.error("/mi-restaurante/metricas/resumen/", err);
       if (!silent) {
         setMetricasPedidos(null);
+      }
+    } finally {
+      if (!silent) {
+        setMetricasPedidosLoading(false);
       }
     }
   }, []);
@@ -299,6 +308,7 @@ export default function Dashboard() {
   }. Recuerda regularizar tu pago para mantener activo el servicio. Si ya realizaste el pago, ignora este mensaje.`;
   const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
   const ventaTotalMes = metricasPedidos?.ventas?.venta_real_mes ?? 0;
+  const ventaTotalDiaria = metricasPedidos?.venta_total_diaria_operativa ?? 0;
   const tiendaAbierta = restaurante?.abierto === true;
 
   const cambiarEstadoApertura = async () => {
@@ -498,12 +508,21 @@ export default function Dashboard() {
                                     <p>Ver carta</p>
                                   </button>
                                 </div>
-                                <Card
-                                    icons = {"bi bi-calendar2-check"}
-                                    metrica={data?.resumen?.reservas_hoy ?? 0}
-                                    titulo="Reservas para hoy"
-                                    btnto={`/dashboard/${restaurante.slug}/reservas`}
-                                />
+                                {restaurante.reservas_activas ? (
+                                  <Card
+                                      icons = {"bi bi-calendar2-check"}
+                                      metrica={data?.resumen?.reservas_hoy ?? 0}
+                                      titulo="Reservas para hoy"
+                                      btnto={`/dashboard/${restaurante.slug}/reservas`}
+                                  />
+                                ) : (
+                                  <Card
+                                      icons = {"bi bi-cash-stack"}
+                                      metrica={metricasPedidosLoading ? "Cargando..." : formatearMoneda(ventaTotalDiaria)}
+                                      titulo="Venta total diaria"
+                                      btnto={`/dashboard/${restaurante.slug}/pedidos`}
+                                  />
+                                )}
                                 <Card
                                     icons = {"bi bi-cash-stack"}
                                     metrica={formatearMoneda(ventaTotalMes)}

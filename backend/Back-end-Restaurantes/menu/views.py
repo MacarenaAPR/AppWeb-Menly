@@ -149,6 +149,7 @@ def respuesta_metricas_vacia(error=None, status_code=status.HTTP_200_OK):
         "canales": {
             "whatsapp": {
                 "venta_real_hoy": 0,
+                "venta_diaria_whatsapp": 0,
                 "venta_real_semana": 0,
                 "venta_real_mes": 0,
                 "pedidos_creados_hoy": 0,
@@ -184,6 +185,7 @@ def respuesta_metricas_vacia(error=None, status_code=status.HTTP_200_OK):
             },
         },
         "venta_diaria_menly": 0,
+        "venta_total_diaria_operativa": 0,
         "cantidad_pedidos_menly_hoy": 0,
         "reservas": {
             "reservas_hoy": 0,
@@ -3385,14 +3387,18 @@ class MiRestauranteView(APIView):
                 })
             hoy = now().date()
 
-            reservas_hoy = Reserva.objects.filter(
-                restaurante=restaurante,
-                fecha=hoy
-            ).count()
-            reservas_pendientes = Reserva.objects.filter(
-                restaurante=restaurante,
-                estado="pendiente"
-            ).count()
+            if restaurante.reservas_activas:
+                reservas_hoy = Reserva.objects.filter(
+                    restaurante=restaurante,
+                    fecha=hoy
+                ).count()
+                reservas_pendientes = Reserva.objects.filter(
+                    restaurante=restaurante,
+                    estado="pendiente"
+                ).count()
+            else:
+                reservas_hoy = 0
+                reservas_pendientes = 0
             notificaciones_pendientes = Notificacion.objects.filter(
                 restaurante=restaurante,
                 leida=False

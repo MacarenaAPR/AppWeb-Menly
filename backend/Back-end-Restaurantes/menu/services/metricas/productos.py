@@ -70,7 +70,7 @@ def productos_vendidos(restaurante, desde=None, hasta=None, canal=None):
             for item in pedido.productos_snapshot or []:
                 _sumar_item(acumulados, item, "whatsapp")
 
-    if canal in (None, "especiales"):
+    if canal in (None, "especiales") and restaurante.solicitudes_especiales_activas:
         for pedido in pedidos_especiales_finalizados(restaurante, desde, hasta):
             for item in pedido.items or []:
                 _sumar_item(acumulados, item, "especiales")

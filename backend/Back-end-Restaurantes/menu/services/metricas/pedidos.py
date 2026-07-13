@@ -88,6 +88,12 @@ def pedidos_whatsapp_cancelados(restaurante, desde=None, hasta=None):
     )
 
 
+def pedidos_whatsapp_validos(restaurante, desde=None, hasta=None):
+    return pedidos_whatsapp_creados(restaurante, desde, hasta).exclude(
+        estado__in=WHATSAPP_CANCELADOS
+    )
+
+
 def pedidos_especiales_cancelados(restaurante, desde=None, hasta=None):
     return pedidos_especiales_creados(restaurante, desde, hasta).filter(
         estado__in=ESPECIALES_CANCELADOS
@@ -159,6 +165,7 @@ def metricas_canal_whatsapp(restaurante, desde_mes=None, hoy=None):
     desde_semana = hoy - timedelta(days=6)
 
     creados_hoy = pedidos_whatsapp_creados(restaurante, hoy, hoy)
+    validos_hoy = pedidos_whatsapp_validos(restaurante, hoy, hoy)
     creados_mes = pedidos_whatsapp_creados(restaurante, desde_mes, hoy)
     finalizados_hoy = pedidos_whatsapp_finalizados(restaurante, hoy, hoy)
     finalizados_mes = pedidos_whatsapp_finalizados(restaurante, desde_mes, hoy)
@@ -168,6 +175,7 @@ def metricas_canal_whatsapp(restaurante, desde_mes=None, hoy=None):
 
     return {
         "venta_real_hoy": sumar_total(finalizados_hoy),
+        "venta_diaria_whatsapp": sumar_total(validos_hoy),
         "venta_real_semana": sumar_total(finalizados_semana),
         "venta_real_mes": sumar_total(finalizados_mes),
         "pedidos_creados_hoy": creados_hoy.count(),
@@ -202,6 +210,20 @@ def metricas_canal_especiales(restaurante, desde_mes=None, hoy=None):
         "pedidos_finalizados_mes": finalizados_mes.count(),
         "pedidos_cancelados_mes": cancelados_mes.count(),
         "pedidos_activos": activos.count(),
+    }
+
+
+def metricas_canal_especiales_vacio():
+    return {
+        "venta_real_hoy": 0,
+        "venta_real_semana": 0,
+        "venta_real_mes": 0,
+        "pedidos_creados_hoy": 0,
+        "pedidos_creados_mes": 0,
+        "pedidos_finalizados_hoy": 0,
+        "pedidos_finalizados_mes": 0,
+        "pedidos_cancelados_mes": 0,
+        "pedidos_activos": 0,
     }
 
 
@@ -242,7 +264,11 @@ def metricas_pedidos_combinadas(restaurante, hoy=None):
     hoy = hoy or fecha_hoy()
     desde_mes = inicio_mes(hoy)
     whatsapp = metricas_canal_whatsapp(restaurante, desde_mes, hoy)
-    especiales = metricas_canal_especiales(restaurante, desde_mes, hoy)
+    especiales = (
+        metricas_canal_especiales(restaurante, desde_mes, hoy)
+        if restaurante.solicitudes_especiales_activas
+        else metricas_canal_especiales_vacio()
+    )
     manuales = metricas_canal_manuales(restaurante, desde_mes, hoy)
 
     pedidos_creados_mes = (
@@ -301,5 +327,8 @@ def metricas_pedidos_combinadas(restaurante, hoy=None):
             "menly": manuales,
         },
         "venta_diaria_menly": manuales["venta_diaria_menly"],
+        "venta_total_diaria_operativa": (
+            manuales["venta_diaria_menly"] + whatsapp["venta_diaria_whatsapp"]
+        ),
         "cantidad_pedidos_menly_hoy": manuales["cantidad_pedidos_menly_hoy"],
     }
