@@ -229,6 +229,118 @@ class PedidoManualDashboardTests(BaseTestCase):
         self.assertEqual(data["cliente_nombre"], "Camila")
         self.assertEqual(data["cliente_telefono"], "+56912345678")
 
+    def test_pedido_manual_variante_usa_precio_backend_y_guarda_snapshot(self):
+        variante = ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="Familiar",
+            descripcion="Para 4 personas",
+            precio=6000,
+            activo=True,
+        )
+
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(items=[{
+                "producto_id": self.producto.id,
+                "variante_id": variante.id,
+                "cantidad": 2,
+                "precio_unitario": 1,
+            }]),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoManual.objects.get()
+        item = pedido.items.get()
+        self.assertEqual(item.variante_id, variante.id)
+        self.assertEqual(item.variante_nombre, "Familiar")
+        self.assertEqual(int(item.precio_unitario), 6000)
+        self.assertEqual(int(item.subtotal), 12000)
+        self.assertEqual(int(pedido.total), 12000)
+        self.assertEqual(response.json()["pedido"]["items"][0]["variante_id"], variante.id)
+
+    def test_pedido_manual_exige_variante_activa_si_producto_tiene_variantes(self):
+        ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="Individual",
+            precio=2500,
+            activo=True,
+        )
+
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("items", response.json())
+        self.assertFalse(PedidoManual.objects.exists())
+
+    def test_pedido_manual_rechaza_variante_de_otro_producto_o_tenant(self):
+        variante_externa = ProductoVariante.objects.create(
+            producto=self.otro_producto,
+            nombre="Externa",
+            precio=1,
+            activo=True,
+        )
+
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(items=[{
+                "producto_id": self.producto.id,
+                "variante_id": variante_externa.id,
+                "cantidad": 1,
+            }]),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(PedidoManual.objects.exists())
+
+    def test_editar_items_pedido_manual_actualiza_variante_y_precio(self):
+        individual = ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="Individual",
+            precio=2500,
+            activo=True,
+        )
+        familiar = ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="Familiar",
+            precio=6000,
+            activo=True,
+        )
+        crear = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            self.payload_valido(items=[{
+                "producto_id": self.producto.id,
+                "variante_id": individual.id,
+                "cantidad": 1,
+            }]),
+            format="json",
+        )
+        pedido_id = crear.json()["pedido"]["id"]
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {"items": [{
+                "producto_id": self.producto.id,
+                "variante_id": familiar.id,
+                "cantidad": 3,
+                "precio_unitario": 1,
+            }]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pedido = PedidoManual.objects.get(id=pedido_id)
+        item = pedido.items.get()
+        self.assertEqual(item.variante_id, familiar.id)
+        self.assertEqual(item.variante_nombre, "Familiar")
+        self.assertEqual(int(item.precio_unitario), 6000)
+        self.assertEqual(int(pedido.total), 18000)
+
     def test_seguimiento_publico_manual_reutiliza_token_y_expone_payload_seguro(self):
         response = self.client.post(
             "/api/mi-restaurante/pedidos/manuales/",

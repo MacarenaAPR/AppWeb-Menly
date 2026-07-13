@@ -123,7 +123,10 @@ def _items_whatsapp(pedido):
 def _items_manual(pedido):
     return [
         {
-            "nombre": item.nombre_producto,
+            "nombre": (
+                f"{item.nombre_producto} — {item.variante_nombre}"
+                if item.variante_nombre else item.nombre_producto
+            ),
             "cantidad": item.cantidad,
             "observaciones": item.observaciones,
         }

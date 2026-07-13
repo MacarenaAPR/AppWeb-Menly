@@ -980,19 +980,23 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
 
 class PedidoManualItemInputSerializer(serializers.Serializer):
     producto_id = serializers.IntegerField(min_value=1)
+    variante_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     cantidad = serializers.IntegerField(min_value=1, max_value=999)
     observaciones = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
 
 
 class PedidoManualItemSerializer(serializers.ModelSerializer):
-    producto_id = serializers.IntegerField(source="producto.id", read_only=True)
+    producto_id = serializers.IntegerField(read_only=True)
+    variante_id = serializers.IntegerField(read_only=True, allow_null=True)
 
     class Meta:
         model = PedidoManualItem
         fields = [
             "id",
             "producto_id",
+            "variante_id",
             "nombre_producto",
+            "variante_nombre",
             "precio_unitario",
             "cantidad",
             "subtotal",
@@ -1137,38 +1141,34 @@ class PedidoManualSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"items": "Agrega al menos un producto al pedido."})
 
         restaurante = self.context["restaurante"]
-        cantidades = {}
-        observaciones = {}
-        for item in items:
-            producto_id = item["producto_id"]
-            cantidades[producto_id] = cantidades.get(producto_id, 0) + item["cantidad"]
-            observaciones[producto_id] = item.get("observaciones", "")
-
-        productos = Producto.objects.filter(
-            restaurante=restaurante,
-            disponible=True,
-            id__in=cantidades.keys(),
-        ).in_bulk()
-
-        if len(productos) != len(cantidades):
+        snapshot, total = normalizar_productos_pedido(restaurante, items)
+        if snapshot is None:
             raise serializers.ValidationError({
-                "items": "Uno o mas productos no pertenecen a este restaurante o ya no estan disponibles."
+                "items": "Selecciona una variante activa y valida para cada producto que la requiera."
             })
 
+        producto_ids = {item["producto_id"] for item in snapshot}
+        productos = Producto.objects.filter(
+            restaurante=restaurante,
+            id__in=producto_ids,
+        ).in_bulk()
+        observaciones = {
+            (item["producto_id"], item.get("variante_id")): item.get("observaciones", "")
+            for item in items
+        }
         items_normalizados = []
-        total = 0
-        for producto_id, cantidad in cantidades.items():
-            producto = productos[producto_id]
-            precio = producto.precio
-            subtotal = precio * cantidad
-            total += subtotal
+        for item in snapshot:
+            producto_id = item["producto_id"]
+            variante_id = item.get("variante_id")
             items_normalizados.append({
-                "producto": producto,
-                "nombre_producto": producto.nombre,
-                "precio_unitario": precio,
-                "cantidad": cantidad,
-                "subtotal": subtotal,
-                "observaciones": observaciones.get(producto_id, ""),
+                "producto": productos[producto_id],
+                "variante_id": variante_id,
+                "nombre_producto": item["nombre"],
+                "variante_nombre": item.get("variante_nombre", ""),
+                "precio_unitario": item["precio_unitario"],
+                "cantidad": item["cantidad"],
+                "subtotal": item["subtotal"],
+                "observaciones": observaciones.get((producto_id, variante_id), ""),
             })
 
         data["items_normalizados"] = items_normalizados
@@ -1246,6 +1246,7 @@ class PedidoManualSeguimientoPublicoSerializer(serializers.ModelSerializer):
         return [
             {
                 "nombre": item.nombre_producto,
+                "variante_nombre": item.variante_nombre,
                 "cantidad": item.cantidad,
                 "subtotal": int(item.subtotal),
             }

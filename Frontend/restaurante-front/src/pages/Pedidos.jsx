@@ -43,6 +43,18 @@ const formManualInicial = {
   items: [],
 };
 
+const obtenerVariantesActivas = (producto) => (
+  Array.isArray(producto?.variantes)
+    ? producto.variantes.filter((variante) => variante.activo !== false)
+    : []
+);
+
+const claveLineaManual = (item, varianteId = null) => {
+  const productoId = typeof item === "object" ? item.producto_id : item;
+  const variante = typeof item === "object" ? item.variante_id : varianteId;
+  return `${productoId}:${variante || "base"}`;
+};
+
 const formatearMoneda = (valor) =>
   new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -77,9 +89,10 @@ const normalizarTelefonoWhatsappChile = (telefono) => {
   return "";
 };
 
-const obtenerNombreItemPedido = (item) => (
-  item?.nombre_producto || item?.nombre || "Producto"
-);
+const obtenerNombreItemPedido = (item) => {
+  const nombre = item?.nombre_producto || item?.nombre || "Producto";
+  return item?.variante_nombre ? `${nombre} — ${item.variante_nombre}` : nombre;
+};
 
 const construirMensajeWhatsappPedidoManual = (pedido, restaurante) => {
   const nombreCliente = (pedido?.nombre_cliente || pedido?.cliente_nombre || "").trim();
@@ -136,6 +149,7 @@ export default function PedidosDashboard() {
   const [mostrarFormularioEspecial, setMostrarFormularioEspecial] = useState(false);
   const [mostrarFormularioManual, setMostrarFormularioManual] = useState(false);
   const [pedidoEditando, setPedidoEditando] = useState(null);
+  const [pedidoManualEditando, setPedidoManualEditando] = useState(null);
   const [formEspecial, setFormEspecial] = useState(formEspecialInicial);
   const [formManual, setFormManual] = useState(formManualInicial);
   const [guardandoManual, setGuardandoManual] = useState(false);
@@ -143,6 +157,7 @@ export default function PedidosDashboard() {
   const [activacionCocinaUrl, setActivacionCocinaUrl] = useState("");
   const [pedidoManualWhatsappListo, setPedidoManualWhatsappListo] = useState(null);
   const [observacionManualEditor, setObservacionManualEditor] = useState(null);
+  const [varianteManualSelector, setVarianteManualSelector] = useState(null);
   const [detalleItems, setDetalleItems] = useState([]);
   const [productoBusqueda, setProductoBusqueda] = useState("");
   const [productoBusquedaManual, setProductoBusquedaManual] = useState("");
@@ -384,6 +399,8 @@ export default function PedidosDashboard() {
         : tipo === "manual"
           ? (pedido.items || []).map((item) => ({
               producto_id: item.producto_id,
+              variante_id: item.variante_id,
+              variante_nombre: item.variante_nombre || "",
               nombre: item.nombre_producto,
               precio_unitario: item.precio_unitario,
               cantidad: item.cantidad,
@@ -644,23 +661,67 @@ export default function PedidosDashboard() {
   }, [catalogoProductos, categoriaManual, productoBusquedaManual]);
 
   const abrirCrearManual = () => {
+    setPedidoManualEditando(null);
     setFormManual(formManualInicial);
     setProductoBusquedaManual("");
     setCategoriaManual("");
+    setVarianteManualSelector(null);
     setMostrarFormularioManual(true);
     setError("");
     setMensaje("");
     setPedidoManualWhatsappListo(null);
   };
 
-  const agregarProductoManual = (producto) => {
+  const cerrarFormularioManual = () => {
+    setMostrarFormularioManual(false);
+    setPedidoManualEditando(null);
+    setVarianteManualSelector(null);
+  };
+
+  const abrirEditarManual = (pedido) => {
+    setPedidoManualEditando(pedido);
+    setFormManual({
+      nombre_cliente: pedido.nombre_cliente || "",
+      telefono_cliente: pedido.telefono_cliente || "",
+      tipo_entrega: pedido.tipo_entrega || "mesa",
+      direccion: pedido.direccion || "",
+      numero_mesa: pedido.numero_mesa || "",
+      observaciones: pedido.observaciones || "",
+      items: (pedido.items || []).map((item) => {
+        const producto = catalogoProductos.find(
+          (catalogoItem) => Number(catalogoItem.id) === Number(item.producto_id)
+        );
+        return {
+          producto_id: item.producto_id,
+          variante_id: item.variante_id || null,
+          variante_nombre: item.variante_nombre || "",
+          nombre: item.nombre_producto,
+          imagen: producto?.imagen || "",
+          precio_unitario: Number(item.precio_unitario || 0),
+          cantidad: Number(item.cantidad || 1),
+          observaciones: item.observaciones || "",
+        };
+      }),
+    });
+    setProductoBusquedaManual("");
+    setCategoriaManual("");
+    setVarianteManualSelector(null);
+    setDetalle(null);
+    setMostrarFormularioManual(true);
+    setError("");
+    setMensaje("");
+    setPedidoManualWhatsappListo(null);
+  };
+
+  const agregarProductoManual = (producto, variante = null) => {
+    const lineaId = claveLineaManual(producto.id, variante?.id);
     setFormManual((actual) => {
-      const existente = actual.items.find((item) => Number(item.producto_id) === Number(producto.id));
+      const existente = actual.items.find((item) => claveLineaManual(item) === lineaId);
       if (existente) {
         return {
           ...actual,
           items: actual.items.map((item) => (
-            Number(item.producto_id) === Number(producto.id)
+            claveLineaManual(item) === lineaId
               ? { ...item, cantidad: Number(item.cantidad || 0) + 1 }
               : item
           )),
@@ -673,9 +734,11 @@ export default function PedidosDashboard() {
           ...actual.items,
           {
             producto_id: producto.id,
+            variante_id: variante?.id || null,
+            variante_nombre: variante?.nombre || "",
             nombre: producto.nombre,
             imagen: producto.imagen || "",
-            precio_unitario: Number(producto.precio || 0),
+            precio_unitario: Number(variante?.precio ?? producto.precio ?? 0),
             cantidad: 1,
             observaciones: "",
           },
@@ -684,26 +747,90 @@ export default function PedidosDashboard() {
     });
   };
 
-  const actualizarItemManual = (productoId, cambios) => {
+  const seleccionarProductoManual = (producto) => {
+    const variantes = obtenerVariantesActivas(producto);
+    if (variantes.length === 0) {
+      agregarProductoManual(producto);
+      return;
+    }
+    if (variantes.length === 1) {
+      agregarProductoManual(producto, variantes[0]);
+      return;
+    }
+    setVarianteManualSelector({ producto, varianteId: "" });
+  };
+
+  const confirmarVarianteManual = () => {
+    if (!varianteManualSelector) return;
+    const variante = obtenerVariantesActivas(varianteManualSelector.producto).find(
+      (item) => String(item.id) === String(varianteManualSelector.varianteId)
+    );
+    if (!variante) {
+      setError("Selecciona una variante para agregar el producto.");
+      return;
+    }
+    agregarProductoManual(varianteManualSelector.producto, variante);
+    setVarianteManualSelector(null);
+    setError("");
+  };
+
+  const actualizarItemManual = (lineaId, cambios) => {
     setFormManual((actual) => ({
       ...actual,
       items: actual.items.map((item) => (
-        Number(item.producto_id) === Number(productoId)
+        claveLineaManual(item) === lineaId
           ? { ...item, ...cambios }
           : item
       )),
     }));
   };
 
-  const cambiarCantidadManual = (productoId, cantidad) => {
-    actualizarItemManual(productoId, { cantidad: Math.max(1, Number(cantidad) || 1) });
+  const cambiarCantidadManual = (lineaId, cantidad) => {
+    actualizarItemManual(lineaId, { cantidad: Math.max(1, Number(cantidad) || 1) });
   };
 
-  const quitarItemManual = (productoId) => {
+  const quitarItemManual = (lineaId) => {
     setFormManual((actual) => ({
       ...actual,
-      items: actual.items.filter((item) => Number(item.producto_id) !== Number(productoId)),
+      items: actual.items.filter((item) => claveLineaManual(item) !== lineaId),
     }));
+  };
+
+  const cambiarVarianteManual = (itemActual, varianteId) => {
+    const producto = catalogoProductos.find(
+      (item) => Number(item.id) === Number(itemActual.producto_id)
+    );
+    const variante = obtenerVariantesActivas(producto).find(
+      (item) => String(item.id) === String(varianteId)
+    );
+    if (!producto || !variante) return;
+
+    const lineaActualId = claveLineaManual(itemActual);
+    const lineaDestinoId = claveLineaManual(producto.id, variante.id);
+    setFormManual((actual) => {
+      const destino = actual.items.find((item) => claveLineaManual(item) === lineaDestinoId);
+      if (destino && lineaDestinoId !== lineaActualId) {
+        return {
+          ...actual,
+          items: actual.items
+            .filter((item) => claveLineaManual(item) !== lineaActualId)
+            .map((item) => claveLineaManual(item) === lineaDestinoId
+              ? { ...item, cantidad: Number(item.cantidad) + Number(itemActual.cantidad) }
+              : item),
+        };
+      }
+      return {
+        ...actual,
+        items: actual.items.map((item) => claveLineaManual(item) === lineaActualId
+          ? {
+              ...item,
+              variante_id: variante.id,
+              variante_nombre: variante.nombre,
+              precio_unitario: Number(variante.precio),
+            }
+          : item),
+      };
+    });
   };
 
   const abrirWhatsappPedidoManual = (pedido) => {
@@ -762,25 +889,25 @@ export default function PedidosDashboard() {
 
   const abrirEditorObservacionManual = (item) => {
     setObservacionManualEditor({
-      productoId: item.producto_id,
+      lineaId: claveLineaManual(item),
       nombre: item.nombre,
       borrador: item.observaciones || "",
     });
   };
 
   const cerrarEditorObservacionManual = useCallback(() => {
-    const productoId = observacionManualEditor?.productoId;
+    const lineaId = observacionManualEditor?.lineaId;
     setObservacionManualEditor(null);
-    if (productoId) {
+    if (lineaId) {
       window.requestAnimationFrame(() => {
-        observacionManualButtonsRef.current[productoId]?.focus();
+        observacionManualButtonsRef.current[lineaId]?.focus();
       });
     }
-  }, [observacionManualEditor?.productoId]);
+  }, [observacionManualEditor?.lineaId]);
 
   const guardarObservacionManual = () => {
     if (!observacionManualEditor) return;
-    actualizarItemManual(observacionManualEditor.productoId, {
+    actualizarItemManual(observacionManualEditor.lineaId, {
       observaciones: observacionManualEditor.borrador.trim(),
     });
     cerrarEditorObservacionManual();
@@ -816,7 +943,9 @@ export default function PedidosDashboard() {
     (formManual.tipo_entrega !== "mesa" || Boolean(formManual.numero_mesa.trim()));
 
   const cantidadProductoManual = (productoId) => (
-    formManual.items.find((item) => Number(item.producto_id) === Number(productoId))?.cantidad || 0
+    formManual.items
+      .filter((item) => Number(item.producto_id) === Number(productoId))
+      .reduce((total, item) => total + Number(item.cantidad || 0), 0)
   );
 
   const headerPedidoManualImagen = restaurante?.imgen_principal || restaurante?.logo || "";
@@ -857,6 +986,7 @@ export default function PedidosDashboard() {
       observaciones: formManual.observaciones.trim(),
       items: formManual.items.map((item) => ({
         producto_id: Number(item.producto_id),
+        variante_id: item.variante_id ? Number(item.variante_id) : null,
         cantidad: Number(item.cantidad),
         observaciones: (item.observaciones || "").trim(),
       })),
@@ -864,26 +994,32 @@ export default function PedidosDashboard() {
 
     try {
       setGuardandoManual(true);
-      const response = await authFetch("/mi-restaurante/pedidos/manuales/", {
-        method: "POST",
+      const endpoint = pedidoManualEditando
+        ? `/mi-restaurante/pedidos/manuales/${pedidoManualEditando.id}/`
+        : "/mi-restaurante/pedidos/manuales/";
+      const response = await authFetch(endpoint, {
+        method: pedidoManualEditando ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await readJsonResponse(
         response,
-        "/mi-restaurante/pedidos/manuales/",
-        "No se pudo crear el pedido."
+        endpoint,
+        pedidoManualEditando ? "No se pudo actualizar el pedido." : "No se pudo crear el pedido."
       );
       const pedidoCreado = data?.pedido;
 
       setMostrarFormularioManual(false);
       setFormManual(formManualInicial);
+      setPedidoManualEditando(null);
       setTabActiva("menly");
-      setMensaje("Pedido creado correctamente.");
-      setPedidoManualWhatsappListo(pedidoCreado || null);
+      setMensaje(pedidoManualEditando ? "Pedido actualizado correctamente." : "Pedido creado correctamente.");
+      setPedidoManualWhatsappListo(pedidoManualEditando ? null : (pedidoCreado || null));
       await cargarPedidos(restaurante);
     } catch (requestError) {
-      setError(requestError.message || "No se pudo crear el pedido.");
+      setError(requestError.message || (pedidoManualEditando
+        ? "No se pudo actualizar el pedido."
+        : "No se pudo crear el pedido."));
     } finally {
       setGuardandoManual(false);
     }
@@ -1417,8 +1553,11 @@ export default function PedidosDashboard() {
                     <>
                       <div className="pedido-items-detalle">
                         {(detalle.pedido.items || []).map((item, index) => (
-                          <div key={`${item.nombre_producto}-${index}`}>
-                            <span>{item.cantidad} x {item.nombre_producto}</span>
+                          <div key={`${item.producto_id}-${item.variante_id || "base"}-${index}`}>
+                            <span>
+                              {item.cantidad} x {item.nombre_producto}
+                              {item.variante_nombre ? ` — ${item.variante_nombre}` : ""}
+                            </span>
                             <small>
                               {formatearMoneda(item.precio_unitario)} c/u
                               {item.observaciones ? ` - ${item.observaciones}` : ""}
@@ -1434,6 +1573,10 @@ export default function PedidosDashboard() {
                       <div className="modal-actions pedido-manual-actions">
                         <button className="button-cancelar" type="button" onClick={() => setDetalle(null)}>
                           Cerrar
+                        </button>
+                        <button type="button" onClick={() => abrirEditarManual(detalle.pedido)}>
+                          <i className="bi bi-pencil-square"></i>
+                          Editar pedido
                         </button>
                         <button
                           className="pedido-whatsapp-detail-btn"
@@ -1472,7 +1615,7 @@ export default function PedidosDashboard() {
         {mostrarFormularioManual && (
           <div className="modal-reserva-bg pedido-manual-modal-bg">
             <form className="modal-reserva pedido-form-modal pedido-manual-modal" onSubmit={guardarManual}>
-              <button className="modal-close-btn" type="button" aria-label="Cerrar" onClick={() => setMostrarFormularioManual(false)}>
+              <button className="modal-close-btn" type="button" aria-label="Cerrar" onClick={cerrarFormularioManual}>
                 <i className="bi bi-x-lg"></i>
               </button>
 
@@ -1485,8 +1628,10 @@ export default function PedidosDashboard() {
                     <i className="bi bi-clipboard-check"></i>
                   </span>
                   <div>
-                  <h2>Nuevo pedido</h2>
-                    <p className="pedido-detalle-subtitle">Selecciona productos para agregar al pedido</p>
+                  <h2>{pedidoManualEditando ? "Editar pedido" : "Nuevo pedido"}</h2>
+                    <p className="pedido-detalle-subtitle">
+                      {pedidoManualEditando ? "Actualiza productos, variantes y cantidades" : "Selecciona productos para agregar al pedido"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1523,12 +1668,16 @@ export default function PedidosDashboard() {
                     ) : productosManualFiltrados.map((producto) => {
                       const cantidadSeleccionada = cantidadProductoManual(producto.id);
                       const tieneImagen = Boolean(producto.imagen);
+                      const variantesActivas = obtenerVariantesActivas(producto);
+                      const precioCatalogo = variantesActivas.length
+                        ? Math.min(...variantesActivas.map((variante) => Number(variante.precio)))
+                        : Number(producto.precio || 0);
                       return (
                         <button
                           type="button"
                           className={`pedido-producto-catalogo ${cantidadSeleccionada ? "is-selected" : ""} ${!tieneImagen ? "sin-imagen" : ""}`}
                           key={producto.id}
-                          onClick={() => agregarProductoManual(producto)}
+                          onClick={() => seleccionarProductoManual(producto)}
                           aria-label={`Agregar ${producto.nombre} al pedido`}
                           style={tieneImagen ? { "--producto-imagen": `url("${producto.imagen}")` } : undefined}
                         >
@@ -1541,7 +1690,7 @@ export default function PedidosDashboard() {
                           </span>
                           <span className="pedido-producto-info">
                             <span className="pedido-producto-nombre">{producto.nombre}</span>
-                            <strong>{formatearMoneda(producto.precio)}</strong>
+                            <strong>{variantesActivas.length ? "Desde " : ""}{formatearMoneda(precioCatalogo)}</strong>
                           </span>
                           {producto.destacado && <span className="pedido-producto-popular">Popular</span>}
                           {cantidadSeleccionada > 0 && (
@@ -1640,8 +1789,14 @@ export default function PedidosDashboard() {
                       </div>
                     ) : (
                       <div className="pedido-manual-items">
-                        {formManual.items.map((item) => (
-                          <article className="pedido-manual-item" key={item.producto_id}>
+                        {formManual.items.map((item) => {
+                          const lineaId = claveLineaManual(item);
+                          const productoCatalogo = catalogoProductos.find(
+                            (producto) => Number(producto.id) === Number(item.producto_id)
+                          );
+                          const variantesActivas = obtenerVariantesActivas(productoCatalogo);
+                          return (
+                          <article className="pedido-manual-item" key={lineaId}>
                             <div className={`pedido-manual-item-img ${!item.imagen ? "sin-imagen" : ""}`}>
                               {item.imagen ? (
                                 <img src={item.imagen} alt={item.nombre} loading="lazy" />
@@ -1652,18 +1807,33 @@ export default function PedidosDashboard() {
                             <div className="pedido-manual-item-main">
                               <strong>{item.nombre}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}</strong>
                               <small>{formatearMoneda(item.precio_unitario)} c/u</small>
+                              {variantesActivas.length > 1 && (
+                                <label className="pedido-manual-variante-inline">
+                                  <span>Variante</span>
+                                  <select
+                                    value={item.variante_id || ""}
+                                    onChange={(e) => cambiarVarianteManual(item, e.target.value)}
+                                  >
+                                    {variantesActivas.map((variante) => (
+                                      <option key={variante.id} value={variante.id}>
+                                        {variante.nombre} — {formatearMoneda(variante.precio)}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              )}
                             </div>
                             <div className="pedido-cantidad-control">
-                              <button type="button" onClick={() => cambiarCantidadManual(item.producto_id, Number(item.cantidad) - 1)}>
+                              <button type="button" onClick={() => cambiarCantidadManual(lineaId, Number(item.cantidad) - 1)}>
                                 <i className="bi bi-dash"></i>
                               </button>
                               <input
                                 type="number"
                                 min="1"
                                 value={item.cantidad}
-                                onChange={(e) => cambiarCantidadManual(item.producto_id, e.target.value)}
+                                onChange={(e) => cambiarCantidadManual(lineaId, e.target.value)}
                               />
-                              <button type="button" onClick={() => cambiarCantidadManual(item.producto_id, Number(item.cantidad) + 1)}>
+                              <button type="button" onClick={() => cambiarCantidadManual(lineaId, Number(item.cantidad) + 1)}>
                                 <i className="bi bi-plus"></i>
                               </button>
                             </div>
@@ -1677,18 +1847,19 @@ export default function PedidosDashboard() {
                                 title={item.observaciones ? item.observaciones : "Agregar observacion"}
                                 ref={(node) => {
                                   if (node) {
-                                    observacionManualButtonsRef.current[item.producto_id] = node;
+                                    observacionManualButtonsRef.current[lineaId] = node;
                                   }
                                 }}
                               >
                                 <i className={item.observaciones ? "bi bi-chat-left-text-fill" : "bi bi-chat-left-text"}></i>
                               </button>
-                              <button type="button" className="pedido-icon-danger" onClick={() => quitarItemManual(item.producto_id)} aria-label={`Eliminar ${item.nombre}`}>
+                              <button type="button" className="pedido-icon-danger" onClick={() => quitarItemManual(lineaId)} aria-label={`Eliminar ${item.nombre}`}>
                                 <i className="bi bi-trash"></i>
                               </button>
                             </div>
                           </article>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
 
@@ -1702,15 +1873,64 @@ export default function PedidosDashboard() {
                   <strong>Total: <b>{formatearMoneda(totalFormManual)}</b></strong>
                 </div>
                 <div className="modal-actions">
-                  <button className="button-cancelar" type="button" onClick={() => setMostrarFormularioManual(false)}>
+                  <button className="button-cancelar" type="button" onClick={cerrarFormularioManual}>
                     Cancelar
                   </button>
                   <button type="submit" disabled={guardandoManual || !pedidoManualValido}>
                     <i className="bi bi-check-circle"></i>
-                    {guardandoManual ? "Creando..." : "Confirmar pedido"}
+                    {guardandoManual
+                      ? (pedidoManualEditando ? "Guardando..." : "Creando...")
+                      : (pedidoManualEditando ? "Guardar cambios" : "Confirmar pedido")}
                   </button>
                 </div>
               </div>
+
+              {varianteManualSelector && (
+                <div className="pedido-observacion-backdrop pedido-variante-backdrop" role="dialog" aria-modal="true" aria-labelledby="pedido-variante-title">
+                  <section className="pedido-variante-modal">
+                    <div className="pedido-variante-header">
+                      <div>
+                        <p>Producto</p>
+                        <h3 id="pedido-variante-title">{varianteManualSelector.producto.nombre}</h3>
+                      </div>
+                      <button type="button" aria-label="Cerrar selector de variante" onClick={() => setVarianteManualSelector(null)}>
+                        <i className="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+
+                    <p className="pedido-variante-instruccion">Selecciona una variante</p>
+                    <div className="pedido-variante-opciones">
+                      {obtenerVariantesActivas(varianteManualSelector.producto).map((variante) => (
+                        <label className="pedido-variante-opcion" key={variante.id}>
+                          <input
+                            type="radio"
+                            name="pedido-variante-manual"
+                            value={variante.id}
+                            checked={String(varianteManualSelector.varianteId) === String(variante.id)}
+                            onChange={(e) => setVarianteManualSelector((actual) => (
+                              actual ? { ...actual, varianteId: e.target.value } : actual
+                            ))}
+                          />
+                          <span>
+                            <strong>{variante.nombre}</strong>
+                            {variante.descripcion && <small>{variante.descripcion}</small>}
+                          </span>
+                          <b>{formatearMoneda(variante.precio)}</b>
+                        </label>
+                      ))}
+                    </div>
+
+                    <div className="modal-actions">
+                      <button className="button-cancelar" type="button" onClick={() => setVarianteManualSelector(null)}>
+                        Cancelar
+                      </button>
+                      <button type="button" disabled={!varianteManualSelector.varianteId} onClick={confirmarVarianteManual}>
+                        Agregar
+                      </button>
+                    </div>
+                  </section>
+                </div>
+              )}
 
               {observacionManualEditor && (
                 <div className="pedido-observacion-backdrop" role="dialog" aria-modal="true">

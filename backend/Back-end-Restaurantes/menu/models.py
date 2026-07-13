@@ -726,7 +726,15 @@ class PedidoManualItem(models.Model):
         blank=True,
         related_name="items_pedidos_manuales"
     )
+    variante = models.ForeignKey(
+        ProductoVariante,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="items_pedidos_manuales",
+    )
     nombre_producto = models.CharField(max_length=150)
+    variante_nombre = models.CharField(max_length=100, blank=True)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=0)
     cantidad = models.PositiveIntegerField()
     subtotal = models.DecimalField(max_digits=10, decimal_places=0)

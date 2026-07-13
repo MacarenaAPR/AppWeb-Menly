@@ -444,7 +444,10 @@ class PedidoEspecialAdmin(admin.ModelAdmin):
 class PedidoManualItemInline(admin.TabularInline):
     model = PedidoManualItem
     extra = 0
-    readonly_fields = ("producto", "nombre_producto", "precio_unitario", "cantidad", "subtotal", "observaciones")
+    readonly_fields = (
+        "producto", "variante", "nombre_producto", "variante_nombre",
+        "precio_unitario", "cantidad", "subtotal", "observaciones",
+    )
     can_delete = False
 
 
