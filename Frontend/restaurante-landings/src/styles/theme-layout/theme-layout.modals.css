@@ -81,7 +81,7 @@
 }
 .product-modal-content strong {
   color: var(--product-modal-strong-color-text);
-  font-size: 1.55rem
+  font-size: 1rem;
 }
 .product-modal-content p {
   margin: 0;

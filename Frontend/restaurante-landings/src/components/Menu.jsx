@@ -371,7 +371,7 @@ export default function Menu({
                 <div className="product-modal-cart-actions">
                   {variantesActivas(selectedProduct).length > 0 && (
                     <fieldset className="product-variants" aria-label="Selecciona un tamaño">
-                      <legend>Selecciona una variante o tamaño</legend>
+                      <legend>Selecciona un tamaño</legend>
                       {variantesActivas(selectedProduct).map((variante) => (
                         <label className="product-variant-option" key={variante.id}>
                           <input
