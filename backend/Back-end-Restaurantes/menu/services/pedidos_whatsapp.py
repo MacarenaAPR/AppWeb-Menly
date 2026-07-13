@@ -4,7 +4,7 @@ from urllib.parse import quote
 from django.db import transaction
 from django.db.models import Max
 
-from menu.models import PedidoWhatsApp, Producto, Restaurante
+from menu.models import PedidoWhatsApp, Producto, ProductoVariante, Restaurante
 from menu.utils import crear_notificacion_pedido_whatsapp
 
 logger = logging.getLogger(__name__)
@@ -15,37 +15,67 @@ def obtener_whatsapp_destino(restaurante):
 
 
 def normalizar_productos_pedido(restaurante, productos_solicitados):
-    cantidades_por_producto = {}
+    cantidades_por_linea = {}
     for item in productos_solicitados:
         producto_id = item["producto_id"]
-        cantidades_por_producto[producto_id] = (
-            cantidades_por_producto.get(producto_id, 0) + item["cantidad"]
+        variante_id = item.get("variante_id")
+        clave = (producto_id, variante_id)
+        cantidades_por_linea[clave] = (
+            cantidades_por_linea.get(clave, 0) + item["cantidad"]
         )
 
+    producto_ids = {producto_id for producto_id, _ in cantidades_por_linea}
     productos = Producto.objects.filter(
         restaurante=restaurante,
         disponible=True,
-        id__in=cantidades_por_producto.keys(),
-    ).in_bulk()
+        id__in=producto_ids,
+    ).prefetch_related("variantes").in_bulk()
 
-    if len(productos) != len(cantidades_por_producto):
+    if len(productos) != len(producto_ids):
+        return None, None
+
+    variante_ids = {variante_id for _, variante_id in cantidades_por_linea if variante_id}
+    variantes = ProductoVariante.objects.filter(
+        id__in=variante_ids,
+        activo=True,
+        producto__restaurante=restaurante,
+    ).select_related("producto").in_bulk()
+
+    if len(variantes) != len(variante_ids):
         return None, None
 
     snapshot = []
     total = 0
 
-    for producto_id, cantidad in cantidades_por_producto.items():
+    for (producto_id, variante_id), cantidad in cantidades_por_linea.items():
         producto = productos[producto_id]
-        precio_unitario = producto.precio
+        variantes_activas = [variante for variante in producto.variantes.all() if variante.activo]
+
+        if variantes_activas and not variante_id:
+            return None, None
+        if not variantes_activas and variante_id:
+            return None, None
+
+        variante = variantes.get(variante_id) if variante_id else None
+        if variante and variante.producto_id != producto.id:
+            return None, None
+
+        precio_unitario = variante.precio if variante else producto.precio
         subtotal = precio_unitario * cantidad
         total += subtotal
-        snapshot.append({
+        item_snapshot = {
             "producto_id": producto.id,
             "nombre": producto.nombre,
             "precio_unitario": int(precio_unitario),
             "cantidad": cantidad,
             "subtotal": int(subtotal),
-        })
+        }
+        if variante:
+            item_snapshot.update({
+                "variante_id": variante.id,
+                "variante_nombre": variante.nombre,
+            })
+        snapshot.append(item_snapshot)
 
     return snapshot, total
 
@@ -65,7 +95,11 @@ def generar_mensaje_whatsapp(pedido, request=None):
         direccion = f"Direccion: {pedido.direccion_entrega}\n"
 
     productos = "\n".join(
-        f"{item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
+        (
+            f"{item['nombre']} — {item['variante_nombre']} x{item['cantidad']} - ${item['subtotal']}"
+            if item.get("variante_nombre")
+            else f"{item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
+        )
         for item in pedido.productos_snapshot
     )
 
@@ -90,7 +124,11 @@ def generar_mensaje_legacy(pedido):
         direccion = f"Direccion:\n{pedido.direccion_entrega}\n\n"
 
     productos = "\n".join(
-        f"* {item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
+        (
+            f"* {item['nombre']} — {item['variante_nombre']} x{item['cantidad']} - ${item['subtotal']}"
+            if item.get("variante_nombre")
+            else f"* {item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
+        )
         for item in pedido.productos_snapshot
     )
 

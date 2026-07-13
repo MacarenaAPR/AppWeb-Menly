@@ -214,6 +214,40 @@ class Producto(models.Model):
     def __str__(self):
         return f"{self.nombre} - {self.restaurante.nombre_empresa}"
 
+
+class ProductoVariante(models.Model):
+    producto = models.ForeignKey(
+        Producto,
+        on_delete=models.CASCADE,
+        related_name="variantes",
+    )
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True)
+    precio = models.DecimalField(max_digits=8, decimal_places=0)
+    activo = models.BooleanField(default=True)
+    orden = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["orden", "id"]
+        indexes = [
+            models.Index(fields=["producto", "activo", "orden"], name="prodvar_prod_act_orden_idx"),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(precio__gte=0),
+                name="producto_variante_precio_no_negativo",
+            ),
+            models.UniqueConstraint(
+                fields=["producto", "nombre"],
+                name="unique_variante_nombre_por_producto",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.producto.nombre} - {self.nombre}"
+
 class UsuarioRestaurante(models.Model):
 
     user = models.OneToOneField(

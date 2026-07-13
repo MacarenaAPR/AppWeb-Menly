@@ -10,7 +10,7 @@ from datetime import date, datetime, time, timedelta
 from importlib import import_module
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host
@@ -1180,6 +1180,92 @@ class CategoriaTests(BaseTestCase):
 
 
 class ProductoTests(BaseTestCase):
+
+    def test_crud_variante_valida_precio_y_nombre_duplicado(self):
+        self.client.force_authenticate(user=self.dueno)
+        url = f"/api/mi-restaurante/productos/{self.producto.id}/variantes/"
+
+        response = self.client.post(url, {
+            "nombre": "Familiar", "descripcion": "Para compartir",
+            "precio": 6000, "activo": True, "orden": 1,
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        variante_id = response.data["id"]
+
+        duplicada = self.client.post(url, {"nombre": "familiar", "precio": 7000}, format="json")
+        self.assertEqual(duplicada.status_code, status.HTTP_400_BAD_REQUEST)
+
+        negativa = self.client.post(url, {"nombre": "Mediana", "precio": -1}, format="json")
+        self.assertEqual(negativa.status_code, status.HTTP_400_BAD_REQUEST)
+
+        detalle = f"{url}{variante_id}/"
+        desactivar = self.client.patch(detalle, {"activo": False}, format="json")
+        self.assertEqual(desactivar.status_code, status.HTTP_200_OK)
+        self.assertFalse(desactivar.data["activo"])
+
+        eliminar = self.client.delete(detalle)
+        self.assertEqual(eliminar.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ProductoVariante.objects.filter(id=variante_id).exists())
+
+    def test_crud_variante_aisla_restaurantes(self):
+        variante = ProductoVariante.objects.create(producto=self.producto, nombre="Individual", precio=2000)
+        usuario_otro = User.objects.create_user(username="otro-dueno", password="test")
+        UsuarioRestaurante.objects.create(
+            user=usuario_otro, restaurante=self.otro_restaurante, rol="dueno", activo=True
+        )
+        self.client.force_authenticate(user=usuario_otro)
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/productos/{self.producto.id}/variantes/{variante.id}/",
+            {"precio": 1}, format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        variante.refresh_from_db()
+        self.assertEqual(variante.precio, 2000)
+
+    def test_pedido_variante_usa_precio_backend_y_guarda_snapshot(self):
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.whatsapp = "56999999999"
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
+        variante = ProductoVariante.objects.create(
+            producto=self.producto, nombre="Familiar", descripcion="Para 4", precio=6000, activo=True
+        )
+
+        response = self.client.post(
+            f"/api/pedidos-whatsapp/{self.restaurante.slug}/",
+            {
+                "nombre_cliente": "Cliente", "telefono_cliente": "912345678",
+                "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+                "productos": [{
+                    "producto_id": self.producto.id, "variante_id": variante.id,
+                    "cantidad": 2, "precio_unitario": 1,
+                }],
+            }, format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoWhatsApp.objects.get(id=response.data["pedido_id"])
+        self.assertEqual(pedido.total, 12000)
+        self.assertEqual(pedido.productos_snapshot[0]["variante_id"], variante.id)
+        self.assertEqual(pedido.productos_snapshot[0]["variante_nombre"], "Familiar")
+        self.assertEqual(pedido.productos_snapshot[0]["precio_unitario"], 6000)
+        self.assertIn("Coca Cola — Familiar x2", pedido.mensaje_whatsapp_generado)
+
+    def test_pedido_exige_variante_activa_del_producto(self):
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.whatsapp = "56999999999"
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
+        ProductoVariante.objects.create(producto=self.producto, nombre="Individual", precio=2000, activo=True)
+
+        response = self.client.post(
+            f"/api/pedidos-whatsapp/{self.restaurante.slug}/",
+            {
+                "nombre_cliente": "Cliente", "telefono_cliente": "912345678",
+                "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+                "productos": [{"producto_id": self.producto.id, "cantidad": 1}],
+            }, format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("productos", response.data)
 
     def test_no_permite_cambiar_producto_a_categoria_de_otro_restaurante(self):
         self.client.force_authenticate(user=self.dueno)

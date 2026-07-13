@@ -116,6 +116,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
+  const [selectedPromotionVariantId, setSelectedPromotionVariantId] = useState("");
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
@@ -211,6 +212,16 @@ export default function Home() {
     producto?.detalle_promocion ||
     "";
 
+  const getVariantesActivas = (producto) =>
+    (producto?.variantes || []).filter((variante) => variante.activo !== false);
+
+  const getPrecioMinimo = (producto) => {
+    const variantes = getVariantesActivas(producto);
+    return variantes.length
+      ? Math.min(...variantes.map((variante) => Number(variante.precio)))
+      : Number(producto?.precio || 0);
+  };
+
   const hasProductImage = (producto) =>
     Boolean(producto?.imagen_url || producto?.imagen || producto?.foto_url || producto?.foto);
 
@@ -242,6 +253,8 @@ export default function Home() {
   const handlePromotionClick = (producto) => {
     handleClickProducto(producto.id);
     setCantidadPromocion(1);
+    const variantes = (producto.variantes || []).filter((variante) => variante.activo !== false);
+    setSelectedPromotionVariantId(variantes.length === 1 ? String(variantes[0].id) : "");
     setSelectedPromotion(producto);
   };
 
@@ -253,14 +266,21 @@ export default function Home() {
     }, 2600);
   };
 
-  const agregarAlCarrito = (producto, cantidad = 1) => {
+  const agregarAlCarrito = (producto, cantidad = 1, variante = null) => {
     let agregado = false;
     let maximoAlcanzado = false;
+    const variantes = (producto.variantes || []).filter((item) => item.activo !== false);
+    if (variantes.length > 0 && !variante) {
+      mostrarToastCarrito("Selecciona una variante antes de agregar");
+      return;
+    }
+    const lineId = `${producto.id}:${variante?.id ?? "base"}`;
+    const unitPrice = Number(variante?.precio ?? producto.precio);
 
     setPedidoMensaje("");
     setPedidoError("");
     setCarrito((items) => {
-      const existente = items.find((item) => item.producto_id === producto.id);
+      const existente = items.find((item) => item.lineId === lineId);
       const cantidadSegura = Math.min(
         MAX_UNIDADES_POR_PRODUCTO,
         Math.max(1, Number(cantidad) || 1)
@@ -275,7 +295,7 @@ export default function Home() {
         agregado = nuevaCantidad > existente.cantidad;
 
         return items.map((item) =>
-          item.producto_id === producto.id
+          item.lineId === lineId
             ? { ...item, cantidad: nuevaCantidad }
             : item
         );
@@ -286,8 +306,11 @@ export default function Home() {
         ...items,
         {
           producto_id: producto.id,
+          variantId: variante?.id ?? null,
+          variantName: variante?.nombre || "",
+          lineId,
           nombre: producto.nombre,
-          precio: Number(producto.precio),
+          unitPrice,
           cantidad: cantidadSegura,
         },
       ];
@@ -298,11 +321,11 @@ export default function Home() {
     );
   };
 
-  const cambiarCantidadCarrito = (productoId, delta) => {
+  const cambiarCantidadCarrito = (lineId, delta) => {
     setCarrito((items) =>
       items
         .map((item) =>
-          item.producto_id === productoId
+          item.lineId === lineId
             ? {
                 ...item,
                 cantidad: Math.min(
@@ -316,12 +339,12 @@ export default function Home() {
     );
   };
 
-  const eliminarDelCarrito = (productoId) => {
-    setCarrito((items) => items.filter((item) => item.producto_id !== productoId));
+  const eliminarDelCarrito = (lineId) => {
+    setCarrito((items) => items.filter((item) => item.lineId !== lineId));
   };
 
   const totalCarrito = carrito.reduce(
-    (total, item) => total + item.precio * item.cantidad,
+    (total, item) => total + item.unitPrice * item.cantidad,
     0
   );
   const totalUnidadesCarrito = carrito.reduce((total, item) => total + item.cantidad, 0);
@@ -339,6 +362,7 @@ export default function Home() {
       direccion_entrega: String(formData.get("direccion_entrega") || "").trim(),
       productos: carrito.map((item) => ({
         producto_id: item.producto_id,
+        variante_id: item.variantId,
         cantidad: item.cantidad,
       })),
     };
@@ -1341,7 +1365,7 @@ export default function Home() {
 
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
-                          <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                          <strong>{getVariantesActivas(producto).length ? "Desde " : ""}${getPrecioMinimo(producto).toLocaleString("es-CL")}</strong>
                           <button
                             type="button"
                             className="commercial-action"
@@ -1369,12 +1393,16 @@ export default function Home() {
 
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
-                          <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                          <strong>{getVariantesActivas(producto).length ? "Desde " : ""}${getPrecioMinimo(producto).toLocaleString("es-CL")}</strong>
                           {carritoDisponible && (
                             <button
                               type="button"
                               className="commercial-action"
-                              onClick={() => agregarAlCarrito(producto)}
+                              onClick={() => (
+                                getVariantesActivas(producto).length
+                                  ? handlePromotionClick(producto)
+                                  : agregarAlCarrito(producto)
+                              )}
                             >
                               Añadir
                             </button>
@@ -1399,7 +1427,7 @@ export default function Home() {
                         <span className="commercial-badge">Promoción</span>
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
-                          <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                          <strong>{getVariantesActivas(producto).length ? "Desde " : ""}${getPrecioMinimo(producto).toLocaleString("es-CL")}</strong>
                         </div>
                       </div>
                     ))}
@@ -1418,7 +1446,7 @@ export default function Home() {
                         <span className="commercial-badge">Destacado</span>
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
-                          <strong>${Number(producto.precio).toLocaleString("es-CL")}</strong>
+                          <strong>{getVariantesActivas(producto).length ? "Desde " : ""}${getPrecioMinimo(producto).toLocaleString("es-CL")}</strong>
                         </div>
                       </div>
                     ))}
@@ -1466,13 +1494,35 @@ export default function Home() {
               <div className="product-modal-content">
                 <span className="product-modal-label">Promoción</span>
                 <h2 id="promotion-modal-title">{selectedPromotion.nombre}</h2>
-                <strong>${Number(selectedPromotion.precio).toLocaleString("es-CL")}</strong>
+                {(selectedPromotion.variantes || []).filter((variante) => variante.activo !== false).length === 0 && (
+                  <strong>${Number(selectedPromotion.precio).toLocaleString("es-CL")}</strong>
+                )}
                 <p>{selectedPromotion.descripcion || "Sin descripción disponible."}</p>
                 {getProductConditions(selectedPromotion) && (
                   <p><small>{getProductConditions(selectedPromotion)}</small></p>
                 )}
                 {carritoDisponible && (
                   <div className="product-modal-cart-actions">
+                    {(selectedPromotion.variantes || []).filter((variante) => variante.activo !== false).length > 0 && (
+                      <fieldset className="product-variants" aria-label="Selecciona un tamaño">
+                        <legend>Selecciona una variante o tamaño</legend>
+                        {(selectedPromotion.variantes || []).filter((variante) => variante.activo !== false).map((variante) => (
+                          <label className="product-variant-option" key={variante.id}>
+                            <input
+                              type="radio"
+                              name={`promocion-variante-${selectedPromotion.id}`}
+                              checked={String(selectedPromotionVariantId) === String(variante.id)}
+                              onChange={() => setSelectedPromotionVariantId(String(variante.id))}
+                            />
+                            <span>
+                              <strong>{variante.nombre}</strong>
+                              {variante.descripcion && <small>{variante.descripcion}</small>}
+                            </span>
+                            <b>${Number(variante.precio).toLocaleString("es-CL")}</b>
+                          </label>
+                        ))}
+                      </fieldset>
+                    )}
                     <label className="cart-modal-qty">
                       <span>Cantidad</span>
                       <input
@@ -1494,7 +1544,14 @@ export default function Home() {
                     <button
                       type="button"
                       className="producto-add-cart product-modal-add"
-                      onClick={() => agregarAlCarrito(selectedPromotion, cantidadPromocion)}
+                      disabled={(selectedPromotion.variantes || []).filter((variante) => variante.activo !== false).length > 0 && !selectedPromotionVariantId}
+                      onClick={() => agregarAlCarrito(
+                        selectedPromotion,
+                        cantidadPromocion,
+                        (selectedPromotion.variantes || []).find(
+                          (variante) => String(variante.id) === String(selectedPromotionVariantId)
+                        ) || null
+                      )}
                     >
                       Agregar al carrito
                     </button>
@@ -1748,16 +1805,17 @@ export default function Home() {
                   <p className="cart-empty">Tu carrito está vacío</p>
                 ) : (
                   carrito.map((item) => (
-                    <article key={item.producto_id} className="cart-item">
+                    <article key={item.lineId} className="cart-item">
                       <div>
                         <h3>{item.nombre}</h3>
-                        <p>${item.precio.toLocaleString("es-CL")} c/u</p>
+                        {item.variantName && <small className="cart-item-variant">{item.variantName}</small>}
+                        <p>${item.unitPrice.toLocaleString("es-CL")} c/u</p>
                       </div>
                       <div className="cart-quantity">
                         <button
                           type="button"
                           aria-label={`Disminuir ${item.nombre}`}
-                          onClick={() => cambiarCantidadCarrito(item.producto_id, -1)}
+                          onClick={() => cambiarCantidadCarrito(item.lineId, -1)}
                         >
                           -
                         </button>
@@ -1770,17 +1828,17 @@ export default function Home() {
                               mostrarToastCarrito("Máximo 5 unidades por producto");
                               return;
                             }
-                            cambiarCantidadCarrito(item.producto_id, 1);
+                            cambiarCantidadCarrito(item.lineId, 1);
                           }}
                         >
                           +
                         </button>
                       </div>
-                      <strong>${(item.precio * item.cantidad).toLocaleString("es-CL")}</strong>
+                      <strong>${(item.unitPrice * item.cantidad).toLocaleString("es-CL")}</strong>
                       <button
                         type="button"
                         className="cart-remove"
-                        onClick={() => eliminarDelCarrito(item.producto_id)}
+                        onClick={() => eliminarDelCarrito(item.lineId)}
                       >
                         Eliminar
                       </button>

@@ -163,7 +163,7 @@ export default function SeguimientoPedidoPage() {
           <h2>Productos</h2>
           {(pedido.items || []).map((item, index) => (
             <div className="tracking-item" key={`${item.nombre}-${index}`}>
-              <span>{item.cantidad} x {item.nombre}</span>
+              <span>{item.cantidad} x {item.nombre}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}</span>
               <strong>{formatearMoneda(item.subtotal)}</strong>
             </div>
           ))}

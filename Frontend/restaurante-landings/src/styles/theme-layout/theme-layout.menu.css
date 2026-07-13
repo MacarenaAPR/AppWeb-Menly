@@ -234,3 +234,10 @@
   background: transparent;
   box-shadow: none
 }
+.producto-card-price { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.producto-card-price small { font-size: .72rem; font-weight: 600; }
+.product-variants { width: 100%; padding: 0; border: 0; }
+.product-variants legend { margin-bottom: .65rem; font-weight: 700; }
+.product-variant-option { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .75rem; padding: .8rem 0; border-bottom: 1px solid rgba(0, 0, 0, .1); cursor: pointer; }
+.product-variant-option span { display: flex; flex-direction: column; }
+.product-variant-option small { opacity: .75; }

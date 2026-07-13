@@ -22,7 +22,7 @@ from core.debug_views import debug_time
 from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, ContactoView, ContactoPlanesAPIView, MiRestauranteView,ProductoListView,ProductoUpdateView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
+from menu.views import menu_api,CustomLoginView, PasswordResetRequestView, ContactoView, ContactoPlanesAPIView, MiRestauranteView,ProductoListView,ProductoUpdateView, ProductoVariantesView, ProductoVarianteDetalleView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
 from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, RestauranteEstadoAperturaView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SeguimientoPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
 from menu.views import NotificacionesDashboardView, NotificacionesContadorView, NotificacionDetalleView, NotificacionMarcarLeidaView
 from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidoWhatsAppEstadoDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosManualesDashboardView, PedidoManualDetalleDashboardView, CocinaActivacionDashboardView, CocinaActivarView, CocinaComandasView, CocinaComandaEstadoView, CocinaCerrarView, PedidosMetricasDashboardView, MetricasResumenView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
@@ -109,6 +109,17 @@ urlpatterns = [
         "api/mi-restaurante/productos/<int:id>/actualizar/",
         ProductoUpdateView.as_view(),
         name="actualizar-producto"
+    ),
+
+    path(
+        "api/mi-restaurante/productos/<int:producto_id>/variantes/",
+        ProductoVariantesView.as_view(),
+        name="producto-variantes",
+    ),
+    path(
+        "api/mi-restaurante/productos/<int:producto_id>/variantes/<int:variante_id>/",
+        ProductoVarianteDetalleView.as_view(),
+        name="producto-variante-detalle",
     ),
 
     #CLICKS PRODUCTOS

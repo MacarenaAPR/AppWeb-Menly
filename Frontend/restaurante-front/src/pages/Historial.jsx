@@ -503,7 +503,7 @@ export default function Historial() {
                 <div className="historial-modal-items">
                   {(pedidoDetalle.productos_snapshot || []).map((item, index) => (
                     <div key={`${item.nombre}-${index}`}>
-                      <strong>{item.cantidad} x {item.nombre}</strong>
+                      <strong>{item.cantidad} x {item.nombre}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}</strong>
                       <span>{formatearMoneda(item.subtotal ?? (Number(item.precio_unitario || 0) * Number(item.cantidad || 0)))}</span>
                     </div>
                   ))}

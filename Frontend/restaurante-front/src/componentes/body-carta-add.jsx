@@ -5,6 +5,7 @@ import "../styles/AddProductos.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { authFetch } from "../api";
+import ProductoVariantesEditor from "./ProductoVariantesEditor";
 
 export default function AddProductos() {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ export default function AddProductos() {
   const [loading, setLoading] = useState(false);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [error, setError] = useState("");
+  const [variantes, setVariantes] = useState([]);
 
   const [form, setForm] = useState({
     restaurante: "",
@@ -55,6 +57,18 @@ export default function AddProductos() {
     setLoading(true);
     setError("");
 
+    const nombres = variantes.map((variante) => variante.nombre.trim().toLowerCase());
+    if (nombres.some((nombre) => !nombre) || new Set(nombres).size !== nombres.length) {
+      setError("Cada variante debe tener un nombre único.");
+      setLoading(false);
+      return;
+    }
+    if (variantes.some((variante) => variante.precio === "" || Number(variante.precio) < 0)) {
+      setError("Cada variante debe tener un precio válido, igual o mayor a 0.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("categoria", form.categoria);
@@ -77,6 +91,21 @@ export default function AddProductos() {
 
       if (!response.ok) {
         throw new Error("No se pudo guardar el producto");
+      }
+
+      const producto = await response.json();
+      for (const variante of variantes) {
+        const varianteResponse = await authFetch(`/mi-restaurante/productos/${producto.id}/variantes/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...variante,
+            nombre: variante.nombre.trim(),
+            precio: Number(variante.precio),
+            orden: Number(variante.orden) || 0,
+          }),
+        });
+        if (!varianteResponse.ok) throw new Error("No se pudo guardar una variante");
       }
 
       navigate(`/carta-productos/${slug}`);
@@ -251,6 +280,8 @@ export default function AddProductos() {
                     </div>
                   </div>
                 </div>
+
+                <ProductoVariantesEditor variantes={variantes} onChange={setVariantes} />
 
                 <div className="form mt-4" >
                   <p className="info-header">

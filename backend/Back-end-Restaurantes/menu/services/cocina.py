@@ -109,7 +109,10 @@ def obtener_sesion_cocina(request):
 def _items_whatsapp(pedido):
     return [
         {
-            "nombre": item.get("nombre", ""),
+            "nombre": (
+                f"{item.get('nombre', '')} — {item.get('variante_nombre')}"
+                if item.get("variante_nombre") else item.get("nombre", "")
+            ),
             "cantidad": item.get("cantidad", 0),
             "observaciones": item.get("observaciones", ""),
         }

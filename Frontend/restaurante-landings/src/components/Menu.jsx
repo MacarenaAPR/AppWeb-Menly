@@ -22,6 +22,12 @@ const getProductImage = (producto, fallbackImage, size = {}) => {
   });
 };
 
+const variantesActivas = (producto) => (producto?.variantes || []).filter((variante) => variante.activo !== false);
+const precioMinimo = (producto) => {
+  const variantes = variantesActivas(producto);
+  return variantes.length ? Math.min(...variantes.map((variante) => Number(variante.precio))) : Number(producto.precio);
+};
+
 export default function Menu({
   categorias,
   onProductClick,
@@ -43,6 +49,7 @@ export default function Menu({
   const [openCategory, setOpenCategory] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cantidadProducto, setCantidadProducto] = useState(1);
+  const [varianteSeleccionadaId, setVarianteSeleccionadaId] = useState("");
   const [cantidadesProductos, setCantidadesProductos] = useState({});
 
   useEffect(
@@ -73,7 +80,17 @@ export default function Menu({
   const handleProductClick = (producto) => {
     onProductClick(producto.id);
     setCantidadProducto(1);
+    const variantes = variantesActivas(producto);
+    setVarianteSeleccionadaId(variantes.length === 1 ? String(variantes[0].id) : "");
     setSelectedProduct(producto);
+  };
+
+  const agregarDesdeTarjeta = (producto) => {
+    if (variantesActivas(producto).length) {
+      handleProductClick(producto);
+      return;
+    }
+    onAddToCart?.(producto, getCantidadProductoCard(producto.id), null);
   };
 
   const getCantidadProductoCard = (productoId) =>
@@ -254,7 +271,10 @@ export default function Menu({
                         <h3>{producto.nombre}</h3>
                         <span className="producto-category">{selectedCategoryName}</span>
                       </div>
-                      <span>${Number(producto.precio).toLocaleString("es-CL")}</span>
+                      <span className="producto-card-price">
+                        {variantesActivas(producto).length > 0 && <small>Desde</small>}
+                        ${precioMinimo(producto).toLocaleString("es-CL")}
+                      </span>
                     </div>
                     <p>{producto.descripcion}</p>
                     <span className="producto-action">Ver detalle</span>
@@ -292,12 +312,7 @@ export default function Menu({
                     <button
                       type="button"
                       className="producto-add-cart"
-                      onClick={() =>
-                        onAddToCart?.(
-                          producto,
-                          getCantidadProductoCard(producto.id)
-                        )
-                      }
+                      onClick={() => agregarDesdeTarjeta(producto)}
                     >
                       Agregar
                     </button>
@@ -343,7 +358,9 @@ export default function Menu({
 
             <div className="product-modal-content">
               <h2 id="product-modal-title">{selectedProduct.nombre}</h2>
-              <strong>${Number(selectedProduct.precio).toLocaleString("es-CL")}</strong>
+              {variantesActivas(selectedProduct).length === 0 && (
+                <strong>${Number(selectedProduct.precio).toLocaleString("es-CL")}</strong>
+              )}
               <p>{selectedProduct.descripcion || "Sin descripción disponible."}</p>
               {selectedProduct.condiciones && (
                 <p className="promo-conditions">
@@ -352,6 +369,27 @@ export default function Menu({
               )}
               {carritoActivo && (
                 <div className="product-modal-cart-actions">
+                  {variantesActivas(selectedProduct).length > 0 && (
+                    <fieldset className="product-variants" aria-label="Selecciona un tamaño">
+                      <legend>Selecciona una variante o tamaño</legend>
+                      {variantesActivas(selectedProduct).map((variante) => (
+                        <label className="product-variant-option" key={variante.id}>
+                          <input
+                            type="radio"
+                            name={`variante-${selectedProduct.id}`}
+                            value={variante.id}
+                            checked={String(varianteSeleccionadaId) === String(variante.id)}
+                            onChange={() => setVarianteSeleccionadaId(String(variante.id))}
+                          />
+                          <span>
+                            <strong>{variante.nombre}</strong>
+                            {variante.descripcion && <small>{variante.descripcion}</small>}
+                          </span>
+                          <b>${Number(variante.precio).toLocaleString("es-CL")}</b>
+                        </label>
+                      ))}
+                    </fieldset>
+                  )}
                   <label className="cart-modal-qty">
                     <span>Cantidad</span>
                     <input
@@ -370,7 +408,13 @@ export default function Menu({
                   <button
                     type="button"
                     className="producto-add-cart product-modal-add"
-                    onClick={() => onAddToCart?.(selectedProduct, cantidadProducto)}
+                    disabled={variantesActivas(selectedProduct).length > 0 && !varianteSeleccionadaId}
+                    onClick={() => {
+                      const variante = variantesActivas(selectedProduct).find(
+                        (item) => String(item.id) === String(varianteSeleccionadaId)
+                      );
+                      onAddToCart?.(selectedProduct, cantidadProducto, variante || null);
+                    }}
                   >
                     Agregar
                   </button>

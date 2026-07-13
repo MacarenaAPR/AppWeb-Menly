@@ -476,6 +476,7 @@ export default function PedidosDashboard() {
       direccion_entrega: direccionDetalle.trim(),
       productos: detalleItems.map((item) => ({
         producto_id: Number(item.producto_id),
+        variante_id: item.variante_id ? Number(item.variante_id) : null,
         cantidad: Number(item.cantidad),
       })),
     });
@@ -1641,7 +1642,7 @@ export default function PedidosDashboard() {
                               )}
                             </div>
                             <div className="pedido-manual-item-main">
-                              <strong>{item.nombre}</strong>
+                              <strong>{item.nombre}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}</strong>
                               <small>{formatearMoneda(item.precio_unitario)} c/u</small>
                             </div>
                             <div className="pedido-cantidad-control">

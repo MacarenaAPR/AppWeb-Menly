@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica
+from .models import Producto, ProductoVariante, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica
 from .utils import crear_notificacion_pedido_especial
 from .services.pedidos_whatsapp import (
     crear_pedido_whatsapp,
@@ -459,6 +459,7 @@ class SolicitudEspecialPublicaSerializer(serializers.ModelSerializer):
 
 class PedidoWhatsAppProductoInputSerializer(serializers.Serializer):
     producto_id = serializers.IntegerField(min_value=1)
+    variante_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
     cantidad = serializers.IntegerField(min_value=1, max_value=99)
 
 
@@ -629,40 +630,13 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
         if not restaurante:
             raise serializers.ValidationError({"productos": "No se pudo validar el restaurante del pedido."})
 
-        cantidades_por_producto = {}
-        for item in productos_solicitados:
-            producto_id = item["producto_id"]
-            cantidades_por_producto[producto_id] = (
-                cantidades_por_producto.get(producto_id, 0) + item["cantidad"]
-            )
-
-        if not cantidades_por_producto:
+        if not productos_solicitados:
             raise serializers.ValidationError({"productos": "Agrega al menos un producto."})
 
-        productos = Producto.objects.filter(
-            restaurante=restaurante,
-            disponible=True,
-            id__in=cantidades_por_producto.keys()
-        ).in_bulk()
-
-        if len(productos) != len(cantidades_por_producto):
+        snapshot, total = normalizar_productos_pedido(restaurante, productos_solicitados)
+        if snapshot is None:
             raise serializers.ValidationError({
-                "productos": "Uno o mas productos no pertenecen a este restaurante o no estan disponibles."
-            })
-
-        snapshot = []
-        total = 0
-        for producto_id, cantidad in cantidades_por_producto.items():
-            producto = productos[producto_id]
-            precio_unitario = producto.precio
-            subtotal = precio_unitario * cantidad
-            total += subtotal
-            snapshot.append({
-                "producto_id": producto.id,
-                "nombre": producto.nombre,
-                "precio_unitario": int(precio_unitario),
-                "cantidad": cantidad,
-                "subtotal": int(subtotal),
+                "productos": "Uno o mas productos, variantes o disponibilidades no son validos."
             })
 
         data["productos_snapshot"] = snapshot
@@ -750,7 +724,9 @@ class PedidoWhatsAppSeguimientoPublicoSerializer(serializers.ModelSerializer):
         return [
             {
                 "nombre": item.get("nombre", ""),
+                "variante_nombre": item.get("variante_nombre", ""),
                 "cantidad": item.get("cantidad", 0),
+                "precio_unitario": item.get("precio_unitario", 0),
                 "subtotal": item.get("subtotal", 0),
             }
             for item in pedido.productos_snapshot or []
@@ -1481,7 +1457,39 @@ class ReporteMetricaSerializer(serializers.ModelSerializer):
         return obj.generado_por.get_full_name() or obj.generado_por.username
 
 
+class ProductoVarianteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductoVariante
+        fields = [
+            "id", "nombre", "descripcion", "precio", "activo", "orden",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_precio(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El precio no puede ser negativo.")
+        return value
+
+    def validate_nombre(self, value):
+        nombre = value.strip()
+        if not nombre:
+            raise serializers.ValidationError("El nombre es obligatorio.")
+        producto = self.context.get("producto") or getattr(self.instance, "producto", None)
+        if producto:
+            duplicada = ProductoVariante.objects.filter(
+                producto=producto,
+                nombre__iexact=nombre,
+            )
+            if self.instance:
+                duplicada = duplicada.exclude(pk=self.instance.pk)
+            if duplicada.exists():
+                raise serializers.ValidationError("Ya existe una variante con este nombre.")
+        return nombre
+
+
 class ProductoCreateSerializer(serializers.ModelSerializer):
+    variantes = ProductoVarianteSerializer(many=True, read_only=True)
     categoria = serializers.PrimaryKeyRelatedField(
         queryset=Categoria.objects.all()
     )
@@ -1499,7 +1507,8 @@ class ProductoCreateSerializer(serializers.ModelSerializer):
             "disponible",
             "destacado",
             "orden",
-            "fecha_creacion"
+            "fecha_creacion",
+            "variantes",
         ]
 
     def validate_categoria(self, categoria):

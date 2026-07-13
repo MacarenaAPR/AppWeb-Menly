@@ -5,6 +5,7 @@ import "../styles/AddProductos.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { authFetch } from "../api";
+import ProductoVariantesEditor from "./ProductoVariantesEditor";
 
 
 export default function EditProductos() {
@@ -15,6 +16,8 @@ export default function EditProductos() {
   const [loading, setLoading] = useState(false);
   const [loadingDatos, setLoadingDatos] = useState(true);
   const [error, setError] = useState("");
+  const [variantes, setVariantes] = useState([]);
+  const [variantesIniciales, setVariantesIniciales] = useState([]);
   const [form, setForm] = useState({
     restaurante: "",
     categoria: "",
@@ -78,6 +81,9 @@ export default function EditProductos() {
           preview: producto.imagen || null,
           fecha_creacion: producto.fecha_creacion,
         });
+        const variantesProducto = producto.variantes || [];
+        setVariantes(variantesProducto);
+        setVariantesIniciales(variantesProducto);
       } catch {
         setError("No se pudieron cargar los datos del producto");
       } finally {
@@ -114,6 +120,18 @@ export default function EditProductos() {
     setLoading(true);
     setError("");
 
+    const nombres = variantes.map((variante) => variante.nombre.trim().toLowerCase());
+    if (nombres.some((nombre) => !nombre) || new Set(nombres).size !== nombres.length) {
+      setError("Cada variante debe tener un nombre único.");
+      setLoading(false);
+      return;
+    }
+    if (variantes.some((variante) => variante.precio === "" || Number(variante.precio) < 0)) {
+      setError("Cada variante debe tener un precio válido, igual o mayor a 0.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("categoria", form.categoria);
@@ -136,6 +154,37 @@ export default function EditProductos() {
 
       if (!response.ok) {
         throw new Error("No se pudo actualizar");
+      }
+
+      const idsActuales = new Set(variantes.filter((variante) => variante.id).map((variante) => variante.id));
+      for (const variante of variantesIniciales) {
+        if (variante.id && !idsActuales.has(variante.id)) {
+          const eliminarResponse = await authFetch(`/mi-restaurante/productos/${id}/variantes/${variante.id}/`, {
+            method: "DELETE",
+          });
+          if (!eliminarResponse.ok) throw new Error("No se pudo eliminar una variante");
+        }
+      }
+
+      for (const variante of variantes) {
+        const payload = {
+          nombre: variante.nombre.trim(),
+          descripcion: variante.descripcion || "",
+          precio: Number(variante.precio),
+          activo: variante.activo !== false,
+          orden: Number(variante.orden) || 0,
+        };
+        const varianteResponse = await authFetch(
+          variante.id
+            ? `/mi-restaurante/productos/${id}/variantes/${variante.id}/`
+            : `/mi-restaurante/productos/${id}/variantes/`,
+          {
+            method: variante.id ? "PATCH" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+        if (!varianteResponse.ok) throw new Error("No se pudo guardar una variante");
       }
 
       navigate(`/carta-productos/${slug}`);
@@ -299,6 +348,8 @@ export default function EditProductos() {
                     </div>
                   </div>
                 </div>
+
+                <ProductoVariantesEditor variantes={variantes} onChange={setVariantes} />
 
                 <div className="form mt-4" >
                   <p className="info-header">
