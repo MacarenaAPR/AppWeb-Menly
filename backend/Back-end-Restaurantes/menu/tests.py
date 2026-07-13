@@ -686,6 +686,81 @@ class PedidoManualDashboardTests(BaseTestCase):
         self.assertEqual(data["venta_total_diaria_operativa"], 9500)
 
 
+class PedidosCancelacionIrreversibleTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.dueno)
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.solicitudes_especiales_activas = True
+        self.restaurante.pedidos_pos = True
+        self.restaurante.save(update_fields=[
+            "carrito_whatsapp_activo",
+            "solicitudes_especiales_activas",
+            "pedidos_pos",
+        ])
+
+    def test_pedidos_cancelados_no_pueden_volver_a_otro_estado(self):
+        pedido_whatsapp = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="WhatsApp",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=1000,
+            estado=PedidoWhatsApp.ESTADO_CANCELADO,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        pedido_manual = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=1000,
+            total=1000,
+            estado=PedidoManual.ESTADO_CANCELADO,
+        )
+        pedido_especial = PedidoEspecial.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Especial",
+            telefono_cliente="56911111111",
+            items=[],
+            total=1000,
+            fecha_entrega=timezone.localdate(),
+            estado=PedidoEspecial.ESTADO_CANCELADO,
+        )
+
+        casos = [
+            (
+                f"/api/mi-restaurante/pedidos/whatsapp/{pedido_whatsapp.id}/estado/",
+                PedidoWhatsApp.ESTADO_CONFIRMADO,
+                pedido_whatsapp,
+            ),
+            (
+                f"/api/mi-restaurante/pedidos/manuales/{pedido_manual.id}/",
+                PedidoManual.ESTADO_LISTO,
+                pedido_manual,
+            ),
+            (
+                f"/api/mi-restaurante/pedidos/especiales/{pedido_especial.id}/",
+                PedidoEspecial.ESTADO_LISTO,
+                pedido_especial,
+            ),
+        ]
+
+        for endpoint, estado_nuevo, pedido in casos:
+            with self.subTest(endpoint=endpoint):
+                response = self.client.patch(endpoint, {"estado": estado_nuevo}, format="json")
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn(
+                    "Un pedido cancelado no puede volver a otro estado.",
+                    str(response.data),
+                )
+                pedido.refresh_from_db()
+                self.assertEqual(pedido.estado, "cancelado")
+
+
 class CocinaComandasTests(BaseTestCase):
     def setUp(self):
         super().setUp()

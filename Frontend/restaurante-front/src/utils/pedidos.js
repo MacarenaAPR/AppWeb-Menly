@@ -9,6 +9,7 @@ export const ESTADOS_PEDIDO_BASE = [
 ];
 
 export const ESTADO_EN_REPARTO = "en_reparto";
+export const ESTADO_CANCELADO = "cancelado";
 export const ESTADOS_PEDIDO_ESPECIAL = [
   "pendiente",
   "confirmado",

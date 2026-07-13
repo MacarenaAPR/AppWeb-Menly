@@ -633,6 +633,12 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
     def validate_estado(self, value):
         if value not in dict(PedidoWhatsApp.ESTADOS):
             raise serializers.ValidationError("Estado inválido.")
+        if (
+            self.instance
+            and self.instance.estado == PedidoWhatsApp.ESTADO_CANCELADO
+            and value != PedidoWhatsApp.ESTADO_CANCELADO
+        ):
+            raise serializers.ValidationError("Un pedido cancelado no puede volver a otro estado.")
         if value == PedidoWhatsApp.ESTADO_EN_REPARTO:
             pedido = self.instance
             restaurante = self.context.get("restaurante") or getattr(pedido, "restaurante", None)
@@ -692,6 +698,11 @@ class PedidoWhatsAppEstadoUpdateSerializer(serializers.Serializer):
     estado = serializers.ChoiceField(choices=PedidoWhatsApp.ESTADOS)
 
     def validate_estado(self, value):
+        if (
+            self.instance.estado == PedidoWhatsApp.ESTADO_CANCELADO
+            and value != PedidoWhatsApp.ESTADO_CANCELADO
+        ):
+            raise serializers.ValidationError("Un pedido cancelado no puede volver a otro estado.")
         if value != PedidoWhatsApp.ESTADO_EN_REPARTO:
             return value
 
@@ -823,6 +834,15 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
             "email_cliente": {"required": False, "allow_blank": True},
             "descripcion_original": {"required": False, "allow_blank": True},
         }
+
+    def validate_estado(self, value):
+        if (
+            self.instance
+            and self.instance.estado == PedidoEspecial.ESTADO_CANCELADO
+            and value != PedidoEspecial.ESTADO_CANCELADO
+        ):
+            raise serializers.ValidationError("Un pedido cancelado no puede volver a otro estado.")
+        return value
 
     def _normalizar_items(self, items):
         normalizados = []
@@ -1130,7 +1150,7 @@ class PedidoManualSerializer(serializers.ModelSerializer):
             return value
 
         if estado_actual == PedidoManual.ESTADO_CANCELADO:
-            raise serializers.ValidationError("Un pedido cancelado no puede volver al flujo normal.")
+            raise serializers.ValidationError("Un pedido cancelado no puede volver a otro estado.")
 
         if estado_actual == PedidoManual.ESTADO_ENTREGADO and value != PedidoManual.ESTADO_CANCELADO:
             raise serializers.ValidationError("Un pedido entregado no puede volver a estados anteriores.")

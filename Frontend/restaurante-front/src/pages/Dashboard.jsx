@@ -2,6 +2,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import "../styles/dashboard.css";
 import MainMenu from "../componentes/Main-menu";
+import ConfirmarCancelacionPedido from "../componentes/ConfirmarCancelacionPedido";
 import Card from "../componentes/card-metric";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -10,6 +11,7 @@ import { tieneSesionAdmin } from "../session/adminSession";
 import { permisosPorRol } from "../utils/permisos";
 import {
   estadoLabels,
+  ESTADO_CANCELADO,
   obtenerEndpointActualizacionPedido,
   obtenerEndpointDetallePedido,
   obtenerEstadosPedido,
@@ -55,6 +57,9 @@ export default function Dashboard() {
   const [pedidoResumenLoading, setPedidoResumenLoading] = useState(false);
   const [pedidoResumenError, setPedidoResumenError] = useState("");
   const [pedidoResumenGuardando, setPedidoResumenGuardando] = useState(false);
+  const [confirmacionCancelacionAbierta, setConfirmacionCancelacionAbierta] = useState(false);
+  const [confirmacionCancelacionLoading, setConfirmacionCancelacionLoading] = useState(false);
+  const [confirmacionCancelacionError, setConfirmacionCancelacionError] = useState("");
   const [metricasPedidos, setMetricasPedidos] = useState(null);
   const [metricasPedidosLoading, setMetricasPedidosLoading] = useState(true);
   const [modalNotificacionesAbierto, setModalNotificacionesAbierto] = useState(false);
@@ -295,6 +300,7 @@ export default function Dashboard() {
       setUltimosPedidos((actuales) => actuales.map((item) =>
         coincidePedido(item) ? { ...item, ...pedidoActualizado, tipo } : item
       ));
+      return true;
     } catch (err) {
       setPedidoResumen((actual) => actual
         ? { ...actual, pedido: { ...actual.pedido, estado: estadoAnterior } }
@@ -304,9 +310,44 @@ export default function Dashboard() {
         coincidePedido(item) ? { ...item, estado: estadoAnterior } : item
       ));
       setPedidoResumenError(err.message || "No se pudo actualizar el estado del pedido");
+      return false;
     } finally {
       setPedidoResumenGuardando(false);
     }
+  };
+
+  const solicitarEstadoResumen = (nuevoEstado) => {
+    const pedidoActual = pedidoResumen?.pedido;
+    if (!pedidoActual) return;
+    if (pedidoActual.estado === ESTADO_CANCELADO && nuevoEstado !== ESTADO_CANCELADO) {
+      setPedidoResumenError("Un pedido cancelado no puede volver a otro estado.");
+      return;
+    }
+    if (nuevoEstado === ESTADO_CANCELADO && pedidoActual.estado !== ESTADO_CANCELADO) {
+      setConfirmacionCancelacionError("");
+      setConfirmacionCancelacionAbierta(true);
+      return;
+    }
+    actualizarEstadoResumen(nuevoEstado);
+  };
+
+  const cerrarConfirmacionResumen = () => {
+    if (confirmacionCancelacionLoading) return;
+    setConfirmacionCancelacionAbierta(false);
+    setConfirmacionCancelacionError("");
+  };
+
+  const confirmarCancelacionResumen = async () => {
+    if (confirmacionCancelacionLoading) return;
+    setConfirmacionCancelacionLoading(true);
+    setConfirmacionCancelacionError("");
+    const actualizado = await actualizarEstadoResumen(ESTADO_CANCELADO);
+    if (actualizado) {
+      setConfirmacionCancelacionAbierta(false);
+    } else {
+      setConfirmacionCancelacionError("No se pudo cancelar el pedido. Inténtalo nuevamente.");
+    }
+    setConfirmacionCancelacionLoading(false);
   };
 
   useEffect(() => {
@@ -844,7 +885,7 @@ export default function Dashboard() {
                         <span>Estado del pedido</span>
                         <select
                           value={pedidoResumenActual?.estado || ""}
-                          onChange={(event) => actualizarEstadoResumen(event.target.value)}
+                          onChange={(event) => solicitarEstadoResumen(event.target.value)}
                           disabled={pedidoResumenGuardando}
                         >
                           {estadosPedidoResumen.map((estado) => (
@@ -868,6 +909,13 @@ export default function Dashboard() {
                 </section>
               </div>
             )}
+            <ConfirmarCancelacionPedido
+              abierto={confirmacionCancelacionAbierta}
+              cargando={confirmacionCancelacionLoading}
+              error={confirmacionCancelacionError}
+              onVolver={cerrarConfirmacionResumen}
+              onConfirmar={confirmarCancelacionResumen}
+            />
             {modalNotificacionesAbierto && (
               <div className="notificaciones-modal-backdrop" role="dialog" aria-modal="true">
                 <div className="notificaciones-modal">

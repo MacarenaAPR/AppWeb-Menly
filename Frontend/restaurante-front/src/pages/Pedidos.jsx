@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
+import ConfirmarCancelacionPedido from "../componentes/ConfirmarCancelacionPedido";
 import { useSearchParams } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { permisosPorRol } from "../utils/permisos";
 import {
   ESTADOS_PEDIDO_ESPECIAL,
   ESTADOS_PEDIDO_MANUAL,
+  ESTADO_CANCELADO,
   estadoLabels,
   normalizarTipoPedido,
   obtenerEndpointActualizacionPedido,
@@ -145,6 +147,9 @@ export default function PedidosDashboard() {
   const [formManual, setFormManual] = useState(formManualInicial);
   const [guardandoManual, setGuardandoManual] = useState(false);
   const [abriendoCocina, setAbriendoCocina] = useState(false);
+  const [cancelacionPendiente, setCancelacionPendiente] = useState(null);
+  const [confirmandoCancelacion, setConfirmandoCancelacion] = useState(false);
+  const [cancelacionError, setCancelacionError] = useState("");
   const [observacionManualEditor, setObservacionManualEditor] = useState(null);
   const [varianteManualSelector, setVarianteManualSelector] = useState(null);
   const [detalleItems, setDetalleItems] = useState([]);
@@ -364,6 +369,57 @@ export default function PedidosDashboard() {
     }
   };
 
+  const ejecutarCambioEstado = async (tipo, pedido, estado) => {
+    const actualizado = await actualizarPedido(tipo, pedido.id, { estado });
+
+    if (actualizado) {
+      setDetalle((actual) => (
+        actual && actual.tipo === tipo && Number(actual.pedido.id) === Number(pedido.id)
+          ? { ...actual, pedido: { ...actual.pedido, estado } }
+          : actual
+      ));
+    }
+
+    return actualizado;
+  };
+
+  const solicitarCambioEstado = (tipo, pedido, estado) => {
+    if (pedido.estado === ESTADO_CANCELADO && estado !== ESTADO_CANCELADO) return;
+
+    if (estado === ESTADO_CANCELADO && pedido.estado !== ESTADO_CANCELADO) {
+      setCancelacionPendiente({ tipo, pedido, estadoAnterior: pedido.estado });
+      setCancelacionError("");
+      return;
+    }
+
+    ejecutarCambioEstado(tipo, pedido, estado);
+  };
+
+  const cerrarConfirmacionCancelacion = () => {
+    if (confirmandoCancelacion) return;
+    setCancelacionPendiente(null);
+    setCancelacionError("");
+  };
+
+  const confirmarCancelacionPedido = async () => {
+    if (!cancelacionPendiente || confirmandoCancelacion) return;
+
+    setConfirmandoCancelacion(true);
+    setCancelacionError("");
+    const actualizado = await ejecutarCambioEstado(
+      cancelacionPendiente.tipo,
+      cancelacionPendiente.pedido,
+      ESTADO_CANCELADO
+    );
+
+    if (actualizado) {
+      setCancelacionPendiente(null);
+    } else {
+      setCancelacionError("No se pudo cancelar el pedido. Inténtalo nuevamente.");
+    }
+    setConfirmandoCancelacion(false);
+  };
+
   const abrirDetalle = useCallback((tipo, pedido) => {
     setDetalle({ tipo, pedido });
     setProductoBusqueda("");
@@ -473,32 +529,6 @@ export default function PedidosDashboard() {
 
     if (actualizado) {
       cerrarDetalle();
-    }
-  };
-
-  const actualizarEstadoDetalleWhatsapp = async (estado) => {
-    if (!detalle || detalle.tipo !== "whatsapp") return;
-
-    const actualizado = await actualizarPedido("whatsapp", detalle.pedido.id, { estado });
-
-    if (actualizado) {
-      setDetalle((actual) => actual
-        ? { ...actual, pedido: { ...actual.pedido, estado } }
-        : actual
-      );
-    }
-  };
-
-  const actualizarEstadoDetalleManual = async (estado) => {
-    if (!detalle || detalle.tipo !== "manual") return;
-
-    const actualizado = await actualizarPedido("manual", detalle.pedido.id, { estado });
-
-    if (actualizado) {
-      setDetalle((actual) => actual
-        ? { ...actual, pedido: { ...actual.pedido, estado } }
-        : actual
-      );
     }
   };
 
@@ -1212,12 +1242,12 @@ export default function PedidosDashboard() {
                               >
                                 <i className="bi bi-whatsapp"></i>
                               </button>
-                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => actualizarPedido("manual", pedido.id, { estado: e.target.value })}>
+                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => solicitarCambioEstado("manual", pedido, e.target.value)}>
                                 {ESTADOS_PEDIDO_MANUAL.map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
-                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => actualizarPedido("manual", pedido.id, { estado: "cancelado" })}>
+                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => solicitarCambioEstado("manual", pedido, ESTADO_CANCELADO)}>
                                 <i className="bi bi-x-lg"></i>
                               </button>
                             </div>
@@ -1264,12 +1294,12 @@ export default function PedidosDashboard() {
                               <button className="pedido-list-action" aria-label={`Ver pedido ${pedido.numero_pedido}`} title="Ver detalle" onClick={() => abrirDetalle("whatsapp", pedido)}>
                                 <i className="bi bi-eye"></i>
                               </button>
-                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => actualizarPedido("whatsapp", pedido.id, { estado: e.target.value })}>
+                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => solicitarCambioEstado("whatsapp", pedido, e.target.value)}>
                                 {obtenerEstadosPedidoWhatsapp(pedido).map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
-                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => actualizarPedido("whatsapp", pedido.id, { estado: "cancelado" })}>
+                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => solicitarCambioEstado("whatsapp", pedido, ESTADO_CANCELADO)}>
                                 <i className="bi bi-x-lg"></i>
                               </button>
                             </div>
@@ -1316,12 +1346,12 @@ export default function PedidosDashboard() {
                               <button className="pedido-list-action" aria-label={`Editar pedido ${pedido.numero_pedido}`} title="Editar" onClick={() => abrirEditarEspecial(pedido)}>
                                 <i className="bi bi-pencil-square"></i>
                               </button>
-                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => actualizarPedido("especial", pedido.id, { estado: e.target.value })}>
+                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => solicitarCambioEstado("especial", pedido, e.target.value)}>
                                 {ESTADOS_PEDIDO_ESPECIAL.map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
-                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => actualizarPedido("especial", pedido.id, { estado: "cancelado" })}>
+                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => solicitarCambioEstado("especial", pedido, ESTADO_CANCELADO)}>
                                 <i className="bi bi-x-lg"></i>
                               </button>
                             </div>
@@ -1392,7 +1422,7 @@ export default function PedidosDashboard() {
                           <select
                             className="pedido-estado-select"
                             value={detalle.pedido.estado}
-                            onChange={(e) => actualizarEstadoDetalleWhatsapp(e.target.value)}
+                            onChange={(e) => solicitarCambioEstado("whatsapp", detalle.pedido, e.target.value)}
                           >
                             {obtenerEstadosPedidoWhatsapp(detalle.pedido).map((estado) => (
                               <option key={estado} value={estado}>
@@ -1410,7 +1440,7 @@ export default function PedidosDashboard() {
                           <select
                             className="pedido-estado-select"
                             value={detalle.pedido.estado}
-                            onChange={(e) => actualizarEstadoDetalleManual(e.target.value)}
+                            onChange={(e) => solicitarCambioEstado("manual", detalle.pedido, e.target.value)}
                           >
                             {ESTADOS_PEDIDO_MANUAL.map((estado) => (
                               <option key={estado} value={estado}>
@@ -2080,6 +2110,13 @@ export default function PedidosDashboard() {
             </form>
           </div>
         )}
+        <ConfirmarCancelacionPedido
+          abierto={Boolean(cancelacionPendiente)}
+          cargando={confirmandoCancelacion}
+          error={cancelacionError}
+          onVolver={cerrarConfirmacionCancelacion}
+          onConfirmar={confirmarCancelacionPedido}
+        />
       </main>
     </div>
   );
