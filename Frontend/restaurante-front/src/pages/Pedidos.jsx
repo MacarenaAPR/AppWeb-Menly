@@ -1056,7 +1056,7 @@ export default function PedidosDashboard() {
               </section>
 
               {posActivo && tabActiva === "menly" && (
-                <section className="reservas-table-card">
+                <section className="reservas-table-card pedido-list-card">
                   <table className="reservas-table pedidos-table">
                     <thead>
                       <tr>
@@ -1074,40 +1074,40 @@ export default function PedidosDashboard() {
                       {pedidosManuales.length === 0 ? (
                         <tr><td colSpan="8" className="empty-state">No hay pedidos creados desde Menly.</td></tr>
                       ) : pedidosManuales.map((pedido) => (
-                        <tr key={pedido.id}>
-                          <td>#{pedido.numero_pedido}</td>
-                          <td><span className="pedido-origen-badge">Menly</span></td>
-                          <td>
-                            <strong>{pedido.nombre_cliente || "Cliente no informado"}</strong>
-                            {pedido.telefono_cliente && <small>{pedido.telefono_cliente}</small>}
+                        <tr className="pedido-list-row" key={pedido.id}>
+                          <td className="pedido-list-numero">#{pedido.numero_pedido}</td>
+                          <td className="pedido-list-extra"><span className="pedido-origen-badge">Menly</span></td>
+                          <td className="pedido-list-cliente">
+                            <strong>{String(pedido.nombre_cliente || "").trim() || "Cliente sin nombre"}</strong>
                           </td>
-                          <td>
+                          <td className="pedido-list-extra">
                             {pedido.tipo_entrega_display || pedido.tipo_entrega}
                             {pedido.numero_mesa && <small>Mesa {pedido.numero_mesa}</small>}
                             {pedido.direccion && <small>{pedido.direccion}</small>}
                           </td>
-                          <td>{resumenItems(pedido.items)}</td>
-                          <td>{formatearMoneda(pedido.total)}</td>
-                          <td><span className={`estado-badge ${pedido.estado}`}>{estadoLabels[pedido.estado] || pedido.estado}</span></td>
-                          <td>
-                            <div className="acciones-cell">
-                              <button title="Ver detalle" onClick={() => abrirDetalle("manual", pedido)}>
+                          <td className="pedido-list-extra">{resumenItems(pedido.items)}</td>
+                          <td className="pedido-list-total">{formatearMoneda(pedido.total)}</td>
+                          <td className="pedido-list-estado"><span className={`estado-badge ${pedido.estado}`}>{estadoLabels[pedido.estado] || pedido.estado}</span></td>
+                          <td className="pedido-list-controls-cell">
+                            <div className="acciones-cell pedido-list-controls">
+                              <button className="pedido-list-action" aria-label={`Ver pedido ${pedido.numero_pedido}`} title="Ver detalle" onClick={() => abrirDetalle("manual", pedido)}>
                                 <i className="bi bi-eye"></i>
                               </button>
                               <button
-                                className="pedido-whatsapp-action"
+                                className="pedido-list-action pedido-whatsapp-action"
+                                aria-label={`Contactar por WhatsApp por el pedido ${pedido.numero_pedido}`}
                                 title="Enviar por WhatsApp"
                                 onClick={() => abrirWhatsappPedidoManual(pedido)}
                                 disabled={!normalizarTelefonoWhatsappChile(pedido.telefono_cliente)}
                               >
                                 <i className="bi bi-whatsapp"></i>
                               </button>
-                              <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("manual", pedido.id, { estado: e.target.value })}>
+                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => actualizarPedido("manual", pedido.id, { estado: e.target.value })}>
                                 {ESTADOS_PEDIDO_MANUAL.map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
-                              <button className="delete" title="Cancelar" onClick={() => actualizarPedido("manual", pedido.id, { estado: "cancelado" })}>
+                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => actualizarPedido("manual", pedido.id, { estado: "cancelado" })}>
                                 <i className="bi bi-x-lg"></i>
                               </button>
                             </div>
@@ -1120,7 +1120,7 @@ export default function PedidosDashboard() {
               )}
 
               {tabActiva === "whatsapp" && (
-                <section className="reservas-table-card">
+                <section className="reservas-table-card pedido-list-card">
                   <table className="reservas-table pedidos-table">
                     <thead>
                       <tr>
@@ -1137,30 +1137,29 @@ export default function PedidosDashboard() {
                       {pedidosWhatsapp.length === 0 ? (
                         <tr><td colSpan="7" className="empty-state">No hay pedidos por WhatsApp.</td></tr>
                       ) : pedidosWhatsapp.map((pedido) => (
-                        <tr key={pedido.id}>
-                          <td>#{pedido.numero_pedido}</td>
-                          <td>
-                            <strong>{pedido.nombre_cliente}</strong>
-                            <small>{pedido.telefono_cliente}</small>
+                        <tr className="pedido-list-row" key={pedido.id}>
+                          <td className="pedido-list-numero">#{pedido.numero_pedido}</td>
+                          <td className="pedido-list-cliente">
+                            <strong>{String(pedido.nombre_cliente || "").trim() || "Cliente sin nombre"}</strong>
                           </td>
-                          <td>
+                          <td className="pedido-list-extra">
                             {pedido.tipo_entrega_display || pedido.tipo_entrega}
                             {pedido.direccion_entrega && <small>{pedido.direccion_entrega}</small>}
                           </td>
-                          <td>{resumenItems(pedido.productos_snapshot)}</td>
-                          <td>{formatearMoneda(pedido.total)}</td>
-                          <td><span className={`estado-badge ${pedido.estado}`}>{estadoLabels[pedido.estado] || pedido.estado}</span></td>
-                          <td>
-                            <div className="acciones-cell">
-                              <button title="Ver detalle" onClick={() => abrirDetalle("whatsapp", pedido)}>
+                          <td className="pedido-list-extra">{resumenItems(pedido.productos_snapshot)}</td>
+                          <td className="pedido-list-total">{formatearMoneda(pedido.total)}</td>
+                          <td className="pedido-list-estado"><span className={`estado-badge ${pedido.estado}`}>{estadoLabels[pedido.estado] || pedido.estado}</span></td>
+                          <td className="pedido-list-controls-cell">
+                            <div className="acciones-cell pedido-list-controls">
+                              <button className="pedido-list-action" aria-label={`Ver pedido ${pedido.numero_pedido}`} title="Ver detalle" onClick={() => abrirDetalle("whatsapp", pedido)}>
                                 <i className="bi bi-eye"></i>
                               </button>
-                              <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("whatsapp", pedido.id, { estado: e.target.value })}>
+                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => actualizarPedido("whatsapp", pedido.id, { estado: e.target.value })}>
                                 {obtenerEstadosPedidoWhatsapp(pedido).map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
-                              <button className="delete" title="Cancelar" onClick={() => actualizarPedido("whatsapp", pedido.id, { estado: "cancelado" })}>
+                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => actualizarPedido("whatsapp", pedido.id, { estado: "cancelado" })}>
                                 <i className="bi bi-x-lg"></i>
                               </button>
                             </div>
@@ -1173,7 +1172,7 @@ export default function PedidosDashboard() {
               )}
 
               {tabActiva === "especiales" && (
-                <section className="reservas-table-card">
+                <section className="reservas-table-card pedido-list-card">
                   <table className="reservas-table pedidos-table">
                     <thead>
                       <tr>
@@ -1190,30 +1189,29 @@ export default function PedidosDashboard() {
                       {pedidosEspeciales.length === 0 ? (
                         <tr><td colSpan="7" className="empty-state">No hay pedidos especiales.</td></tr>
                       ) : pedidosEspeciales.map((pedido) => (
-                        <tr key={pedido.id}>
-                          <td>#{pedido.numero_pedido}</td>
-                          <td>
-                            <strong>{pedido.nombre_cliente}</strong>
-                            <small>{pedido.telefono_cliente}</small>
+                        <tr className="pedido-list-row" key={pedido.id}>
+                          <td className="pedido-list-numero">#{pedido.numero_pedido}</td>
+                          <td className="pedido-list-cliente">
+                            <strong>{String(pedido.nombre_cliente || "").trim() || "Cliente sin nombre"}</strong>
                           </td>
-                          <td>{formatearFecha(`${pedido.fecha_entrega}T00:00:00`)}</td>
-                          <td>{resumenItems(pedido.items, "item", "items")}</td>
-                          <td>{formatearMoneda(pedido.total)}</td>
-                          <td><span className={`estado-badge ${pedido.estado}`}>{estadoLabels[pedido.estado] || pedido.estado}</span></td>
-                          <td>
-                            <div className="acciones-cell">
-                              <button title="Ver detalle" onClick={() => abrirDetalle("especial", pedido)}>
+                          <td className="pedido-list-extra">{formatearFecha(`${pedido.fecha_entrega}T00:00:00`)}</td>
+                          <td className="pedido-list-extra">{resumenItems(pedido.items, "item", "items")}</td>
+                          <td className="pedido-list-total">{formatearMoneda(pedido.total)}</td>
+                          <td className="pedido-list-estado"><span className={`estado-badge ${pedido.estado}`}>{estadoLabels[pedido.estado] || pedido.estado}</span></td>
+                          <td className="pedido-list-controls-cell">
+                            <div className="acciones-cell pedido-list-controls">
+                              <button className="pedido-list-action" aria-label={`Ver pedido ${pedido.numero_pedido}`} title="Ver detalle" onClick={() => abrirDetalle("especial", pedido)}>
                                 <i className="bi bi-eye"></i>
                               </button>
-                              <button title="Editar" onClick={() => abrirEditarEspecial(pedido)}>
+                              <button className="pedido-list-action" aria-label={`Editar pedido ${pedido.numero_pedido}`} title="Editar" onClick={() => abrirEditarEspecial(pedido)}>
                                 <i className="bi bi-pencil-square"></i>
                               </button>
-                              <select className="pedido-estado-select" value={pedido.estado} onChange={(e) => actualizarPedido("especial", pedido.id, { estado: e.target.value })}>
+                              <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => actualizarPedido("especial", pedido.id, { estado: e.target.value })}>
                                 {ESTADOS_PEDIDO_ESPECIAL.map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
-                              <button className="delete" title="Cancelar" onClick={() => actualizarPedido("especial", pedido.id, { estado: "cancelado" })}>
+                              <button className="pedido-list-action delete" aria-label={`Cancelar pedido ${pedido.numero_pedido}`} title="Cancelar" onClick={() => actualizarPedido("especial", pedido.id, { estado: "cancelado" })}>
                                 <i className="bi bi-x-lg"></i>
                               </button>
                             </div>
@@ -1472,7 +1470,7 @@ export default function PedidosDashboard() {
         )}
 
         {mostrarFormularioManual && (
-          <div className="modal-reserva-bg">
+          <div className="modal-reserva-bg pedido-manual-modal-bg">
             <form className="modal-reserva pedido-form-modal pedido-manual-modal" onSubmit={guardarManual}>
               <button className="modal-close-btn" type="button" aria-label="Cerrar" onClick={() => setMostrarFormularioManual(false)}>
                 <i className="bi bi-x-lg"></i>
@@ -1534,12 +1532,22 @@ export default function PedidosDashboard() {
                           aria-label={`Agregar ${producto.nombre} al pedido`}
                           style={tieneImagen ? { "--producto-imagen": `url("${producto.imagen}")` } : undefined}
                         >
-                          <span className="pedido-producto-nombre">{producto.nombre}</span>
+                          <span
+                            className={`pedido-producto-thumb ${!tieneImagen ? "sin-imagen" : ""}`}
+                            style={tieneImagen ? { "--producto-imagen": `url("${producto.imagen}")` } : undefined}
+                            aria-hidden="true"
+                          >
+                            {!tieneImagen && <i className="bi bi-image"></i>}
+                          </span>
+                          <span className="pedido-producto-info">
+                            <span className="pedido-producto-nombre">{producto.nombre}</span>
+                            <strong>{formatearMoneda(producto.precio)}</strong>
+                          </span>
                           {producto.destacado && <span className="pedido-producto-popular">Popular</span>}
                           {cantidadSeleccionada > 0 && (
                             <span className="pedido-producto-count">{cantidadSeleccionada}</span>
                           )}
-                          {!tieneImagen && <i className="bi bi-image"></i>}
+                          <span className="pedido-producto-add"><i className="bi bi-plus-lg" aria-hidden="true"></i></span>
                         </button>
                       );
                     })}

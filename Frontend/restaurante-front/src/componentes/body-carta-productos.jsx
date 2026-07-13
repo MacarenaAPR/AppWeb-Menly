@@ -488,6 +488,9 @@ export default function CartaProducto(){
                           }
                           disponible={p.disponible}
                           destacado={p.destacado}
+                          variantesCount={Array.isArray(p.variantes) ? p.variantes.length : 0}
+                          isListView={viewMode === "list"}
+                          isCardsView={viewMode === "cards"}
                           deleting={deletingId === p.id}
                           canManage={permisos.canManageProductos}
                           onDelete={permisos.canManageProductos ? handleDeleteProducto : null}

@@ -3,6 +3,14 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "../styles/style-componentes.css";
 import { useState } from "react";
 import { authFetch } from "../api";
+
+const formatearPrecioClp = (valor) =>
+  new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(Number(valor || 0));
+
 export default function CardsProductos({
   price,
   titulo,
@@ -16,6 +24,9 @@ export default function CardsProductos({
   onDelete,
   onEdit,
   onDestacadoChange,
+  variantesCount = 0,
+  isListView = false,
+  isCardsView = false,
   canManage = true,
 }) {
   const [estado, setEstado] = useState(disponible);
@@ -95,15 +106,138 @@ export default function CardsProductos({
 };
 
   return (
-    <div className="card" id="card-producto">
+    <>
+      {isListView && (
+        <article className="producto-mobile-list-row">
+          <div className="producto-mobile-list-top">
+            <strong className="producto-mobile-list-name">{titulo}</strong>
+            <strong className="producto-mobile-list-price">{formatearPrecioClp(price)}</strong>
+          </div>
+
+          <div className="producto-mobile-list-bottom">
+            {canManage && (
+              <label className="form-switch producto-mobile-list-available" htmlFor={`producto-mobile-disponible-${id}`}>
+                <span>Disponible</span>
+                <input
+                  id={`producto-mobile-disponible-${id}`}
+                  className="form-check-input producto-mobile-list-switch"
+                  type="checkbox"
+                  role="switch"
+                  checked={estado}
+                  onChange={handleDisponibleChange}
+                />
+              </label>
+            )}
+
+            {canManage && (
+              <div className="producto-mobile-list-actions">
+                <button
+                  className="btn-pencil"
+                  type="button"
+                  aria-label={`Editar ${titulo}`}
+                  title="Editar producto"
+                  onClick={() => onEdit(id)}
+                >
+                  <i className="bi bi-pencil-square"></i>
+                </button>
+
+                <button
+                  className="button-delet"
+                  type="button"
+                  aria-label={`Eliminar ${titulo}`}
+                  title="Eliminar producto"
+                  onClick={handleDeleteClick}
+                  disabled={deleting}
+                >
+                  {deleting ? <i className="bi bi-hourglass-split"></i> : <i className="bi bi-trash3"></i>}
+                </button>
+              </div>
+            )}
+          </div>
+        </article>
+      )}
+
+      {isCardsView && (
+        <article className="producto-mobile-card">
+          <div className="producto-mobile-card-top">
+            <div className="producto-mobile-card-image">
+              {img ? (
+                <img src={img} alt={titulo} />
+              ) : (
+                <span className="producto-mobile-card-placeholder" aria-hidden="true">
+                  <i className="bi bi-image"></i>
+                </span>
+              )}
+            </div>
+
+            <strong className="producto-mobile-card-name">{titulo}</strong>
+            <strong className="producto-mobile-card-price">{formatearPrecioClp(price)}</strong>
+          </div>
+
+          <div className="producto-mobile-card-bottom">
+            {canManage && (
+              <label className="form-switch producto-mobile-card-available" htmlFor={`producto-mobile-card-disponible-${id}`}>
+                <span>Disponible</span>
+                <input
+                  id={`producto-mobile-card-disponible-${id}`}
+                  className="form-check-input producto-mobile-card-switch"
+                  type="checkbox"
+                  role="switch"
+                  checked={estado}
+                  onChange={handleDisponibleChange}
+                />
+              </label>
+            )}
+
+            {canManage && (
+              <div className="producto-mobile-card-actions">
+                <button
+                  className="btn-pencil"
+                  type="button"
+                  aria-label={`Editar ${titulo}`}
+                  title="Editar producto"
+                  onClick={() => onEdit(id)}
+                >
+                  <i className="bi bi-pencil-square"></i>
+                </button>
+
+                <button
+                  className="button-delet"
+                  type="button"
+                  aria-label={`Eliminar ${titulo}`}
+                  title="Eliminar producto"
+                  onClick={handleDeleteClick}
+                  disabled={deleting}
+                >
+                  {deleting ? <i className="bi bi-hourglass-split"></i> : <i className="bi bi-trash3"></i>}
+                </button>
+              </div>
+            )}
+          </div>
+        </article>
+      )}
+
+      <article className="card producto-list-item" id="card-producto">
       <div className="producto-table-cell producto-cell-main">
         <div className="producto-img-wrap">
           {estadoDestacado && <span className="producto-destacado-badge">Destacado</span>}
-          <img src={img} className="card-img-top" alt={titulo} />
+          {img ? (
+            <img src={img} className="card-img-top" alt="" />
+          ) : (
+            <span className="producto-img-placeholder" aria-hidden="true">
+              <i className="bi bi-image"></i>
+            </span>
+          )}
         </div>
 
         <div className="producto-main-text">
           <h5 className="titulo-text-card">{titulo}</h5>
+          <p className="producto-mobile-meta">
+            <span>{categoria || "Sin categoría"}</span>
+            <span className="producto-mobile-price-separator" aria-hidden="true">·</span>
+            <strong className="producto-mobile-price">{formatearPrecioClp(price)}</strong>
+            {variantesCount > 0 && <span>· {variantesCount} {variantesCount === 1 ? "variante" : "variantes"}</span>}
+          </p>
           <p className="producto-description-text">{descripcion || categoria || "Sin descripción"}</p>
         </div>
       </div>
@@ -114,7 +248,7 @@ export default function CardsProductos({
 
       <div className="producto-table-cell producto-cell-price">
         <h4 className="price-text-card">
-          $ {price} <span>CLP</span>
+          {formatearPrecioClp(price)}
         </h4>
       </div>
 
@@ -122,9 +256,10 @@ export default function CardsProductos({
         <>
           <div className="producto-table-cell producto-cell-switch producto-cell-disponible">
             <div className="form-check form-switch producto-switch">
-              <label className="form-check-label">Disponible</label>
+              <label className="form-check-label" htmlFor={`producto-disponible-${id}`}>Disponible</label>
 
               <input
+                id={`producto-disponible-${id}`}
                 className="form-check-input"
                 type="checkbox"
                 checked={estado}
@@ -135,9 +270,10 @@ export default function CardsProductos({
 
           <div className="producto-table-cell producto-cell-switch producto-cell-destacado">
             <div className="form-check form-switch producto-switch">
-              <label className="form-check-label">Destacado</label>
+              <label className="form-check-label" htmlFor={`producto-destacado-${id}`}>Destacado</label>
 
               <input
+                id={`producto-destacado-${id}`}
                 className="form-check-input"
                 type="checkbox"
                 checked={estadoDestacado}
@@ -147,13 +283,15 @@ export default function CardsProductos({
           </div>
 
           <div className="producto-table-cell div-buttons producto-cell-actions">
-            <button className="btn-pencil" type="button" onClick={() => onEdit(id)}>
+            <button className="btn-pencil producto-list-action" type="button" aria-label={`Editar ${titulo}`} title="Editar producto" onClick={() => onEdit(id)}>
               <i className="bi bi-pencil-square"></i>
             </button>
 
             <button
               type="button"
-              className="button-delet"
+              className="button-delet producto-list-action"
+              aria-label={`Eliminar ${titulo}`}
+              title="Eliminar producto"
               onClick={handleDeleteClick}
               disabled={deleting}
             >
@@ -162,6 +300,7 @@ export default function CardsProductos({
           </div>
         </>
       )}
-    </div>
+      </article>
+    </>
   );
 }
