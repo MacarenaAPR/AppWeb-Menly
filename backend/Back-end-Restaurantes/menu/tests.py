@@ -20,6 +20,7 @@ from .utils import get_slug_from_host, validar_horario_reserva
 from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
 from .services.estados_pedidos import TransicionEstadoInvalida, cambiar_estado_pedido
 from .services.cocina import obtener_comandas_activas
+from .services.pedidos_whatsapp import generar_mensaje_whatsapp
 from .services.metricas.pedidos import pedidos_manuales_activos, pedidos_manuales_finalizados
 from .serializers import PedidoWhatsAppDashboardSerializer
 from django.core.cache import cache
@@ -1320,6 +1321,28 @@ class ConfiguracionRestauranteOperacionTests(BaseTestCase):
             mensaje_whatsapp_generado="Pedido",
             whatsapp_destino="56911111111",
         )
+
+    def test_mensaje_delivery_aclara_costo_sin_modificar_total_productos(self):
+        pedido = self.crear_pedido_delivery()
+
+        mensaje = generar_mensaje_whatsapp(pedido)
+
+        self.assertEqual(pedido.total, 1500)
+        self.assertIn("Total productos: $1500", mensaje)
+        self.assertIn(
+            "Costo de delivery: por confirmar con el restaurante.",
+            mensaje,
+        )
+
+    def test_mensaje_retiro_no_incluye_aviso_de_delivery(self):
+        pedido = self.crear_pedido_delivery()
+        pedido.tipo_entrega = PedidoWhatsApp.TIPO_RETIRO_LOCAL
+        pedido.direccion_entrega = None
+
+        mensaje = generar_mensaje_whatsapp(pedido)
+
+        self.assertIn("Total: $1500", mensaje)
+        self.assertNotIn("Costo de delivery: por confirmar", mensaje)
 
     def test_configuracion_guarda_delivery_activo_y_abierto(self):
         response = self.client.patch(

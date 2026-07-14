@@ -137,8 +137,11 @@ def get_tracking_url(pedido, request=None):
 def generar_mensaje_whatsapp(pedido, request=None):
     tipo_entrega = pedido.get_tipo_entrega_display()
     direccion = ""
+    costo_delivery = ""
     if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and pedido.direccion_entrega:
         direccion = f"Direccion: {pedido.direccion_entrega}\n"
+    if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY:
+        costo_delivery = "Costo de delivery: por confirmar con el restaurante.\n"
 
     productos = "\n".join(
         (
@@ -158,7 +161,8 @@ def generar_mensaje_whatsapp(pedido, request=None):
         "Hola, quiero hacer este pedido:\n\n"
         f"Pedido #{pedido.numero_pedido}\n"
         f"{productos}\n\n"
-        f"Total: ${int(pedido.total)}\n"
+        f"{'Total productos' if costo_delivery else 'Total'}: ${int(pedido.total)}\n"
+        f"{costo_delivery}"
         f"Tipo entrega: {tipo_entrega}\n"
         f"{metodo_pago_linea}"
         f"{direccion}"
@@ -172,8 +176,11 @@ def generar_mensaje_whatsapp(pedido, request=None):
 def generar_mensaje_legacy(pedido):
     tipo_entrega = pedido.get_tipo_entrega_display()
     direccion = ""
+    costo_delivery = ""
     if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY and pedido.direccion_entrega:
         direccion = f"Direccion:\n{pedido.direccion_entrega}\n\n"
+    if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY:
+        costo_delivery = "Costo de delivery: por confirmar con el restaurante.\n\n"
 
     productos = "\n".join(
         (
@@ -198,7 +205,8 @@ def generar_mensaje_legacy(pedido):
         f"{direccion}"
         "Productos:\n\n"
         f"{productos}\n\n"
-        f"Total: ${int(pedido.total)}\n\n"
+        f"{'Total productos' if costo_delivery else 'Total'}: ${int(pedido.total)}\n\n"
+        f"{costo_delivery}"
         f"Pedido N°: {pedido.numero_pedido}"
     )
 

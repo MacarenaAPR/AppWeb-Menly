@@ -150,6 +150,42 @@
   padding-top: 12px;
   border-top: 1px solid var(--color-border)
 }
+.cart-delivery-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-primary) 9%, var(--color-surface));
+  color: var(--color-text-primary)
+}
+.cart-delivery-notice i {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--color-primary);
+  font-size: 1.05rem
+}
+.cart-delivery-notice p {
+  margin: 0;
+  color: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.45
+}
+.cart-delivery-pending {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -8px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem
+}
+.cart-delivery-pending strong {
+  color: var(--color-primary);
+  font-size: 0.9rem
+}
 .cart-submit:disabled {
   cursor: not-allowed;
   opacity: 0.62

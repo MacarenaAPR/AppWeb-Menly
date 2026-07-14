@@ -2001,16 +2001,28 @@ export default function Home() {
                   </select>
                 </label>
                 {tipoEntregaPedido === "delivery" && (
-                  <label>
-                    <span>Dirección de entrega</span>
-                    <input
-                      name="direccion_entrega"
-                      type="text"
-                      autoComplete="street-address"
-                      required
-                      placeholder="Ej: Av. Pedro Aguirre Cerda 1234"
-                    />
-                  </label>
+                  <>
+                    <label>
+                      <span>Dirección de entrega</span>
+                      <input
+                        name="direccion_entrega"
+                        type="text"
+                        autoComplete="street-address"
+                        required
+                        placeholder="Ej: Av. Pedro Aguirre Cerda 1234"
+                      />
+                    </label>
+                    <aside
+                      className="cart-delivery-notice"
+                      role="note"
+                      aria-live="polite"
+                    >
+                      <i className="bi bi-info-circle-fill" aria-hidden="true"></i>
+                      <p>
+                        Importante: el costo de delivery no está incluido en el total mostrado. El restaurante confirmará el valor según la dirección ingresada antes de completar el pedido.
+                      </p>
+                    </aside>
+                  </>
                 )}
 
                 <label>
@@ -2039,9 +2051,15 @@ export default function Home() {
                 {metodosPagoError && <p className="form-error">{metodosPagoError}</p>}
 
                 <div className="cart-total">
-                  <span>Total</span>
+                  <span>{tipoEntregaPedido === "delivery" ? "Total productos:" : "Total"}</span>
                   <strong>${totalCarrito.toLocaleString("es-CL")}</strong>
                 </div>
+                {tipoEntregaPedido === "delivery" && (
+                  <div className="cart-delivery-pending" aria-live="polite">
+                    <span>Delivery:</span>
+                    <strong>por confirmar</strong>
+                  </div>
+                )}
 
                 {pedidoMensaje && <p className="form-success">{pedidoMensaje}</p>}
                 {pedidoError && <p className="form-error">{pedidoError}</p>}
