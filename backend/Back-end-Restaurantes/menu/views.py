@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, ProductoVariante, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, PedidoManual, ReporteMetrica
+from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, ProductoVariante, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, PedidoEspecial, PedidoManual, ReporteMetrica
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from django.db.models import Count, F, Max, Q, Prefetch
 from django.utils.text import slugify
@@ -51,6 +51,7 @@ from menu.services.metricas.resumen import (
     construir_resumen_metricas,
 )
 from menu.services.estado_restaurante import calcular_estado_restaurante
+from menu.services.pedidos_whatsapp import calcular_hash_pedido_publico
 from menu.services.cocina import (
     cambiar_estado_comanda,
     consumir_activacion_cocina,
@@ -1511,12 +1512,69 @@ class CrearPedidoWhatsAppPublicoView(APIView):
 
     @transaction.atomic
     def post(self, request, slug):
-        restaurante = get_object_or_404(Restaurante, slug=slug)
+        restaurante = get_object_or_404(
+            Restaurante.objects.select_for_update(),
+            slug=slug,
+        )
+
+        clave_idempotencia = (request.headers.get("Idempotency-Key") or "").strip()
+        if len(clave_idempotencia) > 255:
+            return Response(
+                {"error": "La clave de idempotencia no puede superar 255 caracteres."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        request_hash = (
+            calcular_hash_pedido_publico(restaurante, request.data)
+            if clave_idempotencia
+            else ""
+        )
+        if clave_idempotencia:
+            idempotencia_existente = (
+                PedidoIdempotencia.objects
+                .select_for_update()
+                .filter(restaurante=restaurante, clave=clave_idempotencia)
+                .first()
+            )
+            if idempotencia_existente:
+                if idempotencia_existente.request_hash != request_hash:
+                    return Response(
+                        {
+                            "error": "idempotency_key_reused",
+                            "message": "La clave de idempotencia ya fue utilizada con un pedido diferente.",
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                if (
+                    idempotencia_existente.estado == PedidoIdempotencia.ESTADO_COMPLETADO
+                    and idempotencia_existente.respuesta is not None
+                ):
+                    respuesta = dict(idempotencia_existente.respuesta)
+                    respuesta["idempotent_replay"] = True
+                    return Response(respuesta, status=status.HTTP_200_OK)
+                return Response(
+                    {
+                        "error": "idempotency_request_in_progress",
+                        "message": "Ya existe una solicitud en proceso con esta clave de idempotencia.",
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
 
         if not restaurante.activo:
             return Response(
                 respuesta_publica_restaurante_inactivo(),
                 status=status.HTTP_403_FORBIDDEN
+            )
+
+        estado_restaurante = calcular_estado_restaurante(restaurante)
+        if not estado_restaurante["abierto_ahora"]:
+            return Response(
+                {
+                    "error": "restaurante_cerrado",
+                    "message": "Este restaurante no está aceptando pedidos en este momento.",
+                    "abierto": False,
+                },
+                status=status.HTTP_409_CONFLICT,
             )
 
         serializer = PedidoWhatsAppCreateSerializer(
@@ -1525,12 +1583,32 @@ class CrearPedidoWhatsAppPublicoView(APIView):
         )
 
         if serializer.is_valid():
+            idempotencia = None
+            if clave_idempotencia:
+                idempotencia = PedidoIdempotencia.objects.create(
+                    restaurante=restaurante,
+                    clave=clave_idempotencia,
+                    request_hash=request_hash,
+                )
             pedido = serializer.save()
             logger.info(
                 "Pedido WhatsApp publico creado",
                 extra={"slug": slug, "pedido_id": pedido.id}
             )
-            return Response(serializer.to_representation(pedido), status=status.HTTP_201_CREATED)
+            respuesta = serializer.to_representation(pedido)
+            if idempotencia:
+                idempotencia.pedido_whatsapp = pedido
+                idempotencia.estado = PedidoIdempotencia.ESTADO_COMPLETADO
+                idempotencia.status_code = status.HTTP_201_CREATED
+                idempotencia.respuesta = respuesta
+                idempotencia.save(update_fields=[
+                    "pedido_whatsapp",
+                    "estado",
+                    "status_code",
+                    "respuesta",
+                    "fecha_actualizacion",
+                ])
+            return Response(respuesta, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

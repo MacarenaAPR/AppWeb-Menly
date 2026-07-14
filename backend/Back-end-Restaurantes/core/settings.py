@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 import os
 import sys
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 IS_TESTING = "test" in sys.argv
@@ -189,6 +190,7 @@ CSRF_TRUSTED_ORIGINS = config(
 )
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = (*default_headers, "idempotency-key")
 FRONTEND_PUBLIC_URL = config("FRONTEND_PUBLIC_URL", default="http://localhost:5174")
 COCINA_COOKIE_DOMAIN = config("COCINA_COOKIE_DOMAIN", default="") or None
 ADMIN_COOKIE_DOMAIN = config("ADMIN_COOKIE_DOMAIN", default="") or None

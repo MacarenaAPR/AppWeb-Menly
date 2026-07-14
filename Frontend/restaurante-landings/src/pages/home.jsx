@@ -106,6 +106,28 @@ const formatearHorarioPublico = (horario) => {
 
 const MAX_UNIDADES_POR_PRODUCTO = 5;
 
+const generarClaveIdempotencia = () => {
+  const cryptoApi = window.crypto;
+  if (typeof cryptoApi?.randomUUID === "function") {
+    return cryptoApi.randomUUID();
+  }
+  if (typeof cryptoApi?.getRandomValues !== "function") {
+    throw new Error("El navegador no permite generar una clave segura para el pedido.");
+  }
+
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hexadecimal = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+  return [
+    hexadecimal.slice(0, 4).join(""),
+    hexadecimal.slice(4, 6).join(""),
+    hexadecimal.slice(6, 8).join(""),
+    hexadecimal.slice(8, 10).join(""),
+    hexadecimal.slice(10, 16).join(""),
+  ].join("-");
+};
+
 export default function Home() {
   const { slug: routeSlug } = useParams();
   const hostnameSlug = getSlugFromHostname();
@@ -140,11 +162,14 @@ export default function Home() {
   const [toastCarrito, setToastCarrito] = useState("");
   const [modalActivo, setModalActivo] = useState(null);
   const [tiendaCerradaModalCerrado, setTiendaCerradaModalCerrado] = useState(false);
+  const [pedidoCerradoBackend, setPedidoCerradoBackend] = useState(null);
   const [destacadosIndex, setDestacadosIndex] = useState(0);
   const [destacadosPorVista, setDestacadosPorVista] = useState(3);
   const [destacadosOffset, setDestacadosOffset] = useState(0);
   const promocionesCarouselRef = useRef(null);
   const destacadosCarouselRef = useRef(null);
+  const pedidoIntentoRef = useRef({ clave: "", firma: "" });
+  const pedidoEnvioEnCursoRef = useRef(false);
 
   useEffect(() => {
     if (!slug) {
@@ -366,7 +391,7 @@ export default function Home() {
 
   const handlePedidoWhatsApp = async (e) => {
     e.preventDefault();
-    if (pedidoEnviando) return;
+    if (pedidoEnviando || pedidoEnvioEnCursoRef.current) return;
 
     const form = e.currentTarget;
     const formData = new FormData(form);
@@ -414,6 +439,23 @@ export default function Home() {
       return;
     }
 
+    const firmaIntento = JSON.stringify(data);
+    try {
+      if (
+        !pedidoIntentoRef.current.clave ||
+        pedidoIntentoRef.current.firma !== firmaIntento
+      ) {
+        pedidoIntentoRef.current = {
+          clave: generarClaveIdempotencia(),
+          firma: firmaIntento,
+        };
+      }
+    } catch (claveError) {
+      setPedidoError(claveError.message);
+      return;
+    }
+
+    pedidoEnvioEnCursoRef.current = true;
     setPedidoEnviando(true);
 
     try {
@@ -421,6 +463,7 @@ export default function Home() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Idempotency-Key": pedidoIntentoRef.current.clave,
         },
         body: JSON.stringify(data),
         retries: 0,
@@ -431,9 +474,26 @@ export default function Home() {
       setCarritoAbierto(false);
       setTipoEntregaPedido("");
       setMetodoPagoId("");
+      pedidoIntentoRef.current = { clave: "", firma: "" };
       form.reset();
       window.open(pedido.whatsapp_url, "_blank", "noopener,noreferrer");
     } catch (requestError) {
+      if (
+        requestError?.status === 409 &&
+        requestError?.payload?.error === "restaurante_cerrado"
+      ) {
+        setPedidoCerradoBackend({
+          message: requestError.payload.message,
+          proximaApertura: requestError.payload.proxima_apertura || "",
+        });
+        setRestaurante((actual) => actual
+          ? { ...actual, abierto_ahora: false }
+          : actual
+        );
+        setTiendaCerradaModalCerrado(false);
+        return;
+      }
+
       const apiMessage =
         requestError?.payload?.error ||
         requestError?.payload?.detail ||
@@ -444,6 +504,7 @@ export default function Home() {
         "No se pudo guardar el pedido. Intenta nuevamente.";
       setPedidoError(Array.isArray(apiMessage) ? apiMessage[0] : apiMessage);
     } finally {
+      pedidoEnvioEnCursoRef.current = false;
       setPedidoEnviando(false);
     }
   };
@@ -1816,7 +1877,10 @@ export default function Home() {
               type="button"
               className="store-closed-modal-close"
               aria-label="Cerrar aviso de tienda cerrada"
-              onClick={() => setTiendaCerradaModalCerrado(true)}
+              onClick={() => {
+                setTiendaCerradaModalCerrado(true);
+                setPedidoCerradoBackend(null);
+              }}
             >
               <i className="bi bi-x-lg" aria-hidden="true"></i>
             </button>
@@ -1825,8 +1889,14 @@ export default function Home() {
             </div>
             <div>
               <h2 id="store-closed-modal-title">La tienda está cerrada</h2>
-              <p>Solo podrás ver y revisar el menú.</p>
-              <small>Los pedidos estarán disponibles cuando la tienda esté abierta.</small>
+              <p>
+                {pedidoCerradoBackend?.message || "Solo podrás ver y revisar el menú."}
+              </p>
+              <small>
+                {pedidoCerradoBackend?.proximaApertura
+                  ? `Próxima apertura: ${pedidoCerradoBackend.proximaApertura}`
+                  : "Los pedidos estarán disponibles cuando la tienda esté abierta."}
+              </small>
             </div>
           </section>
         </div>

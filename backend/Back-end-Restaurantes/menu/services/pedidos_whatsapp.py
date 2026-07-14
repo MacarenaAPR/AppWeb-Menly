@@ -1,3 +1,5 @@
+import hashlib
+import json
 import logging
 from urllib.parse import quote
 
@@ -8,6 +10,50 @@ from menu.models import PedidoWhatsApp, Producto, ProductoVariante, Restaurante
 from menu.utils import crear_notificacion_pedido_whatsapp
 
 logger = logging.getLogger(__name__)
+
+
+def _normalizar_entero_idempotencia(valor):
+    if valor in (None, ""):
+        return None
+    try:
+        return int(valor)
+    except (TypeError, ValueError):
+        return str(valor).strip()
+
+
+def calcular_hash_pedido_publico(restaurante, payload):
+    productos = []
+    for item in payload.get("productos") or []:
+        if not isinstance(item, dict):
+            productos.append(item)
+            continue
+        productos.append({
+            "producto_id": _normalizar_entero_idempotencia(item.get("producto_id")),
+            "variante_id": _normalizar_entero_idempotencia(item.get("variante_id")),
+            "cantidad": _normalizar_entero_idempotencia(item.get("cantidad")),
+        })
+
+    tipo_entrega = str(payload.get("tipo_entrega") or "").strip()
+    contenido = {
+        "restaurante": restaurante.slug,
+        "nombre_cliente": str(payload.get("nombre_cliente") or "").strip(),
+        "telefono_cliente": str(payload.get("telefono_cliente") or "").strip(),
+        "tipo_entrega": tipo_entrega,
+        "direccion_entrega": (
+            str(payload.get("direccion_entrega") or "").strip()
+            if tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY
+            else ""
+        ),
+        "metodo_pago_id": _normalizar_entero_idempotencia(payload.get("metodo_pago_id")),
+        "productos": productos,
+    }
+    canonico = json.dumps(
+        contenido,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonico.encode("utf-8")).hexdigest()
 
 
 def obtener_whatsapp_destino(restaurante):

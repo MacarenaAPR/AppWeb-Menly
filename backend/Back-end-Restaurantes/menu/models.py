@@ -539,6 +539,52 @@ class PedidoWhatsApp(models.Model):
         super().save(*args, **kwargs)
 
 
+class PedidoIdempotencia(models.Model):
+    ESTADO_PROCESANDO = "procesando"
+    ESTADO_COMPLETADO = "completado"
+
+    ESTADOS = [
+        (ESTADO_PROCESANDO, "Procesando"),
+        (ESTADO_COMPLETADO, "Completado"),
+    ]
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="idempotencias_pedidos",
+    )
+    clave = models.CharField(max_length=255)
+    request_hash = models.CharField(max_length=64)
+    pedido_whatsapp = models.OneToOneField(
+        PedidoWhatsApp,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="idempotencia",
+    )
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS,
+        default=ESTADO_PROCESANDO,
+    )
+    status_code = models.PositiveSmallIntegerField(null=True, blank=True)
+    respuesta = models.JSONField(null=True, blank=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-fecha_creacion"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["restaurante", "clave"],
+                name="unique_idempotencia_pedido_por_rest",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.restaurante.slug}: {self.clave} ({self.estado})"
+
+
 class HistorialEstadoPedidoWhatsApp(models.Model):
     pedido = models.ForeignKey(
         PedidoWhatsApp,

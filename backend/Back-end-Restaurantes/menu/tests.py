@@ -10,11 +10,12 @@ from datetime import date, datetime, time, timedelta
 from importlib import import_module
 from unittest.mock import patch
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host, validar_horario_reserva
 from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
+from .services.cocina import obtener_comandas_activas
 from .serializers import PedidoWhatsAppDashboardSerializer
 from django.core.cache import cache
 
@@ -4518,6 +4519,313 @@ class EstadoAperturaExcepcionalTests(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.restaurante.refresh_from_db()
         self.assertIsNone(self.restaurante.apertura_excepcional_hasta)
+
+
+class PedidosPublicosEstadoRestauranteTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.send_mail_patcher = patch("menu.utils.send_mail")
+        self.send_mail_mock = self.send_mail_patcher.start()
+        self.addCleanup(self.send_mail_patcher.stop)
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.whatsapp = "56999999999"
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
+
+    def payload(self):
+        return {
+            "nombre_cliente": "Cliente Público",
+            "telefono_cliente": "912345678",
+            "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            "productos": [{"producto_id": self.producto.id, "cantidad": 1}],
+        }
+
+    def crear_pedido_publico(self):
+        return self.client.post(
+            f"/api/pedidos-whatsapp/{self.restaurante.slug}/",
+            self.payload(),
+            format="json",
+        )
+
+    def crear_horario_cerrado_hoy(self):
+        HorarioAtencion.objects.create(
+            restaurante=self.restaurante,
+            dia=timezone.localtime().isoweekday(),
+            cerrado=True,
+            activo=True,
+        )
+
+    def assert_bloqueo_sin_efectos(self, response, status_esperado=status.HTTP_409_CONFLICT):
+        self.assertEqual(response.status_code, status_esperado)
+        self.assertEqual(PedidoWhatsApp.objects.count(), 1)
+        self.assertEqual(
+            PedidoWhatsApp.objects.filter(restaurante=self.restaurante).latest("id").numero_pedido,
+            7,
+        )
+        self.assertEqual(Notificacion.objects.count(), 0)
+        self.assertEqual(
+            obtener_comandas_activas(self.restaurante),
+            self.comandas_antes,
+        )
+        self.send_mail_mock.assert_not_called()
+
+    def crear_pedido_base(self):
+        self.pedido_base = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=7,
+            nombre_cliente="Pedido previo",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[],
+            total=1000,
+            mensaje_whatsapp_generado="Pedido previo",
+            whatsapp_destino="56999999999",
+        )
+        self.comandas_antes = obtener_comandas_activas(self.restaurante)
+        return self.pedido_base
+
+    def test_crea_pedido_abierto_por_horario(self):
+        ahora = timezone.localtime()
+        HorarioAtencion.objects.create(
+            restaurante=self.restaurante,
+            dia=ahora.isoweekday(),
+            hora_apertura=time(0, 0),
+            hora_cierre=time(23, 59),
+            cerrado=False,
+            activo=True,
+        )
+
+        response = self.crear_pedido_publico()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(PedidoWhatsApp.objects.count(), 1)
+
+    def test_crea_pedido_tras_reapertura_manual_dentro_de_horario(self):
+        self.restaurante.abierto = False
+        self.restaurante.save(update_fields=["abierto"])
+        self.client.force_authenticate(user=self.dueno)
+        reapertura = self.client.patch(
+            "/api/mi-restaurante/estado-apertura/",
+            {"abierto": True},
+            format="json",
+        )
+        self.client.force_authenticate(user=None)
+
+        response = self.crear_pedido_publico()
+
+        self.assertEqual(reapertura.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_crea_pedido_con_apertura_excepcional_fuera_de_horario(self):
+        self.crear_horario_cerrado_hoy()
+        self.restaurante.apertura_excepcional_hasta = timezone.now() + timedelta(hours=2)
+        self.restaurante.save(update_fields=["apertura_excepcional_hasta"])
+
+        response = self.crear_pedido_publico()
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_bloquea_cierre_manual_sin_efectos_secundarios(self):
+        pedido_base = self.crear_pedido_base()
+        tokens_antes = set(PedidoWhatsApp.objects.values_list("tracking_token", flat=True))
+        self.restaurante.abierto = False
+        self.restaurante.save(update_fields=["abierto"])
+
+        response = self.crear_pedido_publico()
+
+        self.assert_bloqueo_sin_efectos(response)
+        self.assertEqual(response.data, {
+            "error": "restaurante_cerrado",
+            "message": "Este restaurante no está aceptando pedidos en este momento.",
+            "abierto": False,
+        })
+        self.assertEqual(
+            set(PedidoWhatsApp.objects.values_list("tracking_token", flat=True)),
+            tokens_antes,
+        )
+        self.assertTrue(PedidoWhatsApp.objects.filter(id=pedido_base.id).exists())
+
+    def test_bloquea_fuera_de_horario_sin_excepcion(self):
+        self.crear_pedido_base()
+        self.crear_horario_cerrado_hoy()
+
+        response = self.crear_pedido_publico()
+
+        self.assert_bloqueo_sin_efectos(response)
+
+    def test_bloquea_carrito_deshabilitado(self):
+        self.crear_pedido_base()
+        self.restaurante.carrito_whatsapp_activo = False
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo"])
+
+        response = self.crear_pedido_publico()
+
+        self.assert_bloqueo_sin_efectos(response, status.HTTP_400_BAD_REQUEST)
+
+    def test_bloquea_restaurante_inactivo(self):
+        self.crear_pedido_base()
+        self.restaurante.activo = False
+        self.restaurante.save(update_fields=["activo"])
+
+        response = self.crear_pedido_publico()
+
+        self.assert_bloqueo_sin_efectos(response, status.HTTP_403_FORBIDDEN)
+
+
+class PedidosPublicosIdempotenciaTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.whatsapp = "56999999999"
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
+        HorarioAtencion.objects.create(
+            restaurante=self.restaurante,
+            dia=timezone.localtime().isoweekday(),
+            hora_apertura=time(0, 0),
+            hora_cierre=time(23, 59),
+            cerrado=False,
+            activo=True,
+        )
+        self.send_mail_patcher = patch("menu.utils.send_mail")
+        self.send_mail_mock = self.send_mail_patcher.start()
+        self.addCleanup(self.send_mail_patcher.stop)
+
+    def payload(self, **cambios):
+        payload = {
+            "nombre_cliente": "Cliente Idempotente",
+            "telefono_cliente": "912345678",
+            "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            "direccion_entrega": "",
+            "metodo_pago_id": None,
+            "productos": [{"producto_id": self.producto.id, "cantidad": 1}],
+        }
+        payload.update(cambios)
+        return payload
+
+    def post(self, clave, payload=None, slug=None):
+        return self.client.post(
+            f"/api/pedidos-whatsapp/{slug or self.restaurante.slug}/",
+            payload or self.payload(),
+            format="json",
+            HTTP_IDEMPOTENCY_KEY=clave,
+        )
+
+    def test_misma_clave_y_payload_reproduce_el_pedido_sin_duplicar(self):
+        clave = "550e8400-e29b-41d4-a716-446655440000"
+
+        primera = self.post(clave)
+        segunda = self.post(clave)
+
+        self.assertEqual(primera.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(segunda.status_code, status.HTTP_200_OK)
+        for campo in ["pedido_id", "numero_pedido", "tracking_token", "tracking_url", "total", "whatsapp_url"]:
+            self.assertEqual(segunda.data[campo], primera.data[campo])
+        self.assertTrue(segunda.data["idempotent_replay"])
+        self.assertEqual(PedidoWhatsApp.objects.count(), 1)
+        self.assertEqual(PedidoWhatsApp.objects.get().numero_pedido, 1)
+        self.assertEqual(PedidoIdempotencia.objects.count(), 1)
+        idempotencia = PedidoIdempotencia.objects.get()
+        self.assertEqual(idempotencia.estado, PedidoIdempotencia.ESTADO_COMPLETADO)
+        self.assertEqual(idempotencia.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(idempotencia.pedido_whatsapp_id, primera.data["pedido_id"])
+        self.assertEqual(Notificacion.objects.count(), 1)
+        self.assertEqual(obtener_comandas_activas(self.restaurante), [])
+        self.send_mail_mock.assert_not_called()
+
+    def test_replay_completado_no_depende_del_estado_posterior_del_restaurante(self):
+        clave = "550e8400-e29b-41d4-a716-446655440005"
+        primera = self.post(clave)
+        self.restaurante.activo = False
+        self.restaurante.abierto = False
+        self.restaurante.save(update_fields=["activo", "abierto"])
+
+        replay = self.post(clave)
+
+        self.assertEqual(primera.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(replay.status_code, status.HTTP_200_OK)
+        self.assertEqual(replay.data["pedido_id"], primera.data["pedido_id"])
+        self.assertEqual(PedidoWhatsApp.objects.count(), 1)
+        self.assertEqual(Notificacion.objects.count(), 1)
+
+    def test_misma_clave_con_payload_distinto_devuelve_conflicto(self):
+        clave = "550e8400-e29b-41d4-a716-446655440001"
+        primera = self.post(clave)
+        tokens_antes = set(PedidoWhatsApp.objects.values_list("tracking_token", flat=True))
+
+        conflicto = self.post(clave, self.payload(nombre_cliente="Otro cliente"))
+
+        self.assertEqual(primera.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(conflicto.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(conflicto.data, {
+            "error": "idempotency_key_reused",
+            "message": "La clave de idempotencia ya fue utilizada con un pedido diferente.",
+        })
+        self.assertEqual(PedidoWhatsApp.objects.count(), 1)
+        self.assertEqual(PedidoWhatsApp.objects.get().numero_pedido, 1)
+        self.assertEqual(
+            set(PedidoWhatsApp.objects.values_list("tracking_token", flat=True)),
+            tokens_antes,
+        )
+        self.assertEqual(Notificacion.objects.count(), 1)
+        self.assertEqual(obtener_comandas_activas(self.restaurante), [])
+        self.send_mail_mock.assert_not_called()
+
+    def test_hash_normaliza_espacios_y_enteros_equivalentes(self):
+        clave = "550e8400-e29b-41d4-a716-446655440002"
+        primera = self.post(clave)
+        equivalente = self.payload(
+            nombre_cliente="  Cliente Idempotente  ",
+            productos=[{"producto_id": str(self.producto.id), "cantidad": "1"}],
+        )
+
+        segunda = self.post(clave, equivalente)
+
+        self.assertEqual(primera.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(segunda.status_code, status.HTTP_200_OK)
+        self.assertEqual(PedidoWhatsApp.objects.count(), 1)
+
+    def test_payload_invalido_no_reserva_la_clave(self):
+        clave = "550e8400-e29b-41d4-a716-446655440003"
+
+        invalida = self.post(clave, self.payload(productos=[]))
+        valida = self.post(clave)
+
+        self.assertEqual(invalida.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(valida.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(PedidoWhatsApp.objects.count(), 1)
+        self.assertEqual(PedidoIdempotencia.objects.count(), 1)
+
+    def test_clave_se_aisla_por_restaurante(self):
+        clave = "550e8400-e29b-41d4-a716-446655440004"
+        self.otro_restaurante.carrito_whatsapp_activo = True
+        self.otro_restaurante.whatsapp = "56888888888"
+        self.otro_restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
+        HorarioAtencion.objects.create(
+            restaurante=self.otro_restaurante,
+            dia=timezone.localtime().isoweekday(),
+            hora_apertura=time(0, 0),
+            hora_cierre=time(23, 59),
+            cerrado=False,
+            activo=True,
+        )
+        otro_producto = Producto.objects.create(
+            restaurante=self.otro_restaurante,
+            categoria=self.categoria_otro_restaurante,
+            nombre="Producto ajeno",
+            precio=2000,
+            disponible=True,
+        )
+
+        primero = self.post(clave)
+        segundo = self.post(
+            clave,
+            self.payload(productos=[{"producto_id": otro_producto.id, "cantidad": 1}]),
+            slug=self.otro_restaurante.slug,
+        )
+
+        self.assertEqual(primero.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(segundo.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(PedidoWhatsApp.objects.count(), 2)
+        self.assertEqual(PedidoIdempotencia.objects.count(), 2)
 
 
 class MetodosPagoPedidosTests(BaseTestCase):
