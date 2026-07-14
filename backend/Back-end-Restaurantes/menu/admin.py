@@ -402,6 +402,7 @@ class PedidoWhatsAppAdmin(admin.ModelAdmin):
     ordering = ("-fecha_creacion",)
     readonly_fields = (
         "numero_pedido",
+        "estado",
         "fecha_creacion",
         "productos_snapshot",
         "mensaje_whatsapp_generado",
@@ -435,6 +436,7 @@ class PedidoEspecialAdmin(admin.ModelAdmin):
     ordering = ("-fecha_creacion",)
     readonly_fields = (
         "numero_pedido",
+        "estado",
         "fecha_creacion",
         "fecha_actualizacion",
         "total",
@@ -477,6 +479,7 @@ class PedidoManualAdmin(admin.ModelAdmin):
     ordering = ("-fecha_creacion",)
     readonly_fields = (
         "numero_pedido",
+        "estado",
         "origen",
         "subtotal",
         "total",

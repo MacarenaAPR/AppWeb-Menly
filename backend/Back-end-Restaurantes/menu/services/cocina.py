@@ -6,11 +6,14 @@ from django.utils import timezone
 
 from menu.models import (
     ActivacionCocina,
-    HistorialEstadoPedidoWhatsApp,
     PedidoEspecial,
     PedidoManual,
     PedidoWhatsApp,
     SesionCocina,
+)
+from menu.services.estados_pedidos import (
+    cambiar_estado_pedido,
+    obtener_transiciones_permitidas,
 )
 
 
@@ -179,6 +182,11 @@ def _normalizar_comanda(pedido, tipo_origen, estado, items):
         "cliente_nombre": getattr(pedido, "nombre_cliente", "") or "Cliente",
         "observaciones": getattr(pedido, "observaciones", "") or getattr(pedido, "descripcion_original", ""),
         "items": items,
+        "transiciones_permitidas": obtener_transiciones_permitidas(
+            pedido,
+            tipo_origen,
+            "kds",
+        ),
     }
 
 
@@ -234,38 +242,12 @@ def _obtener_pedido_cocina(restaurante, identificador):
 def cambiar_estado_comanda(restaurante, identificador, estado_nuevo):
     tipo_origen, pedido = _obtener_pedido_cocina(restaurante, identificador)
     if not pedido:
-        return None, "Comanda no encontrada."
+        return None, False
 
-    estado_actual = pedido.estado
-    transiciones = {
-        ORIGEN_WHATSAPP: {
-            PedidoWhatsApp.ESTADO_EN_PREPARACION: [PedidoWhatsApp.ESTADO_LISTO],
-            PedidoWhatsApp.ESTADO_LISTO: [PedidoWhatsApp.ESTADO_ENTREGADO],
-        },
-        ORIGEN_MENLY: {
-            PedidoManual.ESTADO_PREPARANDO: [PedidoManual.ESTADO_LISTO],
-            PedidoManual.ESTADO_LISTO: [PedidoManual.ESTADO_ENTREGADO],
-        },
-        ORIGEN_ESPECIAL: {
-            PedidoEspecial.ESTADO_EN_PREPARACION: [PedidoEspecial.ESTADO_LISTO],
-            PedidoEspecial.ESTADO_LISTO: [PedidoEspecial.ESTADO_ENTREGADO],
-        },
-    }
-
-    if estado_nuevo not in transiciones.get(tipo_origen, {}).get(estado_actual, []):
-        return None, "Transicion de estado invalida para cocina."
-
-    pedido.estado = estado_nuevo
-    update_fields = ["estado"]
-    if isinstance(pedido, PedidoWhatsApp):
-        pedido.save(update_fields=update_fields)
-        HistorialEstadoPedidoWhatsApp.objects.create(
-            pedido=pedido,
-            estado_anterior=estado_actual,
-            estado_nuevo=estado_nuevo,
-            observacion="Actualizado desde cocina",
-        )
-    else:
-        pedido.save(update_fields=update_fields)
-
-    return pedido, ""
+    return cambiar_estado_pedido(
+        pedido=pedido,
+        tipo=tipo_origen,
+        nuevo_estado=estado_nuevo,
+        actor=None,
+        origen="kds",
+    )

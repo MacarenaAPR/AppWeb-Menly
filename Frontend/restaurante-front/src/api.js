@@ -51,7 +51,7 @@ const extraerMensajeApi = (data, fallbackMessage) => {
   if (!data) return fallbackMessage;
   if (typeof data === "string") return data;
 
-  const mensaje = data.error || data.detail || data.message || data.mensaje;
+  const mensaje = data.message || data.mensaje || data.error || data.detail;
   if (typeof mensaje === "string") return mensaje;
 
   const primerValor = Object.values(data).flat().find((valor) => typeof valor === "string");
@@ -95,7 +95,12 @@ export async function readJsonResponse(response, endpoint, fallbackMessage = "No
   if (!response.ok) {
     console.error(endpoint, response.status, bodyText);
     const fallbackSeguro = mensajeSeguroPorEstado(response.status, fallbackMessage);
-    throw new Error(response.status >= 500 ? fallbackSeguro : extraerMensajeApi(data, fallbackSeguro));
+    const error = new Error(
+      response.status >= 500 ? fallbackSeguro : extraerMensajeApi(data, fallbackSeguro)
+    );
+    error.status = response.status;
+    error.payload = data;
+    throw error;
   }
 
   return data;

@@ -1,5 +1,5 @@
 
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -9,13 +9,18 @@ from rest_framework import status
 from datetime import date, datetime, time, timedelta
 from importlib import import_module
 from unittest.mock import patch
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from django.db import close_old_connections
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, HistorialEstadoPedidoWhatsApp, HistorialEstadoPedidoManual, HistorialEstadoPedidoEspecial, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host, validar_horario_reserva
 from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
+from .services.estados_pedidos import TransicionEstadoInvalida, cambiar_estado_pedido
 from .services.cocina import obtener_comandas_activas
+from .services.metricas.pedidos import pedidos_manuales_activos, pedidos_manuales_finalizados
 from .serializers import PedidoWhatsAppDashboardSerializer
 from django.core.cache import cache
 
@@ -486,7 +491,7 @@ class PedidoManualDashboardTests(BaseTestCase):
 
         pedido_id = pedido_data["id"]
         response = self.client.patch(
-            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/estado/",
             {"estado": PedidoManual.ESTADO_PREPARANDO},
             format="json",
         )
@@ -570,32 +575,32 @@ class PedidoManualDashboardTests(BaseTestCase):
         pedido_id = response.json()["pedido"]["id"]
 
         response = self.client.patch(
-            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/estado/",
             {"estado": PedidoManual.ESTADO_PREPARANDO},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         response = self.client.patch(
-            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/estado/",
             {"estado": PedidoManual.ESTADO_PENDIENTE},
             format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
         response = self.client.patch(
-            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/estado/",
             {"estado": PedidoManual.ESTADO_CANCELADO},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         response = self.client.patch(
-            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/estado/",
             {"estado": PedidoManual.ESTADO_LISTO},
             format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
     def test_metricas_pedidos_calcula_venta_diaria_menly_solo_hoy_no_cancelados(self):
         hoy = timezone.localtime(timezone.now())
@@ -739,12 +744,12 @@ class PedidosCancelacionIrreversibleTests(BaseTestCase):
                 pedido_whatsapp,
             ),
             (
-                f"/api/mi-restaurante/pedidos/manuales/{pedido_manual.id}/",
+                f"/api/mi-restaurante/pedidos/manuales/{pedido_manual.id}/estado/",
                 PedidoManual.ESTADO_LISTO,
                 pedido_manual,
             ),
             (
-                f"/api/mi-restaurante/pedidos/especiales/{pedido_especial.id}/",
+                f"/api/mi-restaurante/pedidos/especiales/{pedido_especial.id}/estado/",
                 PedidoEspecial.ESTADO_LISTO,
                 pedido_especial,
             ),
@@ -753,11 +758,8 @@ class PedidosCancelacionIrreversibleTests(BaseTestCase):
         for endpoint, estado_nuevo, pedido in casos:
             with self.subTest(endpoint=endpoint):
                 response = self.client.patch(endpoint, {"estado": estado_nuevo}, format="json")
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-                self.assertIn(
-                    "Un pedido cancelado no puede volver a otro estado.",
-                    str(response.data),
-                )
+                self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+                self.assertEqual(response.data["error"], "transicion_estado_invalida")
                 pedido.refresh_from_db()
                 self.assertEqual(pedido.estado, "cancelado")
 
@@ -901,6 +903,134 @@ class CocinaComandasTests(BaseTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         pedido.refresh_from_db()
         self.assertEqual(pedido.estado, PedidoManual.ESTADO_ENTREGADO)
+        historiales = HistorialEstadoPedidoManual.objects.filter(pedido=pedido).order_by("fecha", "id")
+        self.assertEqual(historiales.count(), 2)
+        self.assertTrue(all(item.origen == "kds" for item in historiales))
+        self.assertEqual(historiales[0].estado_anterior, PedidoManual.ESTADO_PREPARANDO)
+        self.assertEqual(historiales[0].estado_nuevo, PedidoManual.ESTADO_LISTO)
+
+    def test_cocina_delivery_manual_entrega_al_repartidor_y_sale_del_kds(self):
+        self.activar_cocina()
+        pedido = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_DELIVERY,
+            direccion="Calle delivery 123",
+            subtotal=1500,
+            total=1500,
+            estado=PedidoManual.ESTADO_LISTO,
+        )
+
+        comandas = self.client.get("/api/cocina/comandas/")
+        comanda = next(item for item in comandas.data["comandas"] if item["id"] == f"menly:{pedido.id}")
+        self.assertEqual(comanda["transiciones_permitidas"], [PedidoManual.ESTADO_EN_REPARTO])
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/menly:{pedido.id}/estado/",
+            {"estado": PedidoManual.ESTADO_EN_REPARTO},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.estado, PedidoManual.ESTADO_EN_REPARTO)
+        historial = HistorialEstadoPedidoManual.objects.get(pedido=pedido)
+        self.assertEqual(historial.estado_anterior, PedidoManual.ESTADO_LISTO)
+        self.assertEqual(historial.estado_nuevo, PedidoManual.ESTADO_EN_REPARTO)
+        self.assertEqual(historial.origen, "kds")
+
+        comandas = self.client.get("/api/cocina/comandas/")
+        self.assertNotIn(f"menly:{pedido.id}", {item["id"] for item in comandas.data["comandas"]})
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/menly:{pedido.id}/estado/",
+            {"estado": PedidoManual.ESTADO_ENTREGADO},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_cocina_delivery_whatsapp_entrega_al_repartidor(self):
+        self.activar_cocina()
+        self.restaurante.delivery_activo = True
+        self.restaurante.save(update_fields=["delivery_activo"])
+        pedido = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Delivery WhatsApp",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_DELIVERY,
+            direccion_entrega="Calle delivery 456",
+            productos_snapshot=[],
+            total=1500,
+            estado=PedidoWhatsApp.ESTADO_LISTO,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+
+        comandas = self.client.get("/api/cocina/comandas/")
+        comanda = next(item for item in comandas.data["comandas"] if item["id"] == f"whatsapp:{pedido.id}")
+        self.assertEqual(comanda["transiciones_permitidas"], [PedidoWhatsApp.ESTADO_EN_REPARTO])
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/whatsapp:{pedido.id}/estado/",
+            {"estado": PedidoWhatsApp.ESTADO_EN_REPARTO},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.estado, PedidoWhatsApp.ESTADO_EN_REPARTO)
+        historial = HistorialEstadoPedidoWhatsApp.objects.get(pedido=pedido)
+        self.assertEqual(historial.origen, "kds")
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/whatsapp:{pedido.id}/estado/",
+            {"estado": PedidoWhatsApp.ESTADO_ENTREGADO},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(HistorialEstadoPedidoWhatsApp.objects.filter(pedido=pedido).count(), 1)
+
+    def test_cocina_rechaza_misma_transicion_invalida_que_panel(self):
+        self.activar_cocina()
+        pedido = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=1500,
+            total=1500,
+            estado=PedidoManual.ESTADO_PREPARANDO,
+        )
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/menly:{pedido.id}/estado/",
+            {"estado": "entregado"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["error"], "transicion_estado_invalida")
+        self.assertEqual(HistorialEstadoPedidoManual.objects.filter(pedido=pedido).count(), 0)
+
+    def test_cocina_no_accede_a_pedido_de_otro_restaurante(self):
+        self.activar_cocina()
+        pedido = PedidoManual.objects.create(
+            restaurante=self.otro_restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=1500,
+            total=1500,
+            estado=PedidoManual.ESTADO_PREPARANDO,
+        )
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/menly:{pedido.id}/estado/",
+            {"estado": "listo"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(HistorialEstadoPedidoManual.objects.filter(pedido=pedido).count(), 0)
 
     def test_cerrar_cocina_invalida_sesion(self):
         self.activar_cocina()
@@ -3142,13 +3272,19 @@ class SeguridadCriticaTests(BaseTestCase):
         self.assertEqual(crear_response.status_code, status.HTTP_201_CREATED)
         pedido_id = crear_response.data["pedido"]["id"]
 
-        actualizar_response = self.client.patch(
-            f"/api/mi-restaurante/pedidos/especiales/{pedido_id}/",
-            {"estado": PedidoEspecial.ESTADO_ENTREGADO},
-            format="json",
-        )
+        actualizar_response = None
+        for estado in [
+            PedidoEspecial.ESTADO_EN_PREPARACION,
+            PedidoEspecial.ESTADO_LISTO,
+            PedidoEspecial.ESTADO_ENTREGADO,
+        ]:
+            actualizar_response = self.client.patch(
+                f"/api/mi-restaurante/pedidos/especiales/{pedido_id}/estado/",
+                {"estado": estado},
+                format="json",
+            )
+            self.assertEqual(actualizar_response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(actualizar_response.status_code, status.HTTP_200_OK)
         solicitud.refresh_from_db()
         self.assertEqual(solicitud.estado, "completada")
 
@@ -3200,13 +3336,19 @@ class SeguridadCriticaTests(BaseTestCase):
         )
 
         self.client.force_authenticate(user=self.dueno)
-        response = self.client.patch(
-            f"/api/mi-restaurante/pedidos/especiales/{pedido.id}/",
-            {"estado": PedidoEspecial.ESTADO_ENTREGADO},
-            format="json",
-        )
+        response = None
+        for estado in [
+            PedidoEspecial.ESTADO_EN_PREPARACION,
+            PedidoEspecial.ESTADO_LISTO,
+            PedidoEspecial.ESTADO_ENTREGADO,
+        ]:
+            response = self.client.patch(
+                f"/api/mi-restaurante/pedidos/especiales/{pedido.id}/estado/",
+                {"estado": estado},
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
         solicitud.refresh_from_db()
         pedido.refresh_from_db()
         self.assertEqual(solicitud.estado, "completada")
@@ -4826,6 +4968,409 @@ class PedidosPublicosIdempotenciaTests(BaseTestCase):
         self.assertEqual(segundo.status_code, status.HTTP_201_CREATED)
         self.assertEqual(PedidoWhatsApp.objects.count(), 2)
         self.assertEqual(PedidoIdempotencia.objects.count(), 2)
+
+
+class EstadosPedidosCentralizadosTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.restaurante.pedidos_pos = True
+        self.restaurante.delivery_activo = True
+        self.restaurante.save(update_fields=["pedidos_pos", "delivery_activo"])
+        self.client.force_authenticate(user=self.dueno)
+
+    def crear_whatsapp(self, estado=PedidoWhatsApp.ESTADO_RECIBIDO, delivery=False, restaurante=None):
+        restaurante = restaurante or self.restaurante
+        return PedidoWhatsApp.objects.create(
+            restaurante=restaurante,
+            numero_pedido=PedidoWhatsApp.objects.filter(restaurante=restaurante).count() + 1,
+            nombre_cliente="Cliente",
+            telefono_cliente="56911111111",
+            tipo_entrega=(
+                PedidoWhatsApp.TIPO_DELIVERY
+                if delivery else PedidoWhatsApp.TIPO_RETIRO_LOCAL
+            ),
+            direccion_entrega="Calle 1" if delivery else None,
+            productos_snapshot=[],
+            total=1000,
+            estado=estado,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+
+    def crear_manual(
+        self,
+        estado=PedidoManual.ESTADO_PENDIENTE,
+        restaurante=None,
+        tipo_entrega=PedidoManual.TIPO_RETIRO,
+    ):
+        restaurante = restaurante or self.restaurante
+        return PedidoManual.objects.create(
+            restaurante=restaurante,
+            numero_pedido=PedidoManual.objects.filter(restaurante=restaurante).count() + 1,
+            tipo_entrega=tipo_entrega,
+            direccion="Calle delivery 123" if tipo_entrega == PedidoManual.TIPO_DELIVERY else "",
+            numero_mesa="8" if tipo_entrega == PedidoManual.TIPO_MESA else "",
+            subtotal=1000,
+            total=1000,
+            estado=estado,
+        )
+
+    def crear_especial(self, estado=PedidoEspecial.ESTADO_PENDIENTE, restaurante=None):
+        restaurante = restaurante or self.restaurante
+        return PedidoEspecial.objects.create(
+            restaurante=restaurante,
+            numero_pedido=PedidoEspecial.objects.filter(restaurante=restaurante).count() + 1,
+            nombre_cliente="Cliente especial",
+            telefono_cliente="56911111111",
+            items=[],
+            total=1000,
+            fecha_entrega=timezone.localdate(),
+            estado=estado,
+        )
+
+    def endpoint(self, tipo, pedido):
+        return f"/api/mi-restaurante/pedidos/{tipo}/{pedido.id}/estado/"
+
+    def test_panel_aplica_flujo_completo_y_crea_historial_por_tipo(self):
+        casos = [
+            (
+                "whatsapp",
+                self.crear_whatsapp(),
+                ["en_preparacion", "listo", "entregado"],
+                HistorialEstadoPedidoWhatsApp,
+            ),
+            (
+                "manuales",
+                self.crear_manual(),
+                ["preparando", "listo", "entregado"],
+                HistorialEstadoPedidoManual,
+            ),
+            (
+                "especiales",
+                self.crear_especial(),
+                ["en_preparacion", "listo", "entregado"],
+                HistorialEstadoPedidoEspecial,
+            ),
+        ]
+
+        for tipo_url, pedido, estados, historial_modelo in casos:
+            with self.subTest(tipo=tipo_url):
+                for estado in estados:
+                    response = self.client.patch(
+                        self.endpoint(tipo_url, pedido),
+                        {"estado": estado},
+                        format="json",
+                    )
+                    self.assertEqual(response.status_code, status.HTTP_200_OK)
+                pedido.refresh_from_db()
+                self.assertEqual(pedido.estado, "entregado")
+                historiales = historial_modelo.objects.filter(pedido=pedido).order_by("fecha", "id")
+                self.assertEqual(historiales.count(), 3)
+                self.assertTrue(all(item.origen == "panel" for item in historiales))
+
+    def test_delivery_whatsapp_pasa_de_listo_a_reparto_y_entregado(self):
+        pedido = self.crear_whatsapp(estado=PedidoWhatsApp.ESTADO_LISTO, delivery=True)
+
+        reparto = self.client.patch(
+            self.endpoint("whatsapp", pedido),
+            {"estado": "en_reparto"},
+            format="json",
+        )
+        entregado = self.client.patch(
+            self.endpoint("whatsapp", pedido),
+            {"estado": "entregado"},
+            format="json",
+        )
+
+        self.assertEqual(reparto.status_code, status.HTTP_200_OK)
+        self.assertEqual(entregado.status_code, status.HTTP_200_OK)
+        self.assertEqual(HistorialEstadoPedidoWhatsApp.objects.filter(pedido=pedido).count(), 2)
+
+    def test_delivery_manual_pasa_de_listo_a_reparto_y_panel_lo_entrega(self):
+        pedido = self.crear_manual(
+            estado=PedidoManual.ESTADO_LISTO,
+            tipo_entrega=PedidoManual.TIPO_DELIVERY,
+        )
+
+        reparto = self.client.patch(
+            self.endpoint("manuales", pedido),
+            {"estado": PedidoManual.ESTADO_EN_REPARTO},
+            format="json",
+        )
+        self.assertEqual(reparto.status_code, status.HTTP_200_OK)
+        self.assertEqual(reparto.data["pedido"]["estado_display"], "En reparto")
+        self.assertEqual(
+            reparto.data["pedido"]["transiciones_permitidas"],
+            [PedidoManual.ESTADO_ENTREGADO],
+        )
+
+        entregado = self.client.patch(
+            self.endpoint("manuales", pedido),
+            {"estado": PedidoManual.ESTADO_ENTREGADO},
+            format="json",
+        )
+        self.assertEqual(entregado.status_code, status.HTTP_200_OK)
+
+        historiales = list(
+            HistorialEstadoPedidoManual.objects.filter(pedido=pedido).order_by("fecha", "id")
+        )
+        self.assertEqual(len(historiales), 2)
+        self.assertEqual(historiales[0].estado_anterior, PedidoManual.ESTADO_LISTO)
+        self.assertEqual(historiales[0].estado_nuevo, PedidoManual.ESTADO_EN_REPARTO)
+        self.assertEqual(historiales[1].estado_anterior, PedidoManual.ESTADO_EN_REPARTO)
+        self.assertEqual(historiales[1].estado_nuevo, PedidoManual.ESTADO_ENTREGADO)
+        self.assertTrue(all(item.origen == "panel" for item in historiales))
+
+    def test_manual_no_delivery_rechaza_reparto_y_reparto_no_retrocede_ni_cancela(self):
+        for tipo_entrega in [PedidoManual.TIPO_RETIRO, PedidoManual.TIPO_MESA]:
+            with self.subTest(tipo_entrega=tipo_entrega):
+                pedido = self.crear_manual(
+                    estado=PedidoManual.ESTADO_LISTO,
+                    tipo_entrega=tipo_entrega,
+                )
+                response = self.client.patch(
+                    self.endpoint("manuales", pedido),
+                    {"estado": PedidoManual.ESTADO_EN_REPARTO},
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+        for estado in [PedidoManual.ESTADO_LISTO, PedidoManual.ESTADO_PREPARANDO, PedidoManual.ESTADO_CANCELADO]:
+            with self.subTest(estado=estado):
+                pedido = self.crear_manual(
+                    estado=PedidoManual.ESTADO_EN_REPARTO,
+                    tipo_entrega=PedidoManual.TIPO_DELIVERY,
+                )
+                response = self.client.patch(
+                    self.endpoint("manuales", pedido),
+                    {"estado": estado},
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_delivery_listo_no_puede_saltar_directamente_a_entregado(self):
+        casos = [
+            ("manuales", self.crear_manual(
+                estado=PedidoManual.ESTADO_LISTO,
+                tipo_entrega=PedidoManual.TIPO_DELIVERY,
+            )),
+            ("whatsapp", self.crear_whatsapp(
+                estado=PedidoWhatsApp.ESTADO_LISTO,
+                delivery=True,
+            )),
+        ]
+        for tipo, pedido in casos:
+            with self.subTest(tipo=tipo):
+                response = self.client.patch(
+                    self.endpoint(tipo, pedido),
+                    {"estado": "entregado"},
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_tracking_y_metricas_tratan_manual_en_reparto_como_activo(self):
+        pedido = self.crear_manual(
+            estado=PedidoManual.ESTADO_EN_REPARTO,
+            tipo_entrega=PedidoManual.TIPO_DELIVERY,
+        )
+
+        tracking = self.client.get(f"/api/public/pedidos/seguimiento/{pedido.tracking_token}/")
+        self.assertEqual(tracking.status_code, status.HTTP_200_OK)
+        self.assertEqual(tracking.data["estado"], PedidoManual.ESTADO_EN_REPARTO)
+        self.assertEqual(tracking.data["estado_display"], "En reparto")
+        self.assertTrue(pedidos_manuales_activos(self.restaurante).filter(pk=pedido.pk).exists())
+        self.assertFalse(pedidos_manuales_finalizados(self.restaurante).filter(pk=pedido.pk).exists())
+
+    def test_reparto_se_rechaza_para_pedido_no_delivery(self):
+        pedido = self.crear_whatsapp(estado=PedidoWhatsApp.ESTADO_LISTO)
+
+        response = self.client.patch(
+            self.endpoint("whatsapp", pedido),
+            {"estado": "en_reparto"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["error"], "transicion_estado_invalida")
+        self.assertEqual(HistorialEstadoPedidoWhatsApp.objects.filter(pedido=pedido).count(), 0)
+
+    def test_transiciones_invalidas_y_terminales_se_rechazan_sin_historial(self):
+        casos = [
+            ("whatsapp", self.crear_whatsapp(), "listo", HistorialEstadoPedidoWhatsApp),
+            ("manuales", self.crear_manual(), "entregado", HistorialEstadoPedidoManual),
+            ("especiales", self.crear_especial(estado="entregado"), "cancelado", HistorialEstadoPedidoEspecial),
+            ("whatsapp", self.crear_whatsapp(estado="cancelado"), "en_preparacion", HistorialEstadoPedidoWhatsApp),
+        ]
+
+        for tipo_url, pedido, solicitado, historial_modelo in casos:
+            with self.subTest(tipo=tipo_url, solicitado=solicitado):
+                response = self.client.patch(
+                    self.endpoint(tipo_url, pedido),
+                    {"estado": solicitado},
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+                self.assertEqual(response.data["error"], "transicion_estado_invalida")
+                self.assertEqual(historial_modelo.objects.filter(pedido=pedido).count(), 0)
+
+    def test_cancelacion_desde_pendiente_preparacion_y_listo(self):
+        fabricas = [
+            (
+                "whatsapp",
+                self.crear_whatsapp,
+                ["recibido", "en_preparacion", "listo"],
+                HistorialEstadoPedidoWhatsApp,
+            ),
+            (
+                "manuales",
+                self.crear_manual,
+                ["pendiente", "preparando", "listo"],
+                HistorialEstadoPedidoManual,
+            ),
+            (
+                "especiales",
+                self.crear_especial,
+                ["pendiente", "en_preparacion", "listo"],
+                HistorialEstadoPedidoEspecial,
+            ),
+        ]
+
+        for tipo_url, fabrica, estados, historial_modelo in fabricas:
+            for estado_actual in estados:
+                with self.subTest(tipo=tipo_url, estado=estado_actual):
+                    pedido = fabrica(estado=estado_actual)
+                    response = self.client.patch(
+                        self.endpoint(tipo_url, pedido),
+                        {"estado": "cancelado"},
+                        format="json",
+                    )
+                    self.assertEqual(response.status_code, status.HTTP_200_OK)
+                    pedido.refresh_from_db()
+                    self.assertEqual(pedido.estado, "cancelado")
+                    historial = historial_modelo.objects.get(pedido=pedido)
+                    self.assertEqual(historial.estado_anterior, estado_actual)
+                    self.assertEqual(historial.estado_nuevo, "cancelado")
+
+    def test_estado_inexistente_devuelve_400(self):
+        pedido = self.crear_manual()
+
+        response = self.client.patch(
+            self.endpoint("manuales", pedido),
+            {"estado": "teletransportado"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["error"], "estado_invalido")
+
+    def test_estado_repetido_es_idempotente_y_no_crea_historial(self):
+        pedido = self.crear_especial(estado="listo")
+
+        response = self.client.patch(
+            self.endpoint("especiales", pedido),
+            {"estado": "listo"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["estado_sin_cambios"])
+        self.assertEqual(HistorialEstadoPedidoEspecial.objects.filter(pedido=pedido).count(), 0)
+
+    def test_patch_generico_no_puede_cambiar_estado(self):
+        casos = [
+            ("whatsapp", self.crear_whatsapp()),
+            ("manuales", self.crear_manual()),
+            ("especiales", self.crear_especial()),
+        ]
+
+        for tipo_url, pedido in casos:
+            with self.subTest(tipo=tipo_url):
+                response = self.client.patch(
+                    f"/api/mi-restaurante/pedidos/{tipo_url}/{pedido.id}/",
+                    {"estado": "listo"},
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                pedido.refresh_from_db()
+                self.assertNotEqual(pedido.estado, "listo")
+
+    def test_panel_no_accede_a_pedido_de_otro_restaurante(self):
+        pedidos = [
+            ("whatsapp", self.crear_whatsapp(restaurante=self.otro_restaurante)),
+            ("manuales", self.crear_manual(restaurante=self.otro_restaurante)),
+            ("especiales", self.crear_especial(restaurante=self.otro_restaurante)),
+        ]
+
+        for tipo_url, pedido in pedidos:
+            with self.subTest(tipo=tipo_url):
+                response = self.client.patch(
+                    self.endpoint(tipo_url, pedido),
+                    {"estado": "en_preparacion"},
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class EstadosPedidosConcurrenciaTests(TransactionTestCase):
+    reset_sequences = True
+
+    def setUp(self):
+        self.restaurante = Restaurante.objects.create(
+            nombre_empresa="Restaurante concurrencia",
+            slug="restaurante-concurrencia",
+            rut="33333333-3",
+            telefono="56933333333",
+            email_contacto="concurrencia@test.com",
+            direccion="Calle 3",
+            ciudad="Santiago",
+            activo=True,
+        )
+        self.pedido = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            estado=PedidoManual.ESTADO_PREPARANDO,
+            subtotal=1000,
+            total=1000,
+        )
+
+    def test_dos_transiciones_concurrentes_releen_estado_bajo_lock(self):
+        barrera = Barrier(2)
+
+        def intentar(nuevo_estado):
+            close_old_connections()
+            pedido = PedidoManual.objects.get(pk=self.pedido.pk)
+            barrera.wait(timeout=10)
+            try:
+                cambiar_estado_pedido(
+                    pedido,
+                    nuevo_estado,
+                    tipo="manual",
+                    origen="panel",
+                )
+                return "ok"
+            except TransicionEstadoInvalida:
+                return "conflicto"
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=2) as ejecutor:
+            resultados = list(ejecutor.map(intentar, ["listo", "cancelado"]))
+
+        self.pedido.refresh_from_db()
+        historiales = list(
+            HistorialEstadoPedidoManual.objects
+            .filter(pedido=self.pedido)
+            .order_by("fecha", "id")
+        )
+        self.assertIn("ok", resultados)
+        self.assertEqual(
+            sum(item.estado_anterior == PedidoManual.ESTADO_PREPARANDO for item in historiales),
+            1,
+        )
+        for anterior, siguiente in zip(historiales, historiales[1:]):
+            self.assertEqual(siguiente.estado_anterior, anterior.estado_nuevo)
+        self.assertEqual(self.pedido.estado, PedidoManual.ESTADO_CANCELADO)
 
 
 class MetodosPagoPedidosTests(BaseTestCase):

@@ -586,6 +586,15 @@ class PedidoIdempotencia(models.Model):
 
 
 class HistorialEstadoPedidoWhatsApp(models.Model):
+    ORIGEN_PANEL = "panel"
+    ORIGEN_KDS = "kds"
+    ORIGEN_SISTEMA = "sistema"
+    ORIGENES = [
+        (ORIGEN_PANEL, "Panel"),
+        (ORIGEN_KDS, "KDS"),
+        (ORIGEN_SISTEMA, "Sistema"),
+    ]
+
     pedido = models.ForeignKey(
         PedidoWhatsApp,
         on_delete=models.CASCADE,
@@ -602,6 +611,7 @@ class HistorialEstadoPedidoWhatsApp(models.Model):
         related_name="historial_estados_pedidos_whatsapp"
     )
     observacion = models.TextField(blank=True)
+    origen = models.CharField(max_length=20, choices=ORIGENES, default=ORIGEN_SISTEMA)
 
     class Meta:
         ordering = ["-fecha"]
@@ -694,6 +704,7 @@ class PedidoManual(models.Model):
     ESTADO_PENDIENTE = "pendiente"
     ESTADO_PREPARANDO = "preparando"
     ESTADO_LISTO = "listo"
+    ESTADO_EN_REPARTO = "en_reparto"
     ESTADO_ENTREGADO = "entregado"
     ESTADO_CANCELADO = "cancelado"
 
@@ -701,6 +712,7 @@ class PedidoManual(models.Model):
         (ESTADO_PENDIENTE, "Pendiente"),
         (ESTADO_PREPARANDO, "Preparando"),
         (ESTADO_LISTO, "Listo"),
+        (ESTADO_EN_REPARTO, "En reparto"),
         (ESTADO_ENTREGADO, "Entregado"),
         (ESTADO_CANCELADO, "Cancelado"),
     ]
@@ -767,6 +779,64 @@ class PedidoManual(models.Model):
             raise ValidationError("No se pudo generar un token de seguimiento unico.")
 
         super().save(*args, **kwargs)
+
+
+class HistorialEstadoPedidoManual(models.Model):
+    pedido = models.ForeignKey(
+        PedidoManual,
+        on_delete=models.CASCADE,
+        related_name="historial_estados",
+    )
+    estado_anterior = models.CharField(max_length=30, blank=True)
+    estado_nuevo = models.CharField(max_length=30)
+    fecha = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="historial_estados_pedidos_manuales",
+    )
+    origen = models.CharField(
+        max_length=20,
+        choices=HistorialEstadoPedidoWhatsApp.ORIGENES,
+        default=HistorialEstadoPedidoWhatsApp.ORIGEN_SISTEMA,
+    )
+
+    class Meta:
+        ordering = ["-fecha"]
+        indexes = [
+            models.Index(fields=["pedido", "-fecha"], name="histpedm_pedido_fecha_idx"),
+        ]
+
+
+class HistorialEstadoPedidoEspecial(models.Model):
+    pedido = models.ForeignKey(
+        PedidoEspecial,
+        on_delete=models.CASCADE,
+        related_name="historial_estados",
+    )
+    estado_anterior = models.CharField(max_length=30, blank=True)
+    estado_nuevo = models.CharField(max_length=30)
+    fecha = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="historial_estados_pedidos_especiales",
+    )
+    origen = models.CharField(
+        max_length=20,
+        choices=HistorialEstadoPedidoWhatsApp.ORIGENES,
+        default=HistorialEstadoPedidoWhatsApp.ORIGEN_SISTEMA,
+    )
+
+    class Meta:
+        ordering = ["-fecha"]
+        indexes = [
+            models.Index(fields=["pedido", "-fecha"], name="histpede_pedido_fecha_idx"),
+        ]
 
 
 class PedidoManualItem(models.Model):

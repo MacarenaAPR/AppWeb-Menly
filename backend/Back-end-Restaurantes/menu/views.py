@@ -52,6 +52,11 @@ from menu.services.metricas.resumen import (
 )
 from menu.services.estado_restaurante import calcular_estado_restaurante
 from menu.services.pedidos_whatsapp import calcular_hash_pedido_publico
+from menu.services.estados_pedidos import (
+    EstadoPedidoInvalido,
+    TransicionEstadoInvalida,
+    cambiar_estado_pedido,
+)
 from menu.services.cocina import (
     cambiar_estado_comanda,
     consumir_activacion_cocina,
@@ -1829,6 +1834,53 @@ def calcular_reporte_anual(restaurante):
     return construir_reporte_anual(restaurante)
 
 
+def cambiar_estado_desde_panel(request, pedido, tipo, serializer_class):
+    entrada = PedidoWhatsAppEstadoUpdateSerializer(data=request.data)
+    if not entrada.is_valid():
+        return Response(
+            {
+                "error": "estado_invalido",
+                "message": "El estado solicitado no es válido.",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        pedido, sin_cambios = cambiar_estado_pedido(
+            pedido=pedido,
+            tipo=tipo,
+            nuevo_estado=entrada.validated_data["estado"],
+            actor=request.user,
+            origen="panel",
+        )
+    except EstadoPedidoInvalido:
+        return Response(
+            {
+                "error": "estado_invalido",
+                "message": "El estado solicitado no es válido.",
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    except TransicionEstadoInvalida as error:
+        return Response(
+            {
+                "error": "transicion_estado_invalida",
+                "message": str(error),
+                "estado_actual": error.estado_actual,
+                "estado_solicitado": error.estado_solicitado,
+                "estados_permitidos": error.estados_permitidos,
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    respuesta = {
+        "message": "Estado del pedido actualizado correctamente.",
+        "pedido": serializer_class(pedido, context={"request": request}).data,
+    }
+    if sin_cambios:
+        respuesta["estado_sin_cambios"] = True
+    return Response(respuesta)
+
+
 class PedidosWhatsAppDashboardView(TenantScopedQuerysetMixin, APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
@@ -1883,20 +1935,12 @@ class PedidoWhatsAppDetalleDashboardView(TenantScopedQuerysetMixin, APIView):
 class PedidoWhatsAppEstadoDashboardView(PedidoWhatsAppDetalleDashboardView):
     def patch(self, request, pedido_id):
         pedido = self.get_pedido(request, pedido_id)
-        serializer = PedidoWhatsAppEstadoUpdateSerializer(
+        return cambiar_estado_desde_panel(
+            request,
             pedido,
-            data=request.data,
-            context={"usuario": request.user},
+            "whatsapp",
+            PedidoWhatsAppDashboardSerializer,
         )
-
-        if serializer.is_valid():
-            pedido = serializer.save()
-            return Response({
-                "message": "Estado del pedido actualizado correctamente.",
-                "pedido": PedidoWhatsAppDashboardSerializer(pedido).data,
-            })
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PedidosEspecialesDashboardView(APIView):
@@ -1961,6 +2005,17 @@ class PedidoEspecialDetalleDashboardView(APIView):
             })
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PedidoEspecialEstadoDashboardView(PedidoEspecialDetalleDashboardView):
+    def patch(self, request, pedido_id):
+        pedido = self.get_pedido(request, pedido_id)
+        return cambiar_estado_desde_panel(
+            request,
+            pedido,
+            "especial",
+            PedidoEspecialSerializer,
+        )
 
 
 class PedidosManualesDashboardView(APIView):
@@ -2053,6 +2108,17 @@ class PedidoManualDetalleDashboardView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class PedidoManualEstadoDashboardView(PedidoManualDetalleDashboardView):
+    def patch(self, request, pedido_id):
+        pedido = self.get_pedido(request, pedido_id)
+        return cambiar_estado_desde_panel(
+            request,
+            pedido,
+            "manual",
+            PedidoManualSerializer,
+        )
+
+
 def aplicar_headers_cocina(response):
     response["Cache-Control"] = "no-store"
     response["X-Robots-Tag"] = "noindex, nofollow"
@@ -2134,15 +2200,36 @@ class CocinaComandaEstadoView(APIView):
             return aplicar_headers_cocina(response)
 
         estado = request.data.get("estado")
-        if estado not in ["listo", "entregado"]:
+        try:
+            pedido, sin_cambios = cambiar_estado_comanda(
+                sesion.restaurante,
+                pedido_id,
+                estado,
+            )
+        except EstadoPedidoInvalido:
             return aplicar_headers_cocina(Response(
-                {"estado": "Cocina solo puede marcar pedidos como listo o entregado."},
+                {
+                    "error": "estado_invalido",
+                    "message": "El estado solicitado no es válido.",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             ))
-
-        pedido, error = cambiar_estado_comanda(sesion.restaurante, pedido_id, estado)
-        if error:
-            return aplicar_headers_cocina(Response({"error": error}, status=status.HTTP_400_BAD_REQUEST))
+        except TransicionEstadoInvalida as error:
+            return aplicar_headers_cocina(Response(
+                {
+                    "error": "transicion_estado_invalida",
+                    "message": str(error),
+                    "estado_actual": error.estado_actual,
+                    "estado_solicitado": error.estado_solicitado,
+                    "estados_permitidos": error.estados_permitidos,
+                },
+                status=status.HTTP_409_CONFLICT,
+            ))
+        if not pedido:
+            return aplicar_headers_cocina(Response(
+                {"error": "Comanda no encontrada."},
+                status=status.HTTP_404_NOT_FOUND,
+            ))
 
         response = Response({
             "message": "Estado actualizado correctamente.",
@@ -2151,6 +2238,8 @@ class CocinaComandaEstadoView(APIView):
                 "estado": pedido.estado,
             },
         })
+        if sin_cambios:
+            response.data["estado_sin_cambios"] = True
         renovar_sesion_cocina(response, request, sesion)
         return aplicar_headers_cocina(response)
 

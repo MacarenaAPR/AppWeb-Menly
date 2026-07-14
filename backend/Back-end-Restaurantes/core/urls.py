@@ -25,7 +25,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from menu.views import menu_api,CustomLoginView, CookieTokenRefreshView, PasswordResetRequestView, ContactoView, ContactoPlanesAPIView, MiRestauranteView,ProductoListView,ProductoUpdateView, ProductoVariantesView, ProductoVarianteDetalleView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
 from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, RestauranteEstadoAperturaView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SeguimientoPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
 from menu.views import NotificacionesDashboardView, NotificacionesContadorView, NotificacionDetalleView, NotificacionMarcarLeidaView
-from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidoWhatsAppEstadoDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidosManualesDashboardView, PedidoManualDetalleDashboardView, CocinaActivacionDashboardView, CocinaActivarView, CocinaComandasView, CocinaComandaEstadoView, CocinaCerrarView, PedidosMetricasDashboardView, MetricasResumenView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
+from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidoWhatsAppEstadoDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidoEspecialEstadoDashboardView, PedidosManualesDashboardView, PedidoManualDetalleDashboardView, PedidoManualEstadoDashboardView, CocinaActivacionDashboardView, CocinaActivarView, CocinaComandasView, CocinaComandaEstadoView, CocinaCerrarView, PedidosMetricasDashboardView, MetricasResumenView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
 from menu.views import CategoriasView, CategoriaDetalleView
 from menu.views import MesasView, MesaDetalleView,IconosView
 from menu.views import HorariosView, HorarioDetalleView
@@ -229,6 +229,11 @@ urlpatterns = [
         PedidoEspecialDetalleDashboardView.as_view(),
         name="pedido-especial-dashboard-detalle"
     ),
+    path(
+        "api/mi-restaurante/pedidos/especiales/<int:pedido_id>/estado/",
+        PedidoEspecialEstadoDashboardView.as_view(),
+        name="pedido-especial-dashboard-estado"
+    ),
 
     path(
         "api/mi-restaurante/pedidos/manuales/",
@@ -246,6 +251,11 @@ urlpatterns = [
         "api/mi-restaurante/pedidos/manuales/<int:pedido_id>/",
         PedidoManualDetalleDashboardView.as_view(),
         name="pedido-manual-dashboard-detalle"
+    ),
+    path(
+        "api/mi-restaurante/pedidos/manuales/<int:pedido_id>/estado/",
+        PedidoManualEstadoDashboardView.as_view(),
+        name="pedido-manual-dashboard-estado"
     ),
 
     path(

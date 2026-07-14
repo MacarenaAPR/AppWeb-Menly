@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, ProductoVariante, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, HistorialEstadoPedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica
+from .models import Producto, ProductoVariante, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica
 from .utils import crear_notificacion_pedido_especial
 from .services.pedidos_whatsapp import (
     crear_pedido_whatsapp,
@@ -14,6 +14,7 @@ from .services.pedidos_whatsapp import (
     obtener_whatsapp_destino,
 )
 from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
+from .services.estados_pedidos import obtener_transiciones_permitidas
 from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
@@ -603,6 +604,7 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
     tipo_entrega_display = serializers.CharField(source="get_tipo_entrega_display", read_only=True)
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
     productos = PedidoWhatsAppProductoInputSerializer(many=True, required=False, write_only=True)
+    transiciones_permitidas = serializers.SerializerMethodField()
 
     class Meta:
         model = PedidoWhatsApp
@@ -621,6 +623,7 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
             "total",
             "estado",
             "estado_display",
+            "transiciones_permitidas",
             "fecha_creacion",
             "fecha_actualizacion_estado",
             "mensaje_whatsapp_generado",
@@ -638,30 +641,16 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
             "productos_snapshot",
             "total",
             "estado_display",
+            "estado",
+            "transiciones_permitidas",
             "fecha_creacion",
             "fecha_actualizacion_estado",
             "mensaje_whatsapp_generado",
             "whatsapp_destino",
         ]
 
-    def validate_estado(self, value):
-        if value not in dict(PedidoWhatsApp.ESTADOS):
-            raise serializers.ValidationError("Estado inválido.")
-        if (
-            self.instance
-            and self.instance.estado == PedidoWhatsApp.ESTADO_CANCELADO
-            and value != PedidoWhatsApp.ESTADO_CANCELADO
-        ):
-            raise serializers.ValidationError("Un pedido cancelado no puede volver a otro estado.")
-        if value == PedidoWhatsApp.ESTADO_EN_REPARTO:
-            pedido = self.instance
-            restaurante = self.context.get("restaurante") or getattr(pedido, "restaurante", None)
-            tipo_entrega = getattr(pedido, "tipo_entrega", None)
-            if not restaurante or not restaurante.delivery_activo:
-                raise serializers.ValidationError("El delivery no esta activo para este restaurante.")
-            if tipo_entrega != PedidoWhatsApp.TIPO_DELIVERY:
-                raise serializers.ValidationError("Solo los pedidos delivery pueden pasar a En reparto.")
-        return value
+    def get_transiciones_permitidas(self, pedido):
+        return obtener_transiciones_permitidas(pedido, "whatsapp", "panel")
 
 
     def validate(self, data):
@@ -697,7 +686,7 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         productos_editados = "productos_snapshot" in validated_data
 
-        for attr in ["estado", "direccion_entrega", "productos_snapshot", "total"]:
+        for attr in ["direccion_entrega", "productos_snapshot", "total"]:
             if attr in validated_data:
                 setattr(instance, attr, validated_data[attr])
 
@@ -709,41 +698,7 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
 
 
 class PedidoWhatsAppEstadoUpdateSerializer(serializers.Serializer):
-    estado = serializers.ChoiceField(choices=PedidoWhatsApp.ESTADOS)
-
-    def validate_estado(self, value):
-        if (
-            self.instance.estado == PedidoWhatsApp.ESTADO_CANCELADO
-            and value != PedidoWhatsApp.ESTADO_CANCELADO
-        ):
-            raise serializers.ValidationError("Un pedido cancelado no puede volver a otro estado.")
-        if value != PedidoWhatsApp.ESTADO_EN_REPARTO:
-            return value
-
-        pedido = self.instance
-        if not pedido.restaurante.delivery_activo:
-            raise serializers.ValidationError("El delivery no esta activo para este restaurante.")
-        if pedido.tipo_entrega != PedidoWhatsApp.TIPO_DELIVERY:
-            raise serializers.ValidationError("Solo los pedidos delivery pueden pasar a En reparto.")
-        return value
-
-    def update(self, instance, validated_data):
-        estado_anterior = instance.estado
-        estado_nuevo = validated_data["estado"]
-
-        if estado_anterior == estado_nuevo:
-            return instance
-
-        instance.estado = estado_nuevo
-        instance.save(update_fields=["estado"])
-        HistorialEstadoPedidoWhatsApp.objects.create(
-            pedido=instance,
-            estado_anterior=estado_anterior,
-            estado_nuevo=estado_nuevo,
-            usuario=self.context.get("usuario"),
-            observacion=self.context.get("observacion", ""),
-        )
-        return instance
+    estado = serializers.CharField(max_length=30, trim_whitespace=True)
 
     def create(self, validated_data):
         raise NotImplementedError("Este serializer solo actualiza pedidos existentes.")
@@ -811,6 +766,7 @@ class PedidoEspecialItemSerializer(serializers.Serializer):
 
 class PedidoEspecialSerializer(serializers.ModelSerializer):
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    transiciones_permitidas = serializers.SerializerMethodField()
     items = PedidoEspecialItemSerializer(many=True)
     solicitud_especial_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
 
@@ -830,6 +786,7 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
             "fecha_entrega",
             "estado",
             "estado_display",
+            "transiciones_permitidas",
             "fecha_creacion",
             "fecha_actualizacion",
         ]
@@ -839,6 +796,8 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
             "solicitud_especial",
             "total",
             "estado_display",
+            "estado",
+            "transiciones_permitidas",
             "fecha_creacion",
             "fecha_actualizacion",
         ]
@@ -849,14 +808,8 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
             "descripcion_original": {"required": False, "allow_blank": True},
         }
 
-    def validate_estado(self, value):
-        if (
-            self.instance
-            and self.instance.estado == PedidoEspecial.ESTADO_CANCELADO
-            and value != PedidoEspecial.ESTADO_CANCELADO
-        ):
-            raise serializers.ValidationError("Un pedido cancelado no puede volver a otro estado.")
-        return value
+    def get_transiciones_permitidas(self, pedido):
+        return obtener_transiciones_permitidas(pedido, "especial", "panel")
 
     def _normalizar_items(self, items):
         normalizados = []
@@ -952,94 +905,12 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
 
             return pedido
 
-    def _buscar_solicitud_relacionada(self, instance):
-        if instance.solicitud_especial_id:
-            return instance.solicitud_especial
-
-        solicitud = SolicitudEspecial.objects.filter(
-            restaurante=instance.restaurante,
-            estado="aceptada",
-            fecha_evento=instance.fecha_entrega,
-            telefono_contacto=instance.telefono_cliente,
-            email_contacto=instance.email_cliente,
-            descripcion_solicitud=instance.descripcion_original,
-        ).order_by("-fecha_creacion", "-id").first()
-
-        if solicitud:
-            instance.solicitud_especial = solicitud
-            instance.save(update_fields=["solicitud_especial", "fecha_actualizacion"])
-            logger.warning(
-                "Pedido especial sin solicitud_especial_id fue vinculado por coincidencia",
-                extra={
-                    "pedido_especial_id": instance.id,
-                    "pedido_especial_estado": instance.estado,
-                    "pedido_especial_solicitud_id": instance.solicitud_especial_id,
-                    "solicitud_estado_anterior": solicitud.estado,
-                },
-            )
-
-        return solicitud
-
-    def _completar_solicitud_si_entregado(self, instance):
-        if str(instance.estado).lower() != PedidoEspecial.ESTADO_ENTREGADO:
-            return
-
-        solicitud = self._buscar_solicitud_relacionada(instance)
-        logger.info(
-            "Sincronizando pedido especial entregado con solicitud especial",
-            extra={
-                "pedido_especial_id": instance.id,
-                "pedido_especial_estado": instance.estado,
-                "pedido_especial_solicitud_id": instance.solicitud_especial_id,
-                "solicitud_estado_anterior": solicitud.estado if solicitud else None,
-            },
-        )
-
-        if not solicitud:
-            logger.warning(
-                "Pedido especial entregado sin solicitud especial relacionada",
-                extra={
-                    "pedido_especial_id": instance.id,
-                    "pedido_especial_estado": instance.estado,
-                    "pedido_especial_solicitud_id": instance.solicitud_especial_id,
-                },
-            )
-            return
-
-        if solicitud.estado != "completada":
-            estado_anterior = solicitud.estado
-            solicitud.estado = "completada"
-            solicitud.save(update_fields=["estado", "fecha_actualizacion"])
-            logger.info(
-                "Solicitud especial completada por pedido especial entregado",
-                extra={
-                    "pedido_especial_id": instance.id,
-                    "pedido_especial_estado": instance.estado,
-                    "pedido_especial_solicitud_id": instance.solicitud_especial_id,
-                    "solicitud_estado_anterior": estado_anterior,
-                    "solicitud_estado_nuevo": solicitud.estado,
-                },
-            )
-        else:
-            logger.info(
-                "Solicitud especial ya estaba completada",
-                extra={
-                    "pedido_especial_id": instance.id,
-                    "pedido_especial_estado": instance.estado,
-                    "pedido_especial_solicitud_id": instance.solicitud_especial_id,
-                    "solicitud_estado_anterior": solicitud.estado,
-                    "solicitud_estado_nuevo": solicitud.estado,
-                },
-            )
-
     def update(self, instance, validated_data):
         validated_data.pop("solicitud_especial", None)
         with transaction.atomic():
             for attr, value in validated_data.items():
                 setattr(instance, attr, value)
             instance.save()
-
-            self._completar_solicitud_si_entregado(instance)
 
         return instance
 
@@ -1081,6 +952,7 @@ class PedidoManualSerializer(serializers.ModelSerializer):
     tracking_url = serializers.SerializerMethodField()
     cliente_nombre = serializers.CharField(source="nombre_cliente", read_only=True)
     cliente_telefono = serializers.CharField(source="telefono_cliente", read_only=True)
+    transiciones_permitidas = serializers.SerializerMethodField()
 
     class Meta:
         model = PedidoManual
@@ -1093,6 +965,7 @@ class PedidoManualSerializer(serializers.ModelSerializer):
             "origen_display",
             "estado",
             "estado_display",
+            "transiciones_permitidas",
             "nombre_cliente",
             "telefono_cliente",
             "cliente_nombre",
@@ -1119,6 +992,8 @@ class PedidoManualSerializer(serializers.ModelSerializer):
             "origen",
             "origen_display",
             "estado_display",
+            "estado",
+            "transiciones_permitidas",
             "cliente_nombre",
             "cliente_telefono",
             "subtotal",
@@ -1135,7 +1010,6 @@ class PedidoManualSerializer(serializers.ModelSerializer):
             "direccion": {"required": False, "allow_blank": True},
             "numero_mesa": {"required": False, "allow_blank": True},
             "observaciones": {"required": False, "allow_blank": True},
-            "estado": {"required": False},
         }
 
     def get_creado_por_nombre(self, pedido):
@@ -1146,40 +1020,14 @@ class PedidoManualSerializer(serializers.ModelSerializer):
     def get_tracking_url(self, pedido):
         return get_tracking_url(pedido, request=self.context.get("request"))
 
+    def get_transiciones_permitidas(self, pedido):
+        return obtener_transiciones_permitidas(pedido, "manual", "panel")
+
     def to_internal_value(self, data):
         if "items" in data and "items_input" not in data:
             data = data.copy()
             data["items_input"] = data.get("items")
         return super().to_internal_value(data)
-
-    def validate_estado(self, value):
-        if value not in dict(PedidoManual.ESTADOS):
-            raise serializers.ValidationError("Estado invalido.")
-
-        if not self.instance:
-            return value
-
-        estado_actual = self.instance.estado
-        if estado_actual == value:
-            return value
-
-        if estado_actual == PedidoManual.ESTADO_CANCELADO:
-            raise serializers.ValidationError("Un pedido cancelado no puede volver a otro estado.")
-
-        if estado_actual == PedidoManual.ESTADO_ENTREGADO and value != PedidoManual.ESTADO_CANCELADO:
-            raise serializers.ValidationError("Un pedido entregado no puede volver a estados anteriores.")
-
-        orden = [
-            PedidoManual.ESTADO_PENDIENTE,
-            PedidoManual.ESTADO_PREPARANDO,
-            PedidoManual.ESTADO_LISTO,
-            PedidoManual.ESTADO_ENTREGADO,
-        ]
-        if value != PedidoManual.ESTADO_CANCELADO:
-            if estado_actual in orden and value in orden and orden.index(value) < orden.index(estado_actual):
-                raise serializers.ValidationError("No se puede retroceder el estado del pedido.")
-
-        return value
 
     def validate(self, data):
         tipo_entrega = data.get("tipo_entrega", getattr(self.instance, "tipo_entrega", None))

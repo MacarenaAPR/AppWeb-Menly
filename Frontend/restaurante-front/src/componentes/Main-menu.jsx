@@ -13,6 +13,7 @@ import { tieneSesionAdmin } from "../session/adminSession";
 export default function MainMenu({
     mobileMenuOpen: controlledMobileMenuOpen,
     onMobileMenuOpenChange,
+    initialData = null,
 } = {}){
     const [data, setData] = useState(null);
     const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
@@ -22,6 +23,8 @@ export default function MainMenu({
     const navigate = useNavigate();
     const location = useLocation();
  useEffect(() => {
+    if (initialData) return undefined;
+
     const fetchRestaurante = async () => {
       try {
         if (!tieneSesionAdmin()) {
@@ -53,21 +56,24 @@ export default function MainMenu({
     };
 
     fetchRestaurante();
-  }, [slug, navigate]);
+    return undefined;
+  }, [initialData, slug, navigate]);
 
-  if (loading) {
+  const menuData = initialData || data;
+
+  if (!initialData && loading) {
     return <p>Cargando dashboard...</p>;
   }
 
-  if (error) {
+  if (!initialData && error) {
     return <div className="alert alert-danger">{error}</div>;
   }
 
-  if (!data) {
+  if (!menuData) {
     return <p>No hay datos disponibles</p>;
   }
 
-  const { restaurante, usuario } = data;
+  const { restaurante, usuario } = menuData;
   const permisos = permisosPorRol(usuario?.rol || restaurante?.rol);
   const restauranteSlug = restaurante?.slug;
   const paginaWebUrl = restauranteSlug ? `https://${restauranteSlug}.menly.cl` : "";

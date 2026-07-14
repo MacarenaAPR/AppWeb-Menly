@@ -19,7 +19,7 @@ export const ESTADOS_PEDIDO_ESPECIAL = [
   "cancelado",
   "completado",
 ];
-export const ESTADOS_PEDIDO_MANUAL = ["pendiente", "preparando", "listo", "entregado", "cancelado"];
+export const ESTADOS_PEDIDO_MANUAL = ["pendiente", "preparando", "listo", "en_reparto", "entregado", "cancelado"];
 
 export const estadoLabels = {
   recibido: "Pedido recibido",
@@ -43,15 +43,34 @@ export const obtenerTipoPedidoDashboard = (pedido) =>
 export const obtenerEstadosPedido = (tipo, pedido, { deliveryActivo = false } = {}) => {
   const tipoNormalizado = normalizarTipoPedido(tipo);
 
-  if (tipoNormalizado === "manual") return ESTADOS_PEDIDO_MANUAL;
-  if (tipoNormalizado === "especial") return ESTADOS_PEDIDO_ESPECIAL;
-  if (tipoNormalizado !== "whatsapp") return [];
-  if (!deliveryActivo || pedido?.tipo_entrega !== "delivery") return ESTADOS_PEDIDO_BASE;
+  if (Array.isArray(pedido?.transiciones_permitidas)) {
+    return [
+      pedido.estado,
+      ...pedido.transiciones_permitidas.filter((estado) => estado !== pedido.estado),
+    ];
+  }
 
-  const estados = [...ESTADOS_PEDIDO_BASE];
-  const indiceListo = estados.indexOf("listo");
-  estados.splice(indiceListo >= 0 ? indiceListo + 1 : estados.length, 0, ESTADO_EN_REPARTO);
-  return estados;
+  const siguientePreparacion = tipoNormalizado === "manual" ? "preparando" : "en_preparacion";
+  const transicionesFallback = {
+    pendiente: [siguientePreparacion, "cancelado"],
+    recibido: ["en_preparacion", "cancelado"],
+    pendiente_confirmacion: ["en_preparacion", "cancelado"],
+    confirmado: ["en_preparacion", "cancelado"],
+    preparando: ["listo", "cancelado"],
+    en_preparacion: ["listo", "cancelado"],
+    listo: ["entregado", "cancelado"],
+    en_reparto: ["entregado"],
+    entregado: [],
+    cancelado: [],
+  };
+  let permitidas = [...(transicionesFallback[pedido?.estado] || [])];
+  const admiteReparto =
+    pedido?.tipo_entrega === "delivery" &&
+    (tipoNormalizado === "manual" || (tipoNormalizado === "whatsapp" && deliveryActivo));
+  if (pedido?.estado === "listo" && admiteReparto) {
+    permitidas = [ESTADO_EN_REPARTO, "cancelado"];
+  }
+  return pedido?.estado ? [pedido.estado, ...permitidas] : [];
 };
 
 export const obtenerEndpointDetallePedido = (tipo, id) => {
@@ -66,7 +85,7 @@ export const obtenerEndpointActualizacionPedido = (tipo, id, datos = {}) => {
   const tipoNormalizado = normalizarTipoPedido(tipo);
   const endpoint = obtenerEndpointDetallePedido(tipoNormalizado, id);
   const esCambioSoloEstado =
-    tipoNormalizado === "whatsapp" &&
+    ["whatsapp", "manual", "especial"].includes(tipoNormalizado) &&
     Object.keys(datos).length === 1 &&
     Object.prototype.hasOwnProperty.call(datos, "estado");
 

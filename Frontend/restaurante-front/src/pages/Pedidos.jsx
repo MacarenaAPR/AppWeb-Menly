@@ -6,8 +6,6 @@ import { useSearchParams } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { permisosPorRol } from "../utils/permisos";
 import {
-  ESTADOS_PEDIDO_ESPECIAL,
-  ESTADOS_PEDIDO_MANUAL,
   ESTADO_CANCELADO,
   estadoLabels,
   normalizarTipoPedido,
@@ -15,7 +13,7 @@ import {
   obtenerEndpointDetallePedido,
   obtenerEstadosPedido,
 } from "../utils/pedidos";
-const PEDIDOS_POLLING_MS = 30000;
+const PEDIDOS_POLLING_MS = 10000;
 
 const formEspecialInicial = {
   nombre_cliente: "",
@@ -150,6 +148,7 @@ export default function PedidosDashboard() {
   const [cancelacionPendiente, setCancelacionPendiente] = useState(null);
   const [confirmandoCancelacion, setConfirmandoCancelacion] = useState(false);
   const [cancelacionError, setCancelacionError] = useState("");
+  const [estadoError, setEstadoError] = useState("");
   const [observacionManualEditor, setObservacionManualEditor] = useState(null);
   const [varianteManualSelector, setVarianteManualSelector] = useState(null);
   const [detalleItems, setDetalleItems] = useState([]);
@@ -163,6 +162,9 @@ export default function PedidosDashboard() {
   const formularioEspecialAbiertoRef = useRef(false);
   const formularioManualAbiertoRef = useRef(false);
   const observacionManualButtonsRef = useRef({});
+  const estadoErrorTimerRef = useRef(null);
+  const ultimoErrorEstadoRef = useRef("");
+  const cargaInicialPromiseRef = useRef(null);
   const pedidoQueryTipo = normalizarTipoPedido(searchParams.get("tipo"));
   const pedidoQueryId = searchParams.get("pedido");
 
@@ -174,6 +176,15 @@ export default function PedidosDashboard() {
   const puedeAbrirCocina = ["dueno", "admin"].includes(usuario?.rol);
   const obtenerEstadosPedidoWhatsapp = (pedido) =>
     obtenerEstadosPedido("whatsapp", pedido, { deliveryActivo });
+  const obtenerEstadosPedidoPanel = (tipo, pedido) =>
+    obtenerEstadosPedido(tipo, pedido, { deliveryActivo });
+
+  const mostrarErrorEstado = (mensaje) => {
+    ultimoErrorEstadoRef.current = mensaje;
+    setEstadoError(mensaje);
+    window.clearTimeout(estadoErrorTimerRef.current);
+    estadoErrorTimerRef.current = window.setTimeout(() => setEstadoError(""), 5000);
+  };
 
   const tabsDisponibles = useMemo(() => {
     const tabs = [];
@@ -182,6 +193,10 @@ export default function PedidosDashboard() {
     if (especialesActivo) tabs.push("especiales");
     return tabs;
   }, [posActivo, whatsappActivo, especialesActivo]);
+  const mainMenuData = useMemo(
+    () => (restaurante ? { restaurante, usuario } : null),
+    [restaurante, usuario]
+  );
 
   const cargarRestaurante = useCallback(async () => {
     const response = await authFetch("/mi-restaurante/", { cache: "no-store" });
@@ -196,15 +211,25 @@ export default function PedidosDashboard() {
     return data;
   }, []);
 
-  const cargarPedidos = useCallback(async (restauranteActual, rolActual = usuario?.rol) => {
+  const cargarMetricas = useCallback(async (rolActual) => {
+    if (permisosPorRol(rolActual).isEmpleado) {
+      setMetricas({ whatsapp: {}, especiales: {} });
+      return;
+    }
+
+    const response = await authFetch("/mi-restaurante/pedidos/metricas/");
+    const data = await readJsonResponse(
+      response,
+      "/mi-restaurante/pedidos/metricas/",
+      "No se pudieron cargar las metricas."
+    );
+    setMetricas(data);
+  }, []);
+
+  const cargarListasPedidos = useCallback(async (restauranteActual) => {
     if (!restauranteActual) return;
 
-    const empleadoActual = permisosPorRol(rolActual).isEmpleado;
     const requests = [];
-
-    if (!empleadoActual) {
-      requests.push(authFetch("/mi-restaurante/pedidos/metricas/"));
-    }
 
     if (restauranteActual.carrito_whatsapp_activo === true) {
       requests.push(authFetch("/mi-restaurante/pedidos/whatsapp/"));
@@ -220,18 +245,6 @@ export default function PedidosDashboard() {
 
     const respuestas = await Promise.all(requests);
     let indice = 0;
-
-    if (!empleadoActual) {
-      const metricasData = await readJsonResponse(
-        respuestas[indice],
-        "/mi-restaurante/pedidos/metricas/",
-        "No se pudieron cargar las metricas."
-      );
-      setMetricas(metricasData);
-      indice += 1;
-    } else {
-      setMetricas({ whatsapp: {}, especiales: {} });
-    }
 
     if (restauranteActual.carrito_whatsapp_activo === true) {
       const data = await readJsonResponse(
@@ -269,9 +282,22 @@ export default function PedidosDashboard() {
     } else {
       setPedidosManuales([]);
     }
-  }, [usuario?.rol]);
+  }, []);
+
+  const cargarPedidos = useCallback(
+    async (restauranteActual, rolActual) => {
+      if (!restauranteActual) return;
+      await Promise.all([
+        cargarMetricas(rolActual),
+        cargarListasPedidos(restauranteActual),
+      ]);
+    },
+    [cargarListasPedidos, cargarMetricas]
+  );
 
   useEffect(() => {
+    if (cargaInicialPromiseRef.current) return undefined;
+
     const cargar = async () => {
       setLoading(true);
       try {
@@ -292,7 +318,8 @@ export default function PedidosDashboard() {
       }
     };
 
-    cargar();
+    cargaInicialPromiseRef.current = cargar();
+    return undefined;
   }, [cargarPedidos, cargarRestaurante]);
 
   useEffect(() => {
@@ -313,13 +340,13 @@ export default function PedidosDashboard() {
     const intervalId = window.setInterval(() => {
       if (detalleAbiertoRef.current || formularioEspecialAbiertoRef.current || formularioManualAbiertoRef.current) return;
 
-      cargarPedidos(restaurante).catch(() => {
+      cargarPedidos(restaurante, usuario?.rol).catch(() => {
         // El polling es silencioso: conserva la vista actual si un refresco falla.
       });
     }, PEDIDOS_POLLING_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [cargarPedidos, restaurante]);
+  }, [cargarPedidos, restaurante, usuario?.rol]);
 
   const actualizarPedido = async (tipo, id, datos) => {
 
@@ -361,26 +388,47 @@ export default function PedidosDashboard() {
         );
       }
 
-      await cargarPedidos(restaurante);
+      await cargarMetricas(usuario?.rol);
 
-      return true;
-    } catch {
+      return pedidoActualizado;
+    } catch (requestError) {
+      const mensaje = requestError.message || "No se pudo actualizar el pedido.";
+      mostrarErrorEstado(mensaje);
+      if (requestError.status === 409) {
+        await cargarListasPedidos(restaurante);
+        try {
+          const detalleEndpoint = obtenerEndpointDetallePedido(tipo, id);
+          const detalleResponse = await authFetch(detalleEndpoint, { cache: "no-store" });
+          const pedidoReal = await readJsonResponse(
+            detalleResponse,
+            detalleEndpoint,
+            "No se pudo refrescar el pedido."
+          );
+          setDetalle((actual) => (
+            actual && actual.tipo === tipo && Number(actual.pedido.id) === Number(id)
+              ? { ...actual, pedido: pedidoReal }
+              : actual
+          ));
+        } catch {
+          // La lista ya fue refrescada; el polling volverá a intentar el detalle.
+        }
+      }
       return false;
     }
   };
 
   const ejecutarCambioEstado = async (tipo, pedido, estado) => {
-    const actualizado = await actualizarPedido(tipo, pedido.id, { estado });
+    const pedidoActualizado = await actualizarPedido(tipo, pedido.id, { estado });
 
-    if (actualizado) {
+    if (pedidoActualizado) {
       setDetalle((actual) => (
         actual && actual.tipo === tipo && Number(actual.pedido.id) === Number(pedido.id)
-          ? { ...actual, pedido: { ...actual.pedido, estado } }
+          ? { ...actual, pedido: pedidoActualizado }
           : actual
       ));
     }
 
-    return actualizado;
+    return Boolean(pedidoActualizado);
   };
 
   const solicitarCambioEstado = (tipo, pedido, estado) => {
@@ -406,6 +454,7 @@ export default function PedidosDashboard() {
 
     setConfirmandoCancelacion(true);
     setCancelacionError("");
+    ultimoErrorEstadoRef.current = "";
     const actualizado = await ejecutarCambioEstado(
       cancelacionPendiente.tipo,
       cancelacionPendiente.pedido,
@@ -415,7 +464,9 @@ export default function PedidosDashboard() {
     if (actualizado) {
       setCancelacionPendiente(null);
     } else {
-      setCancelacionError("No se pudo cancelar el pedido. Inténtalo nuevamente.");
+      setCancelacionError(
+        ultimoErrorEstadoRef.current || "No se pudo cancelar el pedido. Inténtalo nuevamente."
+      );
     }
     setConfirmandoCancelacion(false);
   };
@@ -695,7 +746,7 @@ export default function PedidosDashboard() {
       setMostrarFormularioEspecial(false);
       setPedidoEditando(null);
       setFormEspecial(formEspecialInicial);
-      await cargarPedidos(restaurante);
+      await cargarPedidos(restaurante, usuario?.rol);
     } catch {
       // Conserva el formulario abierto para permitir corregir o reintentar.
     }
@@ -1047,7 +1098,7 @@ export default function PedidosDashboard() {
       setFormManual(formManualInicial);
       setPedidoManualEditando(null);
       setTabActiva("menly");
-      await cargarPedidos(restaurante);
+      await cargarPedidos(restaurante, usuario?.rol);
     } catch {
       // Conserva el formulario abierto para permitir corregir o reintentar.
     } finally {
@@ -1066,7 +1117,7 @@ export default function PedidosDashboard() {
   return (
     <div className="body">
       <main className="container-fluid" id="main">
-        <MainMenu />
+        <MainMenu initialData={mainMenuData} />
 
         <section className="reservas-page pedidos-page">
           <header className="reservas-header">
@@ -1078,6 +1129,12 @@ export default function PedidosDashboard() {
               <strong>Pedidos</strong>
             </div>
           </header>
+
+          {estadoError && (
+            <div className="pedido-estado-error-toast" role="alert">
+              {estadoError}
+            </div>
+          )}
 
           {tabsDisponibles.length === 0 ? (
             <section className="reservas-table-card">
@@ -1243,7 +1300,7 @@ export default function PedidosDashboard() {
                                 <i className="bi bi-whatsapp"></i>
                               </button>
                               <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => solicitarCambioEstado("manual", pedido, e.target.value)}>
-                                {ESTADOS_PEDIDO_MANUAL.map((estado) => (
+                                {obtenerEstadosPedidoPanel("manual", pedido).map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
@@ -1347,7 +1404,7 @@ export default function PedidosDashboard() {
                                 <i className="bi bi-pencil-square"></i>
                               </button>
                               <select className="pedido-estado-select pedido-list-status-select" aria-label={`Cambiar estado del pedido ${pedido.numero_pedido}`} value={pedido.estado} onChange={(e) => solicitarCambioEstado("especial", pedido, e.target.value)}>
-                                {ESTADOS_PEDIDO_ESPECIAL.map((estado) => (
+                                {obtenerEstadosPedidoPanel("especial", pedido).map((estado) => (
                                   <option key={estado} value={estado}>{estadoLabels[estado]}</option>
                                 ))}
                               </select>
@@ -1442,7 +1499,7 @@ export default function PedidosDashboard() {
                             value={detalle.pedido.estado}
                             onChange={(e) => solicitarCambioEstado("manual", detalle.pedido, e.target.value)}
                           >
-                            {ESTADOS_PEDIDO_MANUAL.map((estado) => (
+                            {obtenerEstadosPedidoPanel("manual", detalle.pedido).map((estado) => (
                               <option key={estado} value={estado}>
                                 {estadoLabels[estado]}
                               </option>

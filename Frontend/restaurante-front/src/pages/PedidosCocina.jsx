@@ -9,6 +9,7 @@ const estadoLabels = {
   en_preparacion: "En preparacion",
   preparando: "En preparacion",
   listo: "Listo",
+  en_reparto: "En reparto",
   entregado: "Entregado",
 };
 
@@ -34,9 +35,13 @@ const minutosTranscurridos = (valor) => {
 function ComandaCard({ comanda, onCambiarEstado, actualizando }) {
   const estado = comanda.estado === "preparando" ? "en_preparacion" : comanda.estado;
   const minutos = minutosTranscurridos(comanda.hora_creacion);
-  const accion = estado === "listo"
-    ? { estado: "entregado", texto: "Marcar entregado", icono: "bi-check2-circle" }
-    : { estado: "listo", texto: "Marcar listo", icono: "bi-bell" };
+  const siguienteEstado = comanda.transiciones_permitidas?.[0];
+  const acciones = {
+    listo: { estado: "listo", texto: "Marcar listo", icono: "bi-bell" },
+    en_reparto: { estado: "en_reparto", texto: "Entregado al repartidor", icono: "bi-truck" },
+    entregado: { estado: "entregado", texto: "Marcar entregado", icono: "bi-check2-circle" },
+  };
+  const accion = acciones[siguienteEstado];
 
   return (
     <article className={`cocina-comanda cocina-comanda-${estado}`}>
@@ -75,14 +80,16 @@ function ComandaCard({ comanda, onCambiarEstado, actualizando }) {
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={() => onCambiarEstado(comanda.id, accion.estado)}
-        disabled={actualizando}
-      >
-        <i className={`bi ${accion.icono}`}></i>
-        {actualizando ? "Actualizando..." : accion.texto}
-      </button>
+      {accion && (
+        <button
+          type="button"
+          onClick={() => onCambiarEstado(comanda.id, accion.estado)}
+          disabled={actualizando}
+        >
+          <i className={`bi ${accion.icono}`}></i>
+          {actualizando ? "Actualizando..." : accion.texto}
+        </button>
+      )}
     </article>
   );
 }
@@ -173,6 +180,9 @@ export default function PedidosCocina() {
       await cargarComandas({ silent: true });
     } catch (requestError) {
       setError(requestError.message || "No se pudo actualizar la comanda.");
+      if (requestError.status === 409) {
+        await cargarComandas({ silent: true });
+      }
     } finally {
       setActualizandoId("");
     }

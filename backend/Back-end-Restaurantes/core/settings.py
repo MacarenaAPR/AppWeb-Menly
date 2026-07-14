@@ -191,7 +191,7 @@ CSRF_TRUSTED_ORIGINS = config(
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = (*default_headers, "idempotency-key")
-FRONTEND_PUBLIC_URL = config("FRONTEND_PUBLIC_URL", default="http://localhost:5174")
+FRONTEND_PUBLIC_URL = config("FRONTEND_PUBLIC_URL", default="http://localhost:5173")
 COCINA_COOKIE_DOMAIN = config("COCINA_COOKIE_DOMAIN", default="") or None
 ADMIN_COOKIE_DOMAIN = config("ADMIN_COOKIE_DOMAIN", default="") or None
 ADMIN_REFRESH_COOKIE_NAME = "menly_admin_refresh"
