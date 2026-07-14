@@ -1067,6 +1067,121 @@ class CocinaComandasTests(BaseTestCase):
         self.assertIn("menly_cocina_session", response.cookies)
         self.assertTrue(response.cookies["menly_cocina_session"]["httponly"])
 
+    def test_cierre_manual_detiene_comandas_sin_cerrar_sesion_cocina(self):
+        self.activar_cocina()
+        pedido = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=1500,
+            total=1500,
+            estado=PedidoManual.ESTADO_PREPARANDO,
+        )
+        self.restaurante.abierto = False
+        self.restaurante.save(update_fields=["abierto"])
+
+        response = self.client.get("/api/cocina/comandas/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["estado_local"]["abierto"])
+        self.assertEqual(response.data["estado_local"]["motivo"], "cierre_manual")
+        self.assertEqual(response.data["comandas"], [])
+        self.assertTrue(SesionCocina.objects.get().activa)
+        self.assertTrue(PedidoManual.objects.filter(pk=pedido.pk).exists())
+
+    def test_cocina_cerrada_rechaza_gestion_sin_confundirla_con_logout(self):
+        self.activar_cocina()
+        pedido = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=1500,
+            total=1500,
+            estado=PedidoManual.ESTADO_PREPARANDO,
+        )
+        self.restaurante.abierto = False
+        self.restaurante.save(update_fields=["abierto"])
+
+        response = self.client.patch(
+            f"/api/cocina/comandas/menly:{pedido.id}/estado/",
+            {"estado": PedidoManual.ESTADO_LISTO},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data["error"], "local_cerrado")
+        pedido.refresh_from_db()
+        self.assertEqual(pedido.estado, PedidoManual.ESTADO_PREPARANDO)
+        self.assertTrue(SesionCocina.objects.get().esta_vigente())
+
+    def test_apertura_excepcional_reactiva_kds_sin_nueva_sesion(self):
+        self.activar_cocina()
+        sesion_id = SesionCocina.objects.get().id
+        HorarioAtencion.objects.create(
+            restaurante=self.restaurante,
+            dia=timezone.localtime().isoweekday(),
+            cerrado=True,
+            activo=True,
+        )
+
+        cerrado = self.client.get("/api/cocina/estado/")
+        self.assertFalse(cerrado.data["estado_local"]["abierto"])
+
+        self.restaurante.apertura_excepcional_hasta = timezone.now() + timedelta(hours=2)
+        self.restaurante.save(update_fields=["apertura_excepcional_hasta"])
+        abierto = self.client.get("/api/cocina/estado/")
+
+        self.assertEqual(abierto.status_code, status.HTTP_200_OK)
+        self.assertTrue(abierto.data["estado_local"]["abierto"])
+        self.assertEqual(abierto.data["estado_local"]["motivo"], "apertura_excepcional")
+        self.assertEqual(SesionCocina.objects.get().id, sesion_id)
+
+    def test_reapertura_por_horario_reactiva_kds_sin_nueva_sesion(self):
+        self.activar_cocina()
+        sesion_id = SesionCocina.objects.get().id
+        horario = HorarioAtencion.objects.create(
+            restaurante=self.restaurante,
+            dia=timezone.localtime().isoweekday(),
+            cerrado=True,
+            activo=True,
+        )
+        self.assertFalse(
+            self.client.get("/api/cocina/estado/").data["estado_local"]["abierto"]
+        )
+
+        horario.cerrado = False
+        horario.hora_apertura = time(0, 0)
+        horario.hora_cierre = time(23, 59, 59)
+        horario.save(update_fields=["cerrado", "hora_apertura", "hora_cierre"])
+        abierto = self.client.get("/api/cocina/estado/")
+
+        self.assertTrue(abierto.data["estado_local"]["abierto"])
+        self.assertEqual(abierto.data["estado_local"]["motivo"], "dentro_de_horario")
+        self.assertEqual(SesionCocina.objects.get().id, sesion_id)
+
+    def test_dos_clientes_kds_reflejan_el_mismo_estado_del_backend(self):
+        self.activar_cocina()
+        segundo_cliente = APIClient()
+        segundo_cliente.cookies = self.client.cookies.copy()
+        self.restaurante.abierto = False
+        self.restaurante.save(update_fields=["abierto"])
+
+        estado_primero = self.client.get("/api/cocina/estado/")
+        estado_segundo = segundo_cliente.get("/api/cocina/estado/")
+
+        self.assertFalse(estado_primero.data["estado_local"]["abierto"])
+        self.assertFalse(estado_segundo.data["estado_local"]["abierto"])
+
+    def test_estado_cocina_con_sesion_invalida_responde_401(self):
+        self.activar_cocina()
+        sesion = SesionCocina.objects.get()
+        sesion.activa = False
+        sesion.save(update_fields=["activa"])
+
+        response = self.client.get("/api/cocina/estado/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_desactivar_acceso_pos_revoca_sesion_cocina(self):
         self.activar_cocina()
         self.restaurante.pedidos_pos = False
@@ -1078,10 +1193,18 @@ class CocinaComandasTests(BaseTestCase):
 
 
 class AdminCookieSessionTests(BaseTestCase):
-    def login(self):
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+
+    def login(self, remember_me=False):
         return self.client.post(
             "/api/login/",
-            {"email": self.dueno.email, "password": "123456"},
+            {
+                "email": self.dueno.email,
+                "password": "123456",
+                "remember_me": remember_me,
+            },
             format="json",
         )
 
@@ -1095,6 +1218,25 @@ class AdminCookieSessionTests(BaseTestCase):
         self.assertTrue(cookie["httponly"])
         self.assertEqual(cookie["samesite"], "Lax")
         self.assertEqual(cookie["path"], "/api/")
+        self.assertEqual(cookie["max-age"], "")
+        self.assertEqual(
+            response.cookies[settings.ADMIN_REMEMBER_COOKIE_NAME].value,
+            "0",
+        )
+
+    def test_login_recordarme_crea_cookie_persistente_por_siete_dias(self):
+        response = self.login(remember_me=True)
+
+        refresh_cookie = response.cookies[settings.ADMIN_REFRESH_COOKIE_NAME]
+        remember_cookie = response.cookies[settings.ADMIN_REMEMBER_COOKIE_NAME]
+        expected_max_age = int(
+            settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()
+        )
+        self.assertEqual(int(refresh_cookie["max-age"]), expected_max_age)
+        self.assertEqual(int(remember_cookie["max-age"]), expected_max_age)
+        self.assertEqual(remember_cookie.value, "1")
+        self.assertTrue(refresh_cookie["httponly"])
+        self.assertTrue(remember_cookie["httponly"])
 
     def test_refresh_desde_cookie_rota_token_y_entrega_solo_access(self):
         self.login()
@@ -1108,12 +1250,44 @@ class AdminCookieSessionTests(BaseTestCase):
         refresh_nuevo = response.cookies[settings.ADMIN_REFRESH_COOKIE_NAME].value
         self.assertNotEqual(refresh_nuevo, refresh_anterior)
 
+    def test_refresh_conserva_persistencia_recordarme(self):
+        self.login(remember_me=True)
+
+        response = self.client.post("/api/token/refresh/", {}, format="json")
+
+        expected_max_age = int(
+            settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()
+        )
+        self.assertEqual(
+            int(response.cookies[settings.ADMIN_REFRESH_COOKIE_NAME]["max-age"]),
+            expected_max_age,
+        )
+        self.assertEqual(
+            response.cookies[settings.ADMIN_REMEMBER_COOKIE_NAME].value,
+            "1",
+        )
+
+    def test_refresh_conserva_cookie_de_sesion_sin_recordarme(self):
+        self.login(remember_me=False)
+
+        response = self.client.post("/api/token/refresh/", {}, format="json")
+
+        self.assertEqual(
+            response.cookies[settings.ADMIN_REFRESH_COOKIE_NAME]["max-age"],
+            "",
+        )
+        self.assertEqual(
+            response.cookies[settings.ADMIN_REMEMBER_COOKIE_NAME].value,
+            "0",
+        )
+
     def test_logout_revoca_refresh_y_elimina_cookie(self):
         self.login()
         response = self.client.post("/api/logout/", {}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
         self.assertEqual(response.cookies[settings.ADMIN_REFRESH_COOKIE_NAME]["max-age"], 0)
+        self.assertEqual(response.cookies[settings.ADMIN_REMEMBER_COOKIE_NAME]["max-age"], 0)
 
         refresh_response = self.client.post("/api/token/refresh/", {}, format="json")
         self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)

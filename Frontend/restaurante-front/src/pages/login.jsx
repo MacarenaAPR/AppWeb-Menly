@@ -10,7 +10,10 @@ import recursoLogin3 from "../assets/recursologin3.png";
 import {
   consumirMensajeCierreAdmin,
   iniciarSesionAdmin,
+  obtenerEmailRecordado,
+  tieneSesionAdmin,
 } from "../session/adminSession";
+import { restaurarSesionAdmin } from "../api";
 
 const MENLY_WHATSAPP_URL =
   "https://wa.me/56988424939?text=Hola%2C%20quiero%20saber%20m%C3%A1s%20sobre%20Menly";
@@ -48,10 +51,11 @@ const MENLY_JSON_LD = {
 
 export default function Login() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    email: "",
+  const [form, setForm] = useState(() => ({
+    email: obtenerEmailRecordado(),
     password: "",
-  });
+  }));
+  const [recordarme, setRecordarme] = useState(false);
   const [error, setError] = useState("");
   const [sessionMessage] = useState(() => consumirMensajeCierreAdmin());
   const [showPassword, setShowPassword] = useState(false);
@@ -60,6 +64,23 @@ export default function Login() {
   const [resetMessage, setResetMessage] = useState("");
   const [resetError, setResetError] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+
+  useEffect(() => {
+    if (!tieneSesionAdmin()) return undefined;
+    let active = true;
+    restaurarSesionAdmin().then((restored) => {
+      if (!active || !restored) return;
+      try {
+        const restaurante = JSON.parse(localStorage.getItem("restaurante") || "null");
+        if (restaurante?.slug) navigate(`/dashboard/${restaurante.slug}`, { replace: true });
+      } catch {
+        // El formulario queda disponible si faltan datos locales de la sesión.
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
 
   useEffect(() => {
     document.title = SEO_TITLE;
@@ -166,14 +187,14 @@ export default function Login() {
     }
 
     try {
-      const data = await loginRequest(email, form.password);
+      const data = await loginRequest(email, form.password, recordarme);
 
       if (!data.restaurante?.slug) {
         setError("Este usuario no tiene un restaurante asignado");
         return;
       }
 
-      iniciarSesionAdmin(data);
+      iniciarSesionAdmin(data, { recordarme, email });
 
       navigate(`/dashboard/${data.restaurante.slug}`);
     } catch (error) {
@@ -343,6 +364,15 @@ export default function Login() {
                   </button>
                 </div>
               </div>
+
+              <label className="login-remember">
+                <input
+                  type="checkbox"
+                  checked={recordarme}
+                  onChange={(event) => setRecordarme(event.target.checked)}
+                />
+                <span>Recuérdame</span>
+              </label>
 
               {sessionMessage && <p className="form-message success">{sessionMessage}</p>}
               {error && <p className="form-message error">{error}</p>}

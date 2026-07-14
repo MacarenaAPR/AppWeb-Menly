@@ -112,6 +112,7 @@ export function limpiarSesionYRedirigir(motivo = "") {
 }
 
 let refreshPromise = null;
+let logoutPromise = null;
 
 const renovarAccessDesdeCookie = async () => {
   if (!tieneSesionAdmin()) return null;
@@ -151,19 +152,39 @@ const renovarAccessUnaVez = () => {
   return refreshPromise;
 };
 
-export async function cerrarSesionAdmin({ motivo = "manual" } = {}) {
-  try {
-    await fetch(buildApiUrl("/logout/"), {
-      method: "POST",
-      credentials: "include",
-      headers: { Accept: "application/json" },
+export function restaurarSesionAdmin() {
+  if (!tieneSesionAdmin()) return Promise.resolve(false);
+  return renovarAccessUnaVez()
+    .then((token) => {
+      if (token) return true;
+      limpiarSesionAdminLocal({ motivo: "sesion_no_disponible", emitir: false });
+      return false;
+    })
+    .catch(() => {
+      limpiarSesionAdminLocal({ motivo: "sesion_no_disponible", emitir: false });
+      return false;
     });
-  } catch {
-    // El cierre local se completa aunque el backend no este disponible.
-  } finally {
-    limpiarSesionAdminLocal({ motivo });
-    window.location.replace("/");
-  }
+}
+
+export function cerrarSesionAdmin({ motivo = "manual" } = {}) {
+  if (logoutPromise) return logoutPromise;
+
+  logoutPromise = (async () => {
+    try {
+      await fetch(buildApiUrl("/logout/"), {
+        method: "POST",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+    } catch {
+      // El cierre local se completa aunque el backend no este disponible.
+    } finally {
+      limpiarSesionAdminLocal({ motivo });
+      window.location.replace("/");
+    }
+  })();
+
+  return logoutPromise;
 }
 
 export async function authFetch(url, options = {}) {

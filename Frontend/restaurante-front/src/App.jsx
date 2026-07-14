@@ -19,6 +19,7 @@ import SaberMas from './pages/SaberMas'
 import Planes from './pages/Planes'
 import RequireRole from './componentes/RequireRole'
 import Footer from './componentes/Footer'
+import SessionExpiryModal from './componentes/SessionExpiryModal'
 import { useLocation } from 'react-router-dom';
 import useAdminInactivity from './hooks/useAdminInactivity';
 
@@ -42,7 +43,7 @@ function MetricasPlaceholder() {
 function AppContent() {
   const location = useLocation();
   const esRutaCocina = location.pathname.startsWith("/pedidos-cocina");
-  useAdminInactivity(location.pathname);
+  const adminSession = useAdminInactivity(location.pathname);
 
   return (
       <div className={`app-shell ${esRutaCocina ? "app-shell-cocina" : ""}`}>
@@ -83,6 +84,13 @@ function AppContent() {
             </RequireRole>
           } />
         </Routes>
+        {!esRutaCocina && (
+          <SessionExpiryModal
+            warning={adminSession.warning}
+            onKeepSession={adminSession.keepSession}
+            onLogout={adminSession.closeSession}
+          />
+        )}
         {!esRutaCocina && <Footer />}
       </div>
   );

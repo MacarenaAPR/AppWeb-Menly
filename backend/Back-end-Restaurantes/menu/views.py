@@ -69,7 +69,9 @@ from menu.services.cocina import (
 )
 from menu.services.auth_sessions import (
     clear_admin_refresh_cookie,
+    get_admin_remember_me,
     get_admin_refresh_token,
+    parse_remember_me,
     set_admin_refresh_cookie,
 )
 
@@ -2125,6 +2127,17 @@ def aplicar_headers_cocina(response):
     return response
 
 
+def serializar_estado_local_cocina(restaurante):
+    estado = calcular_estado_restaurante(restaurante)
+    return {
+        "abierto": estado["abierto_ahora"],
+        "motivo": estado["motivo"],
+        "dentro_de_horario": estado["dentro_de_horario"],
+        "apertura_excepcional_activa": estado["apertura_excepcional_activa"],
+        "apertura_excepcional_hasta": estado["apertura_excepcional_hasta"],
+    }
+
+
 class CocinaActivacionDashboardView(APIView):
     permission_classes = [IsAuthenticated, CanManageReservas]
 
@@ -2174,7 +2187,12 @@ class CocinaComandasView(APIView):
             limpiar_cookie_cocina(response)
             return aplicar_headers_cocina(response)
 
-        comandas = obtener_comandas_activas(sesion.restaurante)
+        estado_local = serializar_estado_local_cocina(sesion.restaurante)
+        comandas = (
+            obtener_comandas_activas(sesion.restaurante)
+            if estado_local["abierto"]
+            else []
+        )
         response = Response({
             "restaurante": {
                 "nombre_empresa": sesion.restaurante.nombre_empresa,
@@ -2182,7 +2200,34 @@ class CocinaComandasView(APIView):
             },
             "fecha_operativa": sesion.fecha_operativa,
             "expires_at": sesion.expira_en,
+            "estado_local": estado_local,
             "comandas": comandas,
+        })
+        renovar_sesion_cocina(response, request, sesion)
+        return aplicar_headers_cocina(response)
+
+
+class CocinaEstadoView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        sesion = obtener_sesion_cocina(request)
+        if not sesion:
+            response = Response(
+                {"error": "Sesion de cocina expirada o invalida."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            limpiar_cookie_cocina(response)
+            return aplicar_headers_cocina(response)
+
+        response = Response({
+            "restaurante": {
+                "nombre_empresa": sesion.restaurante.nombre_empresa,
+                "slug": sesion.restaurante.slug,
+            },
+            "estado_local": serializar_estado_local_cocina(sesion.restaurante),
+            "expires_at": sesion.expira_en,
         })
         renovar_sesion_cocina(response, request, sesion)
         return aplicar_headers_cocina(response)
@@ -2197,6 +2242,19 @@ class CocinaComandaEstadoView(APIView):
         if not sesion:
             response = Response({"error": "Sesion de cocina expirada o invalida."}, status=status.HTTP_401_UNAUTHORIZED)
             limpiar_cookie_cocina(response)
+            return aplicar_headers_cocina(response)
+
+        estado_local = serializar_estado_local_cocina(sesion.restaurante)
+        if not estado_local["abierto"]:
+            response = Response(
+                {
+                    "error": "local_cerrado",
+                    "message": "El local esta cerrado. No se pueden gestionar comandas.",
+                    "estado_local": estado_local,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+            renovar_sesion_cocina(response, request, sesion)
             return aplicar_headers_cocina(response)
 
         estado = request.data.get("estado")
@@ -3244,7 +3302,11 @@ class CookieTokenRefreshView(APIView):
         rotated_refresh = data.pop("refresh", None)
         response = Response(data, status=status.HTTP_200_OK)
         if rotated_refresh:
-            set_admin_refresh_cookie(response, rotated_refresh)
+            set_admin_refresh_cookie(
+                response,
+                rotated_refresh,
+                remember_me=get_admin_remember_me(request),
+            )
         return response
 
 
@@ -3259,7 +3321,11 @@ class CustomLoginView(TokenObtainPairView):
 
             refresh_token = response.data.pop("refresh", None)
             if refresh_token:
-                set_admin_refresh_cookie(response, refresh_token)
+                set_admin_refresh_cookie(
+                    response,
+                    refresh_token,
+                    remember_me=parse_remember_me(request.data.get("remember_me")),
+                )
             return response
 
 

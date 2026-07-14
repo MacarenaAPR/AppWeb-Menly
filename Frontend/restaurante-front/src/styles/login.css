@@ -716,3 +716,19 @@
     transition: none !important;
   }
 }
+.login-remember {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 9px;
+  color: #c7d2df;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.login-remember input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #ff7a00;
+}

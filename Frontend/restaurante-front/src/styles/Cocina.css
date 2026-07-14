@@ -40,6 +40,33 @@
   color: #94a3b8;
 }
 
+.cocina-closed-card {
+  text-align: center;
+}
+
+.cocina-closed-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.cocina-closed-actions button {
+  min-height: 44px;
+  border: 1px solid #f8761d;
+  border-radius: 8px;
+  padding: 0 16px;
+  color: #fff;
+  background: #f8761d;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cocina-closed-actions button:first-child {
+  color: #f8761d;
+  background: transparent;
+}
+
 .cocina-page {
   padding: 22px;
 }
@@ -273,5 +300,9 @@
 
   .cocina-comanda {
     padding: 13px;
+  }
+
+  .cocina-closed-actions {
+    flex-direction: column;
   }
 }

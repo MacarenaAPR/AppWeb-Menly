@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cocinaFetch, readJsonResponse } from "../api";
+import { getKdsPollingConfig } from "../session/kdsAvailability";
 import "../styles/Cocina.css";
-
-const POLLING_COCINA_MS = 10000;
 
 const estadoLabels = {
   en_preparacion: "En preparacion",
@@ -101,6 +100,7 @@ export default function PedidosCocina() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sesionInvalida, setSesionInvalida] = useState(false);
+  const [estadoLocal, setEstadoLocal] = useState(null);
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
   const [actualizandoId, setActualizandoId] = useState("");
   const [horaActual, setHoraActual] = useState(new Date());
@@ -127,6 +127,7 @@ export default function PedidosCocina() {
         "No se pudieron cargar las comandas."
       );
       setRestaurante(data.restaurante || null);
+      setEstadoLocal(data.estado_local || null);
       setComandas(data.comandas || []);
       setUltimaActualizacion(new Date());
       setSesionInvalida(false);
@@ -140,23 +141,74 @@ export default function PedidosCocina() {
     }
   }, []);
 
+  const consultarEstadoLocal = useCallback(async () => {
+    try {
+      const response = await cocinaFetch("/cocina/estado/");
+      if (response.status === 401) {
+        setSesionInvalida(true);
+        setRestaurante(null);
+        setEstadoLocal(null);
+        setComandas([]);
+        setError("Sesion de cocina expirada o invalida.");
+        return;
+      }
+
+      const data = await readJsonResponse(
+        response,
+        "/cocina/estado/",
+        "No se pudo consultar el estado del local."
+      );
+      setRestaurante(data.restaurante || null);
+      setEstadoLocal(data.estado_local || null);
+      setSesionInvalida(false);
+      setError("");
+
+      if (data.estado_local?.abierto) {
+        await cargarComandas({ silent: true });
+      } else {
+        setComandas([]);
+      }
+    } catch (requestError) {
+      setError(requestError.message || "No se pudo consultar el estado del local.");
+    }
+  }, [cargarComandas]);
+
   useEffect(() => {
     cargarComandas();
   }, [cargarComandas]);
 
   useEffect(() => {
-    if (sesionInvalida) return undefined;
-    const intervalId = window.setInterval(() => {
+    const polling = getKdsPollingConfig({
+      sessionInvalid: sesionInvalida,
+      open: estadoLocal?.abierto,
+    });
+    if (!polling) return undefined;
+
+    const ejecutarConsulta = () => {
       if (document.hidden) return;
-      cargarComandas({ silent: true });
-    }, POLLING_COCINA_MS);
-    const relojId = window.setInterval(() => setHoraActual(new Date()), 30000);
+      if (polling.target === "status") {
+        consultarEstadoLocal();
+      } else {
+        cargarComandas({ silent: true });
+      }
+    };
+    const onVisibilityChange = () => {
+      if (!document.hidden) ejecutarConsulta();
+    };
+    const intervalId = window.setInterval(ejecutarConsulta, polling.intervalMs);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       window.clearInterval(intervalId);
-      window.clearInterval(relojId);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [cargarComandas, sesionInvalida]);
+  }, [cargarComandas, consultarEstadoLocal, estadoLocal?.abierto, sesionInvalida]);
+
+  useEffect(() => {
+    if (sesionInvalida) return undefined;
+    const relojId = window.setInterval(() => setHoraActual(new Date()), 30000);
+    return () => window.clearInterval(relojId);
+  }, [sesionInvalida]);
 
   const agrupadas = useMemo(() => ({
     en_preparacion: comandas.filter((comanda) => comanda.estado === "en_preparacion" || comanda.estado === "preparando"),
@@ -179,6 +231,14 @@ export default function PedidosCocina() {
       );
       await cargarComandas({ silent: true });
     } catch (requestError) {
+      if (requestError.status === 401) {
+        setSesionInvalida(true);
+        setRestaurante(null);
+        setEstadoLocal(null);
+        setComandas([]);
+        setError("Sesion de cocina expirada o invalida.");
+        return;
+      }
       setError(requestError.message || "No se pudo actualizar la comanda.");
       if (requestError.status === 409) {
         await cargarComandas({ silent: true });
@@ -211,6 +271,32 @@ export default function PedidosCocina() {
           <span>Menly Cocina</span>
           <h1>Sesion no disponible</h1>
           <p>{error}</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (estadoLocal?.abierto === false) {
+    return (
+      <main className="cocina-auth-page">
+        <section className="cocina-auth-card cocina-closed-card">
+          <span>Menly Cocina</span>
+          <h1>El local está cerrado</h1>
+          <p>
+            Cocina volverá a mostrar las comandas cuando el restaurante abra nuevamente.
+          </p>
+          <div className="cocina-closed-actions">
+            <button
+              type="button"
+              onClick={() => navigate(`/dashboard/${restaurante?.slug || ""}`, { replace: true })}
+            >
+              Volver al panel
+            </button>
+            <button type="button" onClick={cerrarCocina}>
+              Cerrar sesión de Cocina
+            </button>
+          </div>
+          {error && <p className="cocina-error">{error}</p>}
         </section>
       </main>
     );

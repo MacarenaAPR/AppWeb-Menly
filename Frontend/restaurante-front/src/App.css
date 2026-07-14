@@ -250,3 +250,105 @@ img {
     border-right-color: var(--border);
   }
 }
+.session-expiry-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 8, 18, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.session-expiry-modal {
+  width: min(440px, 100%);
+  padding: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  color: #f8fafc;
+  text-align: center;
+  background: #101923;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.session-expiry-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  color: #ff8a1f;
+  background: rgba(255, 122, 0, 0.12);
+}
+
+.session-expiry-icon i {
+  font-size: 1.35rem;
+}
+
+.session-expiry-modal h2 {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+}
+
+.session-expiry-modal p {
+  margin: 0;
+  color: #aebdce;
+  line-height: 1.5;
+}
+
+.session-expiry-countdown {
+  display: block;
+  margin: 20px 0;
+  color: #ff9a3d;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.session-expiry-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.session-expiry-actions button {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.session-expiry-logout {
+  border: 1px solid #39495c;
+  color: #d9e2ec;
+  background: #182433;
+}
+
+.session-expiry-keep {
+  border: 1px solid #ff7a00;
+  color: #fff;
+  background: #ff7a00;
+}
+
+.session-expiry-actions button:focus-visible {
+  outline: 3px solid rgba(255, 122, 0, 0.32);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .session-expiry-modal {
+    padding: 22px 18px;
+  }
+
+  .session-expiry-actions {
+    flex-direction: column-reverse;
+  }
+
+  .session-expiry-actions button {
+    width: 100%;
+  }
+}

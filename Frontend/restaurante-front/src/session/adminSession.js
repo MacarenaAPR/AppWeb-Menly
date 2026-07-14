@@ -1,8 +1,10 @@
 export const ADMIN_SESSION_KEY = "menly.admin.session";
+export const ADMIN_ACTIVITY_STATE_KEY = "menly.admin.activityState";
 export const ADMIN_LAST_ACTIVITY_KEY = "menly.admin.lastActivity";
 export const ADMIN_LOGOUT_EVENT_KEY = "menly.admin.logoutEvent";
 export const ADMIN_CHANNEL_NAME = "menly-admin-session";
 export const ADMIN_LOGOUT_MESSAGE_KEY = "menly.admin.logoutMessage";
+export const ADMIN_REMEMBERED_EMAIL_KEY = "menly.admin.rememberedEmail";
 
 let accessToken = localStorage.getItem("access") || null;
 let legacyRefreshToken = localStorage.getItem("refresh") || null;
@@ -17,9 +19,6 @@ try {
     ["dueno", "admin", "empleado"].includes(restauranteAnterior?.rol)
   ) {
     localStorage.setItem(ADMIN_SESSION_KEY, "ADMIN");
-    if (!localStorage.getItem(ADMIN_LAST_ACTIVITY_KEY)) {
-      localStorage.setItem(ADMIN_LAST_ACTIVITY_KEY, String(Date.now()));
-    }
   }
 } catch {
   accessToken = null;
@@ -47,16 +46,28 @@ export function descartarLegacyRefreshToken() {
   legacyRefreshToken = null;
 }
 
-export function iniciarSesionAdmin(data) {
+export function iniciarSesionAdmin(data, { recordarme = false, email = "" } = {}) {
   setAdminAccessToken(data.access);
   localStorage.setItem("user", JSON.stringify(data.user));
   localStorage.setItem("restaurante", JSON.stringify(data.restaurante));
-  localStorage.setItem(ADMIN_SESSION_KEY, "ADMIN");
-  localStorage.setItem(ADMIN_LAST_ACTIVITY_KEY, String(Date.now()));
+  localStorage.removeItem(ADMIN_SESSION_KEY);
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  const sessionStore = recordarme ? localStorage : sessionStorage;
+  sessionStore.setItem(ADMIN_SESSION_KEY, "ADMIN");
+  localStorage.removeItem(ADMIN_ACTIVITY_STATE_KEY);
+  localStorage.removeItem(ADMIN_LAST_ACTIVITY_KEY);
+
+  if (recordarme && email) {
+    localStorage.setItem(ADMIN_REMEMBERED_EMAIL_KEY, email);
+  } else {
+    localStorage.removeItem(ADMIN_REMEMBERED_EMAIL_KEY);
+  }
 }
 
 export function tieneSesionAdmin() {
-  if (localStorage.getItem(ADMIN_SESSION_KEY) !== "ADMIN") return false;
+  const sesionPersistente = localStorage.getItem(ADMIN_SESSION_KEY) === "ADMIN";
+  const sesionNavegador = sessionStorage.getItem(ADMIN_SESSION_KEY) === "ADMIN";
+  if (!sesionPersistente && !sesionNavegador) return false;
 
   try {
     const restaurante = JSON.parse(localStorage.getItem("restaurante") || "null");
@@ -64,6 +75,10 @@ export function tieneSesionAdmin() {
   } catch {
     return false;
   }
+}
+
+export function obtenerEmailRecordado() {
+  return localStorage.getItem(ADMIN_REMEMBERED_EMAIL_KEY) || "";
 }
 
 export function limpiarSesionAdminLocal({ motivo = "", emitir = true } = {}) {
@@ -74,12 +89,14 @@ export function limpiarSesionAdminLocal({ motivo = "", emitir = true } = {}) {
   localStorage.removeItem("user");
   localStorage.removeItem("restaurante");
   localStorage.removeItem(ADMIN_SESSION_KEY);
+  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+  localStorage.removeItem(ADMIN_ACTIVITY_STATE_KEY);
   localStorage.removeItem(ADMIN_LAST_ACTIVITY_KEY);
 
   if (motivo === "inactividad") {
     sessionStorage.setItem(
       ADMIN_LOGOUT_MESSAGE_KEY,
-      "Tu sesiÃ³n se cerrÃ³ por inactividad."
+      "Tu sesión se cerrado por inactividad."
     );
   }
 
@@ -100,13 +117,4 @@ export function consumirMensajeCierreAdmin() {
   const mensaje = sessionStorage.getItem(ADMIN_LOGOUT_MESSAGE_KEY) || "";
   sessionStorage.removeItem(ADMIN_LOGOUT_MESSAGE_KEY);
   return mensaje;
-}
-
-export function esRutaPanelAdmin(pathname = "") {
-  return (
-    pathname.startsWith("/dashboard/") ||
-    pathname.startsWith("/carta-add/") ||
-    pathname.startsWith("/carta-productos/") ||
-    pathname === "/historial"
-  );
 }

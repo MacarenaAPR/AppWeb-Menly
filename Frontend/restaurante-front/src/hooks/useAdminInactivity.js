@@ -1,15 +1,19 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cerrarSesionAdmin } from "../api";
 import {
+  ADMIN_ACTIVITY_STATE_KEY,
   ADMIN_CHANNEL_NAME,
-  ADMIN_LAST_ACTIVITY_KEY,
   ADMIN_LOGOUT_EVENT_KEY,
-  esRutaPanelAdmin,
   limpiarSesionAdminLocal,
   tieneSesionAdmin,
 } from "../session/adminSession";
+import {
+  createActivityState,
+  getInactivityPolicy,
+  getInactivityTiming,
+  parseActivityState,
+} from "../session/adminInactivityPolicy";
 
-export const ADMIN_INACTIVITY_MS = 10 * 60 * 1000;
 const ACTIVITY_THROTTLE_MS = 1500;
 const ACTIVITY_EVENTS = [
   "mousemove",
@@ -18,97 +22,174 @@ const ACTIVITY_EVENTS = [
   "scroll",
   "touchstart",
   "click",
+  "submit",
 ];
 
 export default function useAdminInactivity(pathname) {
-  useEffect(() => {
-    if (!esRutaPanelAdmin(pathname) || !tieneSesionAdmin()) return undefined;
+  const [warning, setWarning] = useState(null);
+  const keepSessionRef = useRef(() => {});
+  const closeSessionRef = useRef(() => {});
 
-    let timeoutId;
-    let ultimaEmision = 0;
-    let cerrando = false;
+  useEffect(() => {
+    const policy = getInactivityPolicy(pathname);
+    if (!policy || !tieneSesionAdmin()) {
+      return undefined;
+    }
+
+    let warningTimeoutId;
+    let expirationTimeoutId;
+    let countdownIntervalId;
+    let lastEmission = 0;
+    let scheduledActivityAt = 0;
+    let closing = false;
     let channel = null;
 
-    const cerrarLocalDesdeOtraPestana = (motivo = "") => {
-      if (cerrando) return;
-      cerrando = true;
-      limpiarSesionAdminLocal({ motivo, emitir: false });
+    const clearTimers = () => {
+      window.clearTimeout(warningTimeoutId);
+      window.clearTimeout(expirationTimeoutId);
+      window.clearInterval(countdownIntervalId);
+    };
+
+    const closeLocallyFromOtherTab = (reason = "") => {
+      if (closing) return;
+      closing = true;
+      clearTimers();
+      limpiarSesionAdminLocal({ motivo: reason, emitir: false });
       window.location.replace("/");
     };
 
-    const programarCierre = () => {
-      window.clearTimeout(timeoutId);
-      const ultimaActividad = Number(
-        localStorage.getItem(ADMIN_LAST_ACTIVITY_KEY) || Date.now()
-      );
-      const restante = Math.max(0, ADMIN_INACTIVITY_MS - (Date.now() - ultimaActividad));
+    const closeForInactivity = async () => {
+      if (closing) return;
+      closing = true;
+      clearTimers();
+      await cerrarSesionAdmin({ motivo: "inactividad" });
+    };
 
-      timeoutId = window.setTimeout(async () => {
-        const actividadActual = Number(
-          localStorage.getItem(ADMIN_LAST_ACTIVITY_KEY) || 0
+    const updateWarning = (activityState) => {
+      const timing = getInactivityTiming(activityState);
+      if (!timing || timing.isExpired) {
+        closeForInactivity();
+        return;
+      }
+      setWarning({
+        scope: activityState.scope,
+        remainingSeconds: Math.max(0, Math.ceil(timing.remainingMs / 1000)),
+      });
+    };
+
+    const showWarning = (activityState) => {
+      window.clearInterval(countdownIntervalId);
+      updateWarning(activityState);
+      countdownIntervalId = window.setInterval(() => {
+        updateWarning(activityState);
+      }, 1000);
+    };
+
+    const scheduleFromState = (activityState) => {
+      if (Number(activityState?.at) <= scheduledActivityAt) return;
+      scheduledActivityAt = Number(activityState.at);
+      clearTimers();
+      setWarning(null);
+      const timing = getInactivityTiming(activityState);
+      if (!timing) return;
+      if (timing.isExpired) {
+        closeForInactivity();
+        return;
+      }
+      if (timing.isWarning) {
+        showWarning(activityState);
+      } else {
+        warningTimeoutId = window.setTimeout(
+          () => showWarning(activityState),
+          timing.warningRemainingMs
         );
-        if (Date.now() - actividadActual < ADMIN_INACTIVITY_MS) {
-          programarCierre();
-          return;
-        }
-        if (cerrando) return;
-        cerrando = true;
-        await cerrarSesionAdmin({ motivo: "inactividad" });
-      }, restante);
+      }
+      expirationTimeoutId = window.setTimeout(
+        closeForInactivity,
+        timing.remainingMs
+      );
     };
 
-    const registrarActividad = () => {
-      const ahora = Date.now();
-      if (ahora - ultimaEmision < ACTIVITY_THROTTLE_MS) return;
-      ultimaEmision = ahora;
-      localStorage.setItem(ADMIN_LAST_ACTIVITY_KEY, String(ahora));
-      channel?.postMessage({ type: "activity", at: ahora });
-      programarCierre();
+    const publishActivity = ({ force = false } = {}) => {
+      if (closing) return;
+      const now = Date.now();
+      if (!force && now - lastEmission < ACTIVITY_THROTTLE_MS) return;
+      lastEmission = now;
+      const activityState = createActivityState(pathname, now);
+      if (!activityState) return;
+      const serialized = JSON.stringify(activityState);
+      localStorage.setItem(ADMIN_ACTIVITY_STATE_KEY, serialized);
+      channel?.postMessage({ type: "activity", state: activityState });
+      scheduleFromState(activityState);
     };
 
-    if (!localStorage.getItem(ADMIN_LAST_ACTIVITY_KEY)) {
-      localStorage.setItem(ADMIN_LAST_ACTIVITY_KEY, String(Date.now()));
-    }
+    keepSessionRef.current = () => publishActivity({ force: true });
+    closeSessionRef.current = async () => {
+      if (closing) return;
+      closing = true;
+      clearTimers();
+      await cerrarSesionAdmin({ motivo: "manual" });
+    };
 
     try {
       channel = new BroadcastChannel(ADMIN_CHANNEL_NAME);
       channel.onmessage = ({ data }) => {
-        if (data?.type === "activity") programarCierre();
-        if (data?.type === "logout") cerrarLocalDesdeOtraPestana(data.motivo);
+        if (data?.type === "activity" && data.state) {
+          scheduleFromState(data.state);
+        }
+        if (data?.type === "logout") {
+          closeLocallyFromOtherTab(data.motivo);
+        }
       };
     } catch {
       channel = null;
     }
 
     const onStorage = (event) => {
-      if (event.key === ADMIN_LAST_ACTIVITY_KEY) programarCierre();
+      if (event.key === ADMIN_ACTIVITY_STATE_KEY && event.newValue) {
+        const activityState = parseActivityState(event.newValue);
+        if (activityState) scheduleFromState(activityState);
+      }
       if (event.key === ADMIN_LOGOUT_EVENT_KEY && event.newValue) {
         try {
-          cerrarLocalDesdeOtraPestana(JSON.parse(event.newValue).motivo);
+          closeLocallyFromOtherTab(JSON.parse(event.newValue).motivo);
         } catch {
-          cerrarLocalDesdeOtraPestana();
+          closeLocallyFromOtherTab();
         }
       }
     };
 
     ACTIVITY_EVENTS.forEach((eventName) => {
-      window.addEventListener(eventName, registrarActividad, {
+      window.addEventListener(eventName, publishActivity, {
         passive: true,
-        capture: eventName === "scroll",
+        capture: eventName === "scroll" || eventName === "submit",
       });
     });
     window.addEventListener("storage", onStorage);
-    registrarActividad();
+
+    // Entrar a cualquier sección es actividad real y descarta la política de
+    // la ruta anterior. En el Dashboard inicia exactamente un nuevo plazo.
+    publishActivity({ force: true });
 
     return () => {
-      window.clearTimeout(timeoutId);
+      clearTimers();
       ACTIVITY_EVENTS.forEach((eventName) => {
-        window.removeEventListener(eventName, registrarActividad, {
-          capture: eventName === "scroll",
+        window.removeEventListener(eventName, publishActivity, {
+          capture: eventName === "scroll" || eventName === "submit",
         });
       });
       window.removeEventListener("storage", onStorage);
       channel?.close();
+      keepSessionRef.current = () => {};
+      closeSessionRef.current = () => {};
     };
   }, [pathname]);
+
+  const keepSession = useCallback(() => keepSessionRef.current(), []);
+  const closeSession = useCallback(() => closeSessionRef.current(), []);
+
+  const visibleWarning =
+    getInactivityPolicy(pathname) && tieneSesionAdmin() ? warning : null;
+
+  return { warning: visibleWarning, keepSession, closeSession };
 }

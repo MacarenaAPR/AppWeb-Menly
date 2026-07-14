@@ -195,6 +195,7 @@ FRONTEND_PUBLIC_URL = config("FRONTEND_PUBLIC_URL", default="http://localhost:51
 COCINA_COOKIE_DOMAIN = config("COCINA_COOKIE_DOMAIN", default="") or None
 ADMIN_COOKIE_DOMAIN = config("ADMIN_COOKIE_DOMAIN", default="") or None
 ADMIN_REFRESH_COOKIE_NAME = "menly_admin_refresh"
+ADMIN_REMEMBER_COOKIE_NAME = "menly_admin_remember"
 COCINA_SESSION_LIFETIME = timedelta(
     days=config("COCINA_SESSION_DAYS", default=30, cast=int)
 )
