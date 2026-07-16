@@ -1,0 +1,445 @@
+# Auditoría de seguridad Menly
+
+Fecha de corte: 16 de julio de 2026.  
+Modalidad: revisión estática y pruebas enfocadas, exclusivamente de lectura.  
+Código auditado: estado actual del working tree, incluyendo cambios todavía no confirmados en Git.
+
+Metodología utilizada: OWASP Top 10:2025, OWASP ASVS 5.0.0 y OWASP API Security Top 10:2023, que son las versiones estables vigentes. [OWASP Top 10:2025](https://owasp.org/Top10/2025/0x00_2025-Introduction/), [OWASP ASVS 5.0.0](https://owasp.org/www-project-application-security-verification-standard/), [OWASP API Security 2023](https://owasp.org/API-Security/editions/2023/en/0x04-release-notes/).
+
+No se modificó ningún archivo.
+
+## 1. Resumen ejecutivo
+
+Menly presenta una base de seguridad razonable en aislamiento multi-tenant, cálculo de precios, sesiones KDS, JWT y transiciones de pedidos. Las mejoras recientes corrigieron problemas anteriores importantes: pedidos fuera de horario, falta de idempotencia y carreras en cambios de estado.
+
+Sin embargo, el proyecto no está preparado todavía para producción multi-restaurante por cinco riesgos altos:
+
+1. SSRF confirmado mediante endpoints Web Push controlados por usuarios autenticados.
+2. Creación y modificación de usuarios sin política backend de contraseñas.
+3. Django Admin público sin rate limiting ni MFA verificable.
+4. Dependencias backend y frontend con vulnerabilidades conocidas.
+5. Reportes financieros modificables desde el cliente y accesibles por empleados.
+
+Resultado:
+
+| Nivel | Cantidad |
+|---|---:|
+| Crítico | 0 |
+| Alto | 5 |
+| Medio | 12 |
+| Bajo | 5 |
+| Informativo/buenas prácticas | 10 |
+
+Puntuación general: **61/100**.
+
+Veredicto: **apto para prueba controlada interna; no apto para piloto con operación real ni para producción**.
+
+---
+
+## 2. Riesgos críticos
+
+No se confirmó ningún hallazgo crítico como ejecución remota, inyección SQL, autenticación completamente evadible, acceso cruzado entre restaurantes o exposición directa de secretos versionados.
+
+Esto no equivale a una certificación de ausencia de vulnerabilidades: no se realizó pentesting dinámico externo ni revisión de la infraestructura productiva real.
+
+---
+
+## 3. Riesgos altos
+
+### H-01 — SSRF mediante Web Push
+
+- Estado: confirmado por el código.
+- Probabilidad: media.
+- Impacto: alto.
+- Explotabilidad: media.
+- OWASP: A01/A06; API7:2023 SSRF.
+- Ubicación:
+  - [serializers.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/serializers.py:38>)
+  - [views.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/views.py:2052>)
+  - [webpush.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/services/webpush.py:48>)
+
+El backend acepta `endpoint` como cualquier `URLField`. No restringe esquema HTTPS, proveedor Push conocido, IP privada, loopback, red local ni servicios cloud internos.
+
+Posteriormente `pywebpush` ejecuta directamente:
+
+```python
+requests_method.post(endpoint, ...)
+```
+
+Un empleado autenticado puede registrar un endpoint arbitrario con claves Web Push válidas, crear o provocar un pedido y hacer que el servidor envíe una solicitud hacia ese destino.
+
+Impacto potencial:
+
+- Reconocimiento de servicios internos.
+- Acceso ciego a `localhost`, redes privadas o servicios internos HTTP.
+- Ejecución de solicitudes POST no autorizadas.
+- Interacción con metadata cloud si la plataforma acepta el método empleado.
+- Uso de Render como pivote de red.
+
+Recomendación:
+
+- Aceptar exclusivamente HTTPS.
+- Resolver DNS y bloquear loopback, link-local, IP privada y direcciones reservadas, tanto IPv4 como IPv6.
+- Aplicar allowlist de dominios Push conocidos o validar que la suscripción venga del `PushManager` esperado.
+- Volver a validar el destino después de cada resolución/redirección.
+- Añadir pruebas SSRF.
+
+Prioridad: inmediata.  
+Tiempo estimado: 1–2 días.
+
+### H-02 — Contraseñas débiles permitidas por la API
+
+- Estado: confirmado.
+- Probabilidad: alta.
+- Impacto: alto.
+- Explotabilidad: fácil.
+- OWASP: A07:2025 Authentication Failures.
+- Ubicación: [views.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/views.py:790>), especialmente líneas 824–905.
+
+`UsuariosView` lee directamente `password` y utiliza `User.objects.create_user()` o `set_password()` sin:
+
+- `validate_password()`.
+- Longitud mínima backend.
+- Rechazo de contraseñas vacías o comunes.
+- Validación de similitud con email/username.
+- Confirmación de contraseña actual para operaciones sensibles.
+- Auditoría del cambio.
+
+Los validadores configurados en Django no se ejecutan automáticamente al llamar `create_user()` o `set_password()`.
+
+Explotación: un dueño puede crear cuentas administrativas o de empleado con contraseñas triviales. Si el frontend valida, la regla puede evadirse enviando directamente la petición HTTP.
+
+Recomendación:
+
+- Usar `django.contrib.auth.password_validation.validate_password`.
+- Centralizar creación y cambio en serializers.
+- Rechazar explícitamente valores vacíos.
+- Invalidar sesiones y refresh tokens al cambiar la contraseña.
+- Registrar el evento sin almacenar la contraseña.
+
+Prioridad: inmediata.  
+Tiempo estimado: 0,5–1 día.
+
+### H-03 — Django Admin expuesto sin protección contra fuerza bruta
+
+- Estado: confirmado en aplicación; controles del proxy no verificables.
+- Probabilidad: media-alta.
+- Impacto: crítico si se compromete un superusuario.
+- Explotabilidad: fácil.
+- Ubicación: [urls.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/core/urls.py:39>).
+
+`/admin/` está públicamente disponible. El throttle de cinco intentos por minuto solo protege `/api/login/`; no protege el login de Django Admin.
+
+No se encontró:
+
+- MFA para superusuarios.
+- Bloqueo temporal de cuentas.
+- `django-axes` o equivalente.
+- Restricción por IP/VPN.
+- Rate limiting versionado en Nginx/Render.
+- Alertas por intentos reiterados.
+
+Recomendación:
+
+- Restringir `/admin/` por VPN, proxy autenticado o allowlist.
+- Incorporar MFA.
+- Aplicar rate limiting y bloqueo progresivo.
+- Alertar intentos fallidos y accesos administrativos.
+- Evitar compartir cuentas de superusuario.
+
+Prioridad: inmediata.  
+Tiempo estimado: 1–3 días, dependiendo de la infraestructura.
+
+### H-04 — Dependencias con vulnerabilidades conocidas
+
+- Estado: confirmado por versiones bloqueadas.
+- Probabilidad: media.
+- Impacto: alto.
+- OWASP: A03:2025 Software Supply Chain Failures.
+- Ubicación:
+  - [requirements.txt](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/requirements.txt:1>)
+  - [package.json — landing](</C:/Users/macar/Desktop/Proyecto Menly/Frontend/restaurante-landings/package.json:1>)
+
+Hallazgos principales:
+
+- `Django==6.0.4` está afectado por varias vulnerabilidades corregidas en 6.0.5/6.0.6. Algunas no son directamente aplicables porque Menly usa WSGI y no tiene el middleware de cache global, pero la versión sigue fuera del nivel corregido. [CVE-2026-6907](https://github.com/advisories/GHSA-5hrc-gvxj-w55p), [CVE-2026-7666](https://github.com/advisories/GHSA-mm6v-q8q9-pgcf), [CVE-2026-5766](https://github.com/advisories/GHSA-w26r-rmm8-9c29).
+- `Pillow==12.2.0` está afectado por vulnerabilidades de agotamiento de memoria corregidas en 12.3.0. Menly posee rutas de upload, aumentando la relevancia. [PYSEC-2026-2253](https://osv.dev/vulnerability/PYSEC-2026-2253), [PYSEC-2026-2254](https://osv.dev/vulnerability/PYSEC-2026-2254).
+- `idna==3.11` está afectado por un DoS corregido en 3.15. [CVE-2026-45409](https://github.com/advisories/GHSA-65pc-fj4g-8rjx).
+- Landing:
+  - Vite 8.0.10: vulnerabilidad alta de lectura de archivos mediante bypass de `server.fs.deny` en Windows.
+  - React Router 7.15.0: aviso bajo de CSRF.
+  - Dependencias transitivas con avisos en Babel y `brace-expansion`.
+- El panel administrativo obtuvo `0` vulnerabilidades en `npm audit`.
+
+Recomendación:
+
+- Actualizar Django al menos a 6.0.6.
+- Actualizar Pillow a 12.3.0 o posterior.
+- Actualizar `idna` a 3.15 o posterior.
+- Actualizar Vite y React Router de la landing.
+- Regenerar locks y ejecutar regresión funcional.
+- Incorporar auditoría de dependencias en CI.
+
+Prioridad: inmediata.  
+Tiempo estimado: 1–3 días con regresión.
+
+### H-05 — Reportes financieros manipulables y RBAC excesivo
+
+- Estado: confirmado.
+- Probabilidad: media.
+- Impacto: alto sobre integridad comercial.
+- Explotabilidad: fácil para un empleado autenticado.
+- OWASP: A01, A06; API3 y API5.
+- Ubicación:
+  - [views.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/views.py:2530>)
+  - [permissions.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/permissions.py:304>)
+
+`ReporteMetricaGuardarView` recibe directamente:
+
+```python
+resumen = request.data.get("resumen")
+datos = request.data.get("datos")
+```
+
+y los persiste como reporte histórico. No recalcula el reporte desde pedidos del servidor.
+
+Además, las métricas y reportes usan `CanManageReservas`, permiso que admite dueño, administrador y empleado. Aunque la UI oculte métricas a empleados, el backend permite el acceso directo.
+
+Explotación: un empleado puede consultar información financiera y guardar reportes falsificados dentro de su restaurante.
+
+Recomendación:
+
+- El cliente debe enviar solo tipo y periodo.
+- Recalcular `resumen` y `datos` en backend.
+- Crear permisos específicos `CanViewMetricas` y `CanManageReportes`.
+- Limitar guardado de reportes a dueño/admin.
+- Mantener historial inmutable o versionado.
+
+Prioridad: inmediata.  
+Tiempo estimado: 2–4 días.
+
+---
+
+## 4. Riesgos medios
+
+| ID | Hallazgo | Evidencia e impacto | Recomendación | Tiempo |
+|---|---|---|---|---:|
+| M-01 | Uploads sin validación | [UploadLogoView](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/views.py:964>) y actualización de producto aceptan archivos sin validar MIME, tamaño, dimensiones ni contenido. Posible consumo de memoria/storage y procesamiento de formatos inesperados. | Límite de tamaño, allowlist real, inspección mágica, re-encode y cuotas por tenant. | 1–2 días |
+| M-02 | Tracking conserva PII indefinidamente | Los tokens tienen buena entropía, pero no expiran. El serializer público devuelve la dirección delivery como observación: [serializers.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/serializers.py:731>). | Expirar/revocar tokens; ocultar o enmascarar dirección una vez entregado. | 1–2 días |
+| M-03 | CORS confía en cualquier subdominio Menly | `CORS_ALLOW_CREDENTIALS=True` y regex `https://*.menly.cl`: [settings.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/core/settings.py:163>). Un subdominio comprometido podría interactuar con endpoints autenticados usando cookies. | Allowlist de frontends administrativos exactos; separar CORS público y administrativo. | 0,5–1 día |
+| M-04 | CSP definida pero no enviada | La política está construida en settings, pero comentada en el middleware: [security_middleware.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/core/security_middleware.py:13>). Los `vercel.json` tampoco incluyen CSP. | Activar primero `Content-Security-Policy-Report-Only`, ajustar y luego aplicar. | 1–3 días |
+| M-05 | Rate limiting no distribuido y payloads sin límite | Si `REDIS_URL` falta se usa `LocMemCache`, por lo que cada worker mantiene contadores separados. Listas como `productos` no tienen longitud máxima. | Redis obligatorio en producción, límites por slug/IP/usuario y límite de ítems/body. | 1–2 días |
+| M-06 | Sesiones KDS de 30 días sin gestión por dispositivo | [settings.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/core/settings.py:203>) y `SesionCocina` no almacenan nombre, último uso o dispositivo. No existe listado/revocación individual. | Panel de sesiones, expiración menor, último uso, revocación por dispositivo. | 2–4 días |
+| M-07 | Refresh token ignora perfil/restaurante desactivado | [CookieTokenRefreshView](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/menu/views.py:3397>) valida JWT/User, pero no `UsuarioRestaurante.activo` ni restaurante activo. Los permisos bloquean después, pero se siguen emitiendo access tokens. | Validar perfil y tenant en refresh; revocar familia al desactivar usuario/restaurante. | 1 día |
+| M-08 | Recuperación de contraseña manual | El endpoint envía datos del usuario al administrador y propone resetear desde Django Admin. No hay token de recuperación de un solo uso ni verificación automatizada. | Flujo estándar con token firmado, expiración, invalidación y notificación al usuario. | 2–4 días |
+| M-09 | Regresiones actuales en métricas/pedidos | 4 de 116 pruebas fallaron: totales, pedidos activos, reportes y salida del pedido especial entregado. La nueva semántica de turno no está alineada con contratos existentes. | Resolver contrato de turno/listados y actualizar código o tests con decisión explícita. | 2–4 días |
+| M-10 | Reportes siguen omitiendo pedidos manuales | `metricas/pedidos.py` ya incorpora manuales en el resumen, pero `reportes.py` y rankings de `productos.py` todavía consolidan principalmente WhatsApp/especiales. | Unificar las tres familias de pedidos en reportes y rankings. | 2–4 días |
+| M-11 | Logs locales sin rotación y con PII | `FileHandler` sin rotación: [settings.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/core/settings.py:324>). `django.log` local supera 2,7 MB, contiene numerosas referencias a emails y 1.766 trazas. | Logging estructurado, redacción, rotación/retención y acceso restringido. | 1–2 días |
+| M-12 | Concurrencia de reservas basada en “check then save” | Duplicados y mesa ocupada se comprueban antes del `save`, sin constraint o lock que impida dos solicitudes simultáneas. | Transacción, modelo estructurado de asignación y constraint/lock viable. | 2–4 días |
+
+---
+
+## 5. Riesgos bajos
+
+### L-01 — Endpoint debug público
+
+[debug_views.py](</C:/Users/macar/Desktop/Proyecto Menly/backend/Back-end-Restaurantes/core/debug_views.py:9>) consulta el primer restaurante y expone zona horaria, hora del servidor y estado de apertura en `/api/debug/time/`.
+
+Recomendación: habilitarlo solo con `DEBUG` o eliminarlo de producción.
+
+### L-02 — Métrica de clics manipulable
+
+`POST /api/productos/<id>/click/` permite incrementar clics mediante ID sin contexto de slug. El throttle reduce abuso, pero cualquiera puede inflar las métricas de productos de cualquier tenant.
+
+### L-03 — Cuerpos de error registrados en consola del navegador
+
+[api.js](</C:/Users/macar/Desktop/Proyecto Menly/Frontend/restaurante-front/src/api.js:84>) imprime `bodyText` completo. Puede dejar datos operativos o PII visibles en DevTools y sistemas de captura remota.
+
+### L-04 — Inventario de API ambiguo
+
+Existen aliases duplicados de endpoints de pedidos y la ruta pública de reservas está declarada dos veces. Esto incrementa la posibilidad de proteger una ruta y olvidar otra.
+
+### L-05 — Calidad estática deficiente en landing
+
+`npm run lint` de la landing devuelve 13 errores: variables sin uso, efectos problemáticos y mutación global. No constituyen vulnerabilidades directas confirmadas, pero debilitan la confiabilidad del código de checkout público.
+
+---
+
+## 6. Buenas prácticas correctamente implementadas
+
+- Aislamiento multi-tenant consistente en CRUD, pedidos, reservas, usuarios, horarios, métodos de pago, notificaciones, backups y métricas.
+- Los IDs suministrados por el cliente se vuelven a filtrar por restaurante.
+- Las pruebas enfocadas no detectaron acceso horizontal entre restaurantes.
+- KDS deriva el tenant desde una sesión backend hasheada, no desde un `restaurante_id` del navegador.
+- Activaciones KDS de un solo uso, expiración de cinco minutos y consumo con `select_for_update`.
+- Cookie KDS firmada, `HttpOnly`, `SameSite=Lax` y `Secure` en producción.
+- Refresh JWT en cookie `HttpOnly`, rotación y blacklist.
+- Access token nuevo solamente en memoria; se eliminan tokens legacy de `localStorage`.
+- Pedidos públicos recalculan productos y precios en backend.
+- Productos y variantes ajenos al restaurante son rechazados.
+- Pedido WhatsApp valida restaurante activo, carrito activo y horario abierto.
+- Idempotencia implementada mediante `Idempotency-Key`, hash del request y constraint por tenant.
+- La landing genera claves de idempotencia y no reintenta automáticamente los POST de pedido/reserva/solicitud.
+- Cambios de estado centralizados con transiciones, historial, transacción y `select_for_update`.
+- No se encontró SQL manual, `raw()`, `extra()`, ejecución de comandos con input ni `eval`.
+- No se encontró `dangerouslySetInnerHTML`; React mantiene escape de texto.
+- CORS global no está abierto: `CORS_ALLOW_ALL_ORIGINS=False`.
+- Variables secretas reales no están versionadas; `.env` y `.env.production` están ignorados.
+- VAPID privada permanece en backend.
+- Web Push separa suscripciones por restaurante y no reasigna un endpoint perteneciente a otro tenant.
+- Panel administrativo: ESLint limpio y `npm audit` con cero vulnerabilidades.
+
+---
+
+## 7. Riesgos futuros
+
+- Subdominios tenant futuros podrían ampliar peligrosamente la confianza CORS.
+- El executor Web Push en memoria puede perder envíos durante reinicios o despliegues.
+- LocMem no es adecuado para throttling/caché consistente con varios workers.
+- Las tres familias de pedidos aumentan el riesgo de divergencia en reportes y estados.
+- El crecimiento de `views.py`, `serializers.py` y `tests.py` dificulta revisar permisos por endpoint.
+- No existe inventario OpenAPI/versionado de endpoints.
+- Backups de aplicación en JSON contienen información sensible dentro de la misma base principal; no sustituyen backups PostgreSQL ni pruebas de restauración.
+- No se encontraron CI/CD, IaC, configuración Nginx, políticas de backup o monitoreo de despliegue en el repositorio.
+
+---
+
+## 8. Recomendaciones priorizadas
+
+### P0 — Antes de cualquier piloto
+
+1. Bloquear SSRF de Web Push.
+2. Actualizar Django, Pillow, idna, Vite y React Router.
+3. Aplicar política backend de contraseñas.
+4. Proteger Django Admin con MFA y rate limiting.
+5. Recalcular reportes en servidor y corregir permisos de métricas.
+6. Resolver las cuatro pruebas fallidas.
+
+### P1 — Antes de producción
+
+1. Validar uploads.
+2. Activar CSP.
+3. Exigir Redis para throttle/caché.
+4. Limitar cuerpos y listas de endpoints públicos.
+5. Implementar expiración del tracking.
+6. Implementar recuperación segura de contraseña.
+7. Gestionar sesiones KDS por dispositivo.
+8. Rotar y redactar logs.
+
+### P2 — Endurecimiento operativo
+
+1. CI con lint, tests, auditoría de dependencias y `check --deploy`.
+2. Inventario OpenAPI.
+3. Prueba de restauración PostgreSQL.
+4. Alertas de autenticación, SSRF, abuso y errores 5xx.
+5. Revisión periódica ASVS.
+
+---
+
+## 9. Plan de remediación sugerido
+
+| Fase | Duración | Resultado |
+|---|---:|---|
+| Fase 1: bloqueadores | 3–5 días | SSRF, dependencias, contraseñas, Admin y reportes protegidos |
+| Fase 2: integridad | 3–5 días | Tests verdes, turnos/reportes coherentes, reservas concurrentes |
+| Fase 3: hardening | 4–7 días | CSP, uploads, tracking, KDS, Redis y logging |
+| Fase 4: producción | 3–5 días | CI/CD, backup/restore, observabilidad e inventario API |
+
+Estimación total: aproximadamente 2–4 semanas, incluyendo pruebas de regresión y validación en staging.
+
+---
+
+## 10. Puntuación general
+
+**61/100**
+
+Desglose:
+
+| Área | Puntuación |
+|---|---:|
+| Aislamiento multi-tenant | 88/100 |
+| Autorización/RBAC | 67/100 |
+| JWT y sesiones admin | 76/100 |
+| KDS | 75/100 |
+| Seguridad API pública | 65/100 |
+| Integridad de pedidos | 78/100 |
+| Frontend/PWA | 68/100 |
+| Dependencias | 42/100 |
+| Logging y monitoreo | 42/100 |
+| Infraestructura verificable | 30/100 |
+
+---
+
+## 11. Nivel de madurez
+
+**Nivel 2,5 de 5 — controles repetibles parcialmente implementados.**
+
+Menly tiene controles técnicos reales y pruebas importantes, pero aún depende de convenciones, permisos reutilizados de forma demasiado amplia y verificaciones manuales. No existe todavía un proceso DevSecOps verificable que impida desplegar dependencias vulnerables o regresiones de seguridad.
+
+---
+
+## 12. Checklist OWASP
+
+### OWASP Top 10:2025
+
+| Categoría | Estado | Evaluación |
+|---|---|---|
+| A01 Broken Access Control | ⚠ Parcial | Tenant sólido; RBAC de métricas/reportes demasiado amplio |
+| A02 Security Misconfiguration | ⚠ Parcial | Headers básicos correctos; CSP/debug/infra incompletos |
+| A03 Software Supply Chain Failures | ✖ No cumple | Dependencias vulnerables y sin CI de seguridad |
+| A04 Cryptographic Failures | ⚠ Parcial | Cookies/tokens sólidos; tracking sin expiración |
+| A05 Injection | ✔ Cumple razonablemente | ORM, React escaping, sin sinks críticos detectados |
+| A06 Insecure Design | ⚠ Parcial | Reportes cliente, recuperación manual y SSRF Push |
+| A07 Authentication Failures | ✖ No cumple | Password policy evadible y Django Admin sin MFA/rate limit |
+| A08 Integrity Failures | ⚠ Parcial | Estados/idempotencia buenos; reportes manipulables |
+| A09 Logging & Alerting Failures | ✖ No cumple | Sin rotación, alertas o retención verificable |
+| A10 Exceptional Conditions | ⚠ Parcial | Buen manejo general, pero tareas Push y métricas presentan brechas |
+
+### OWASP API Security Top 10:2023
+
+| Categoría | Estado |
+|---|---|
+| API1 BOLA | ✔ Cumple en superficies verificadas |
+| API2 Broken Authentication | ⚠ Parcial |
+| API3 Object Property Authorization | ⚠ Parcial |
+| API4 Resource Consumption | ✖ No cumple plenamente |
+| API5 Function Level Authorization | ⚠ Parcial |
+| API6 Sensitive Business Flows | ⚠ Parcial |
+| API7 SSRF | ✖ No cumple |
+| API8 Security Misconfiguration | ⚠ Parcial |
+| API9 Inventory Management | ⚠ Parcial |
+| API10 Unsafe API Consumption | ⚠ Parcial |
+
+Esta es una revisión de código alineada con ASVS, no una certificación ASVS formal.
+
+---
+
+## 13. Validaciones ejecutadas
+
+- Pruebas Django enfocadas: **116 ejecutadas, 112 aprobadas, 4 fallidas**.
+- Aislamiento multi-tenant: sin fallos detectados.
+- KDS: sin fallos detectados.
+- Cookies/JWT admin: sin fallos detectados.
+- Web Push tenant/idempotencia: sin fallos detectados, pero los tests no cubren SSRF.
+- Panel `npm run lint`: aprobado.
+- Landing `npm run lint`: 13 errores.
+- Panel `npm audit`: 0 vulnerabilidades.
+- Landing `npm audit`: 5 avisos totales incluyendo 1 alto.
+- `manage.py check --deploy` local: 6 warnings esperables de desarrollo. Django recomienda ejecutarlo contra la configuración productiva real. [Checklist oficial de despliegue Django](https://docs.djangoproject.com/en/dev/howto/deployment/checklist/).
+- El check con el entorno que se identificaba como producción se detuvo porque faltaba `DATABASE_URL`; esto corresponde al entorno local de auditoría y no demuestra la configuración actual de Render.
+- No se pudo verificar: TLS real, Nginx/proxy, variables de Render, backups PostgreSQL, RPO/RTO, controles AWS/Azure, firewall, certificados o monitoreo externo.
+
+## Conclusión final
+
+Menly no debe desplegarse todavía como plataforma productiva multi-restaurante.
+
+El aislamiento entre restaurantes y el KDS están mejor protegidos que otras áreas del sistema, y los cambios recientes de idempotencia, apertura y estados representan avances reales. Sin embargo, el SSRF de Web Push, las contraseñas débiles aceptadas por backend, Django Admin sin hardening verificable, dependencias vulnerables y reportes financieros manipulables son bloqueadores claros.
+
+Veredicto operativo:
+
+- Demo interna: **sí**.
+- Prueba controlada con datos no sensibles: **sí**.
+- Piloto con restaurante real: **no, hasta resolver P0**.
+- Producción multi-restaurante: **no**.
+
+El working tree ya contenía cambios previos; esta auditoría no agregó ni modificó archivos.

@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from django.db import close_old_connections
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, HistorialEstadoPedidoWhatsApp, HistorialEstadoPedidoManual, HistorialEstadoPedidoEspecial, PedidoEspecial, PedidoManual, ActivacionCocina, SesionCocina, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, HistorialEstadoPedidoWhatsApp, HistorialEstadoPedidoManual, HistorialEstadoPedidoEspecial, PedidoEspecial, PedidoManual, RestaurantePedidoSecuencia, ActivacionCocina, SesionCocina, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host, validar_horario_reserva
@@ -5061,6 +5061,10 @@ class PedidosPublicosIdempotenciaTests(BaseTestCase):
         self.assertTrue(segunda.data["idempotent_replay"])
         self.assertEqual(PedidoWhatsApp.objects.count(), 1)
         self.assertEqual(PedidoWhatsApp.objects.get().numero_pedido, 1)
+        self.assertEqual(
+            RestaurantePedidoSecuencia.objects.get(restaurante=self.restaurante).ultimo_numero,
+            1,
+        )
         self.assertEqual(PedidoIdempotencia.objects.count(), 1)
         idempotencia = PedidoIdempotencia.objects.get()
         self.assertEqual(idempotencia.estado, PedidoIdempotencia.ESTADO_COMPLETADO)

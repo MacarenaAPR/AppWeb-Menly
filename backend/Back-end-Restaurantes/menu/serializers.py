@@ -15,10 +15,10 @@ from .services.pedidos_whatsapp import (
 )
 from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
 from .services.estados_pedidos import obtener_transiciones_permitidas
+from .services.secuencia_pedidos import obtener_siguiente_numero_pedido
 from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
-from django.db.models import Max
 import logging
 
 logger = logging.getLogger(__name__)
@@ -899,14 +899,9 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
         restaurante = self.context["restaurante"]
 
         with transaction.atomic():
-            Restaurante.objects.select_for_update().get(id=restaurante.id)
-            ultimo_numero = PedidoEspecial.objects.filter(
-                restaurante=restaurante
-            ).aggregate(maximo=Max("numero_pedido"))["maximo"] or 0
-
             pedido = PedidoEspecial.objects.create(
                 restaurante=restaurante,
-                numero_pedido=ultimo_numero + 1,
+                numero_pedido=obtener_siguiente_numero_pedido(restaurante),
                 **validated_data
             )
 
@@ -1120,14 +1115,9 @@ class PedidoManualSerializer(serializers.ModelSerializer):
         items = validated_data.pop("items_normalizados")
 
         with transaction.atomic():
-            Restaurante.objects.select_for_update().get(id=restaurante.id)
-            ultimo_numero = PedidoManual.objects.filter(
-                restaurante=restaurante
-            ).aggregate(maximo=Max("numero_pedido"))["maximo"] or 0
-
             pedido = PedidoManual.objects.create(
                 restaurante=restaurante,
-                numero_pedido=ultimo_numero + 1,
+                numero_pedido=obtener_siguiente_numero_pedido(restaurante),
                 origen=PedidoManual.ORIGEN_MENLY,
                 creado_por=usuario,
                 **validated_data,

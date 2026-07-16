@@ -15,6 +15,7 @@ from .serializers import PushSubscriptionEndpointSerializer, PushSubscriptionSer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MetodoPagoPublicoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from .serializers import serializar_plan_restaurante
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError as APIValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
@@ -52,6 +53,11 @@ from menu.services.metricas.resumen import (
     construir_resumen_metricas,
 )
 from menu.services.estado_restaurante import calcular_estado_restaurante
+from menu.services.turnos_operativos import (
+    filtrar_queryset_turno_actual,
+    obtener_turno_operativo_actual,
+    registrar_apertura_excepcional,
+)
 from menu.services.pedidos_whatsapp import calcular_hash_pedido_publico
 from menu.services.webpush import programar_push_nuevo_pedido
 from menu.services.estados_pedidos import (
@@ -253,6 +259,17 @@ def paginated_response(request, queryset, serialize_page, pagination_class=Defau
         return paginator.get_paginated_response(serialize_page(page))
 
     return Response(serialize_page(queryset))
+
+
+def filtrar_scope_pedidos(request, queryset, restaurante):
+    scope = (request.query_params.get("scope") or "turno_actual").strip().lower()
+    if scope == "historico":
+        return queryset
+    if scope == "turno_actual":
+        return filtrar_queryset_turno_actual(queryset, restaurante)
+    raise APIValidationError(
+        {"scope": "Use 'turno_actual' o 'historico'."}
+    )
 
 
 def fecha_iso(valor):
@@ -1035,7 +1052,12 @@ class RestauranteEstadoAperturaView(APIView):
                     },
                     status=status.HTTP_409_CONFLICT,
                 )
-            restaurante.apertura_excepcional_hasta = localtime(now()) + timedelta(hours=2)
+            apertura_excepcional_hasta = localtime(now()) + timedelta(hours=2)
+            registrar_apertura_excepcional(
+                restaurante,
+                hasta=apertura_excepcional_hasta,
+            )
+            restaurante.apertura_excepcional_hasta = apertura_excepcional_hasta
         else:
             restaurante.apertura_excepcional_hasta = None
 
@@ -1893,11 +1915,10 @@ class PedidosWhatsAppDashboardView(TenantScopedQuerysetMixin, APIView):
 
     def get(self, request):
         restaurante = self.get_restaurante_actual()
-        hoy = localtime(now()).date()
         pedidos = PedidoWhatsApp.objects.filter(
             restaurante=restaurante,
-            fecha_creacion__date=hoy
         ).order_by("-fecha_creacion", "-id")
+        pedidos = filtrar_scope_pedidos(request, pedidos, restaurante)
 
         return paginated_response(
             request,
@@ -1957,9 +1978,8 @@ class PedidosEspecialesDashboardView(APIView):
         perfil = get_perfil_activo(request)
         pedidos = PedidoEspecial.objects.filter(
             restaurante=perfil.restaurante
-        ).exclude(
-            estado=PedidoEspecial.ESTADO_ENTREGADO
         ).select_related("solicitud_especial").order_by("-fecha_creacion", "-id")
+        pedidos = filtrar_scope_pedidos(request, pedidos, perfil.restaurante)
 
         return paginated_response(
             request,
@@ -2121,6 +2141,7 @@ class PedidosManualesDashboardView(APIView):
         pedidos = PedidoManual.objects.filter(
             restaurante=perfil.restaurante
         ).prefetch_related("items").order_by("-fecha_creacion", "-id")
+        pedidos = filtrar_scope_pedidos(request, pedidos, perfil.restaurante)
 
         return paginated_response(
             request,
@@ -2589,21 +2610,33 @@ class DashboardUltimosPedidosView(APIView):
             )
 
         try:
-            hoy = localtime(now()).date()
-            pedidos_whatsapp = PedidoWhatsApp.objects.filter(
-                restaurante=perfil.restaurante,
-                fecha_creacion__date=hoy,
-            ).order_by("-fecha_creacion", "-id")[:10]
-            pedidos_manuales = PedidoManual.objects.filter(
-                restaurante=perfil.restaurante,
-                fecha_creacion__date=hoy,
-            ).order_by("-fecha_creacion", "-id")[:10]
+            rango_turno = obtener_turno_operativo_actual(perfil.restaurante)
+            filtros_turno = {
+                "fecha_creacion__gte": rango_turno.inicio,
+                "fecha_creacion__lt": rango_turno.fin,
+            } if rango_turno.inicio and rango_turno.fin else None
+            pedidos_whatsapp = (
+                PedidoWhatsApp.objects.filter(
+                    restaurante=perfil.restaurante,
+                    **filtros_turno,
+                ).order_by("-fecha_creacion", "-id")[:10]
+                if filtros_turno
+                else []
+            )
+            pedidos_manuales = (
+                PedidoManual.objects.filter(
+                    restaurante=perfil.restaurante,
+                    **filtros_turno,
+                ).order_by("-fecha_creacion", "-id")[:10]
+                if filtros_turno
+                else []
+            )
             pedidos_especiales = (
                 PedidoEspecial.objects.filter(
                     restaurante=perfil.restaurante,
-                    fecha_creacion__date=hoy,
+                    **filtros_turno,
                 ).order_by("-fecha_creacion", "-id")[:10]
-                if perfil.restaurante.solicitudes_especiales_activas
+                if perfil.restaurante.solicitudes_especiales_activas and filtros_turno
                 else []
             )
 

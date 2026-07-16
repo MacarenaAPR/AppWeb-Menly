@@ -4,9 +4,9 @@ import logging
 from urllib.parse import quote
 
 from django.db import transaction
-from django.db.models import Max
 
-from menu.models import PedidoWhatsApp, Producto, ProductoVariante, Restaurante
+from menu.models import PedidoWhatsApp, Producto, ProductoVariante
+from menu.services.secuencia_pedidos import obtener_siguiente_numero_pedido
 from menu.utils import crear_notificacion_pedido_whatsapp
 
 logger = logging.getLogger(__name__)
@@ -224,15 +224,9 @@ def crear_pedido_whatsapp(restaurante, datos_pedido, request=None):
     datos_pedido.pop("metodo_pago_id", None)
 
     with transaction.atomic():
-        Restaurante.objects.select_for_update().get(id=restaurante.id)
-        ultimo_numero = PedidoWhatsApp.objects.filter(
-            restaurante=restaurante
-        ).aggregate(maximo=Max("numero_pedido"))["maximo"] or 0
-        numero_pedido = ultimo_numero + 1
-
         pedido = PedidoWhatsApp.objects.create(
             restaurante=restaurante,
-            numero_pedido=numero_pedido,
+            numero_pedido=obtener_siguiente_numero_pedido(restaurante),
             productos_snapshot=productos_snapshot,
             total=total,
             whatsapp_destino=whatsapp_destino,

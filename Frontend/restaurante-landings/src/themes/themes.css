@@ -125,9 +125,9 @@
     
     /*HERO*/
      /*hero-panel h1 - mobile*/
-    --hero-panel-h1-color-text:var(--color-tres);
+    --hero-panel-h1-color-text:var(--color-dos);
     --hero-panel-p-color-text:var(--color-uno);
-    --hero-panel-h1-shadow-text:0 3px 14px var(--color-dos);
+    --hero-panel-h1-shadow-text:0px -1px 14px #000000;
     /*hero-panel h1*/
     --font-size-h1-hero-panel:clamp(2.4rem, 4.5vw, 4.6rem);
     --color-text-h1-hero-panel:var(--color-tres); 

@@ -1,10 +1,11 @@
 from decimal import Decimal
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.db.models import Count, Sum
 from django.utils.timezone import localtime, now
 
 from menu.models import PedidoEspecial, PedidoManual, PedidoWhatsApp
+from menu.services.turnos_operativos import obtener_turno_operativo_actual
 from .estados import (
     ESPECIALES_ACTIVOS,
     ESPECIALES_CANCELADOS,
@@ -34,10 +35,27 @@ def inicio_semana(fecha=None):
 
 def _filtrar_rango_creacion(queryset, desde=None, hasta=None):
     if desde:
-        queryset = queryset.filter(fecha_creacion__date__gte=desde)
+        queryset = (
+            queryset.filter(fecha_creacion__gte=desde)
+            if isinstance(desde, datetime)
+            else queryset.filter(fecha_creacion__date__gte=desde)
+        )
     if hasta:
-        queryset = queryset.filter(fecha_creacion__date__lte=hasta)
+        queryset = (
+            queryset.filter(fecha_creacion__lt=hasta)
+            if isinstance(hasta, datetime)
+            else queryset.filter(fecha_creacion__date__lte=hasta)
+        )
     return queryset
+
+
+def _filtrar_turno(queryset, turno):
+    if not turno or not turno.inicio or not turno.fin:
+        return queryset.none()
+    return queryset.filter(
+        fecha_creacion__gte=turno.inicio,
+        fecha_creacion__lt=turno.fin,
+    )
 
 
 def pedidos_whatsapp_creados(restaurante, desde=None, hasta=None):
@@ -106,25 +124,28 @@ def pedidos_manuales_cancelados(restaurante, desde=None, hasta=None):
     )
 
 
-def pedidos_whatsapp_activos(restaurante):
-    return PedidoWhatsApp.objects.filter(
+def pedidos_whatsapp_activos(restaurante, turno=None):
+    queryset = PedidoWhatsApp.objects.filter(
         restaurante=restaurante,
         estado__in=WHATSAPP_ACTIVOS,
     )
+    return _filtrar_turno(queryset, turno) if turno else queryset
 
 
-def pedidos_especiales_activos(restaurante):
-    return PedidoEspecial.objects.filter(
+def pedidos_especiales_activos(restaurante, turno=None):
+    queryset = PedidoEspecial.objects.filter(
         restaurante=restaurante,
         estado__in=ESPECIALES_ACTIVOS,
     )
+    return _filtrar_turno(queryset, turno) if turno else queryset
 
 
-def pedidos_manuales_activos(restaurante):
-    return PedidoManual.objects.filter(
+def pedidos_manuales_activos(restaurante, turno=None):
+    queryset = PedidoManual.objects.filter(
         restaurante=restaurante,
         estado__in=MANUALES_ACTIVOS,
     )
+    return _filtrar_turno(queryset, turno) if turno else queryset
 
 
 def sumar_total(queryset):
@@ -159,19 +180,22 @@ def venta_real_total(restaurante, desde=None, hasta=None):
     )
 
 
-def metricas_canal_whatsapp(restaurante, desde_mes=None, hoy=None):
+def metricas_canal_whatsapp(restaurante, desde_mes=None, hoy=None, turno=None):
     hoy = hoy or fecha_hoy()
     desde_mes = desde_mes or inicio_mes(hoy)
     desde_semana = hoy - timedelta(days=6)
 
-    creados_hoy = pedidos_whatsapp_creados(restaurante, hoy, hoy)
-    validos_hoy = pedidos_whatsapp_validos(restaurante, hoy, hoy)
+    creados_hoy = (
+        _filtrar_turno(PedidoWhatsApp.objects.filter(restaurante=restaurante), turno)
+        if turno else pedidos_whatsapp_creados(restaurante, hoy, hoy)
+    )
+    validos_hoy = creados_hoy.exclude(estado__in=WHATSAPP_CANCELADOS)
     creados_mes = pedidos_whatsapp_creados(restaurante, desde_mes, hoy)
-    finalizados_hoy = pedidos_whatsapp_finalizados(restaurante, hoy, hoy)
+    finalizados_hoy = creados_hoy.filter(estado__in=WHATSAPP_FINALIZADOS)
     finalizados_mes = pedidos_whatsapp_finalizados(restaurante, desde_mes, hoy)
     finalizados_semana = pedidos_whatsapp_finalizados(restaurante, desde_semana, hoy)
     cancelados_mes = pedidos_whatsapp_cancelados(restaurante, desde_mes, hoy)
-    activos = pedidos_whatsapp_activos(restaurante)
+    activos = pedidos_whatsapp_activos(restaurante, turno=turno)
 
     return {
         "venta_real_hoy": sumar_total(finalizados_hoy),
@@ -187,18 +211,21 @@ def metricas_canal_whatsapp(restaurante, desde_mes=None, hoy=None):
     }
 
 
-def metricas_canal_especiales(restaurante, desde_mes=None, hoy=None):
+def metricas_canal_especiales(restaurante, desde_mes=None, hoy=None, turno=None):
     hoy = hoy or fecha_hoy()
     desde_mes = desde_mes or inicio_mes(hoy)
     desde_semana = hoy - timedelta(days=6)
 
-    creados_hoy = pedidos_especiales_creados(restaurante, hoy, hoy)
+    creados_hoy = (
+        _filtrar_turno(PedidoEspecial.objects.filter(restaurante=restaurante), turno)
+        if turno else pedidos_especiales_creados(restaurante, hoy, hoy)
+    )
     creados_mes = pedidos_especiales_creados(restaurante, desde_mes, hoy)
-    finalizados_hoy = pedidos_especiales_finalizados(restaurante, hoy, hoy)
+    finalizados_hoy = creados_hoy.filter(estado__in=ESPECIALES_FINALIZADOS)
     finalizados_mes = pedidos_especiales_finalizados(restaurante, desde_mes, hoy)
     finalizados_semana = pedidos_especiales_finalizados(restaurante, desde_semana, hoy)
     cancelados_mes = pedidos_especiales_cancelados(restaurante, desde_mes, hoy)
-    activos = pedidos_especiales_activos(restaurante)
+    activos = pedidos_especiales_activos(restaurante, turno=turno)
 
     return {
         "venta_real_hoy": sumar_total(finalizados_hoy),
@@ -227,23 +254,26 @@ def metricas_canal_especiales_vacio():
     }
 
 
-def metricas_canal_manuales(restaurante, desde_mes=None, hoy=None):
+def metricas_canal_manuales(restaurante, desde_mes=None, hoy=None, turno=None):
     hoy = hoy or fecha_hoy()
     desde_mes = desde_mes or inicio_mes(hoy)
     desde_semana = hoy - timedelta(days=6)
 
-    creados_hoy = pedidos_manuales_creados(restaurante, hoy, hoy)
+    creados_hoy = (
+        _filtrar_turno(PedidoManual.objects.filter(restaurante=restaurante), turno)
+        if turno else pedidos_manuales_creados(restaurante, hoy, hoy)
+    )
     vendidos_hoy = creados_hoy.filter(
         origen=PedidoManual.ORIGEN_MENLY
     ).exclude(
         estado=PedidoManual.ESTADO_CANCELADO
     )
     creados_mes = pedidos_manuales_creados(restaurante, desde_mes, hoy)
-    finalizados_hoy = pedidos_manuales_finalizados(restaurante, hoy, hoy)
+    finalizados_hoy = creados_hoy.filter(estado__in=MANUALES_FINALIZADOS)
     finalizados_mes = pedidos_manuales_finalizados(restaurante, desde_mes, hoy)
     finalizados_semana = pedidos_manuales_finalizados(restaurante, desde_semana, hoy)
     cancelados_mes = pedidos_manuales_cancelados(restaurante, desde_mes, hoy)
-    activos = pedidos_manuales_activos(restaurante)
+    activos = pedidos_manuales_activos(restaurante, turno=turno)
 
     return {
         "venta_real_hoy": sumar_total(finalizados_hoy),
@@ -261,15 +291,17 @@ def metricas_canal_manuales(restaurante, desde_mes=None, hoy=None):
 
 
 def metricas_pedidos_combinadas(restaurante, hoy=None):
+    usar_turno_actual = hoy is None
     hoy = hoy or fecha_hoy()
     desde_mes = inicio_mes(hoy)
-    whatsapp = metricas_canal_whatsapp(restaurante, desde_mes, hoy)
+    turno = obtener_turno_operativo_actual(restaurante) if usar_turno_actual else None
+    whatsapp = metricas_canal_whatsapp(restaurante, desde_mes, hoy, turno=turno)
     especiales = (
-        metricas_canal_especiales(restaurante, desde_mes, hoy)
+        metricas_canal_especiales(restaurante, desde_mes, hoy, turno=turno)
         if restaurante.solicitudes_especiales_activas
         else metricas_canal_especiales_vacio()
     )
-    manuales = metricas_canal_manuales(restaurante, desde_mes, hoy)
+    manuales = metricas_canal_manuales(restaurante, desde_mes, hoy, turno=turno)
 
     pedidos_creados_mes = (
         whatsapp["pedidos_creados_mes"] + especiales["pedidos_creados_mes"]

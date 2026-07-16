@@ -5,6 +5,11 @@ import ConfirmarCancelacionPedido from "../componentes/ConfirmarCancelacionPedid
 import { useSearchParams } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { permisosPorRol } from "../utils/permisos";
+import {
+  PAGINACION_INICIAL,
+  normalizarListaPedidos,
+  normalizarPaginacionPedidos,
+} from "../utils/paginacionPedidos";
 import nuevoPedidoSound from "../assets/sound/Nuevo-Pedido.mp3";
 import {
   ESTADO_CANCELADO,
@@ -113,18 +118,23 @@ const construirMensajeWhatsappPedidoManual = (pedido, restaurante) => {
   ].join("\n");
 };
 
-const normalizarListaPedidos = (data) => {
-  const lista = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
-  const pedidosPorId = new Map();
-
-  lista.forEach((pedido) => {
-    if (pedido?.id !== undefined && pedido?.id !== null) {
-      pedidosPorId.set(pedido.id, pedido);
-    }
-  });
-
-  return Array.from(pedidosPorId.values());
-};
+function PaginacionPedidos({ paginacion, onAnterior, onSiguiente }) {
+  return (
+    <footer className="section-paginations-info">
+      <span className="div-info-paginacion">
+        Página {paginacion.page} de {paginacion.totalPages} · {paginacion.count} pedidos
+      </span>
+      <div className="paginations">
+        <button type="button" disabled={!paginacion.previous} onClick={onAnterior}>
+          Anterior
+        </button>
+        <button type="button" disabled={!paginacion.next} onClick={onSiguiente}>
+          Siguiente
+        </button>
+      </div>
+    </footer>
+  );
+}
 
 export default function PedidosDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -135,6 +145,11 @@ export default function PedidosDashboard() {
   const [pedidosWhatsapp, setPedidosWhatsapp] = useState([]);
   const [pedidosEspeciales, setPedidosEspeciales] = useState([]);
   const [pedidosManuales, setPedidosManuales] = useState([]);
+  const [paginacionPedidos, setPaginacionPedidos] = useState({
+    menly: PAGINACION_INICIAL,
+    whatsapp: PAGINACION_INICIAL,
+    especiales: PAGINACION_INICIAL,
+  });
   const [metricas, setMetricas] = useState({ whatsapp: {}, especiales: {} });
   const [loading, setLoading] = useState(true);
   const [detalle, setDetalle] = useState(null);
@@ -169,6 +184,7 @@ export default function PedidosDashboard() {
   const pedidosWhatsappConocidosRef = useRef(null);
   const nuevoPedidoAudioRef = useRef(null);
   const paginaOcultaRef = useRef(document.hidden);
+  const paginasPedidosRef = useRef({ menly: 1, whatsapp: 1, especiales: 1 });
   const pedidoQueryTipo = normalizarTipoPedido(searchParams.get("tipo"));
   const pedidoQueryId = searchParams.get("pedido");
 
@@ -230,34 +246,83 @@ export default function PedidosDashboard() {
     setMetricas(data);
   }, []);
 
-  const cargarListasPedidos = useCallback(async (restauranteActual) => {
+  const cargarListasPedidos = useCallback(async (restauranteActual, paginas = paginasPedidosRef.current) => {
     if (!restauranteActual) return;
 
-    const requests = [];
+    const paginasSolicitadas = { ...paginas };
+    const solicitudes = [];
 
     if (restauranteActual.carrito_whatsapp_activo === true) {
-      requests.push(authFetch("/mi-restaurante/pedidos/whatsapp/"));
+      solicitudes.push({
+        tipo: "whatsapp",
+        endpoint: `/mi-restaurante/pedidos/whatsapp/?page=${paginasSolicitadas.whatsapp}&scope=turno_actual`,
+      });
+      if (paginasSolicitadas.whatsapp !== 1) {
+        solicitudes.push({
+          tipo: "whatsappRecientes",
+          endpoint: "/mi-restaurante/pedidos/whatsapp/?page=1&scope=turno_actual",
+        });
+      }
     }
 
     if (restauranteActual.solicitudes_especiales_activas === true) {
-      requests.push(authFetch("/mi-restaurante/pedidos/especiales/"));
+      solicitudes.push({
+        tipo: "especiales",
+        endpoint: `/mi-restaurante/pedidos/especiales/?page=${paginasSolicitadas.especiales}&scope=turno_actual`,
+      });
     }
 
     if (restauranteActual.pedidos_pos === true) {
-      requests.push(authFetch("/mi-restaurante/pedidos/manuales/"));
+      solicitudes.push({
+        tipo: "menly",
+        endpoint: `/mi-restaurante/pedidos/manuales/?page=${paginasSolicitadas.menly}&scope=turno_actual`,
+      });
     }
 
-    const respuestas = await Promise.all(requests);
-    let indice = 0;
+    const respuestas = await Promise.all(
+      solicitudes.map(async ({ tipo, endpoint }) => ({
+        tipo,
+        endpoint,
+        response: await authFetch(endpoint),
+      }))
+    );
+
+    const paginaPorTipo = {
+      whatsapp: paginasSolicitadas.whatsapp,
+      especiales: paginasSolicitadas.especiales,
+      menly: paginasSolicitadas.menly,
+    };
+    for (const solicitud of respuestas) {
+      const pagina = paginaPorTipo[solicitud.tipo];
+      if (solicitud.response.status !== 404 || !pagina || pagina === 1) continue;
+
+      solicitud.endpoint = solicitud.endpoint.replace(/page=\d+/, "page=1");
+      solicitud.response = await authFetch(solicitud.endpoint);
+      paginasSolicitadas[solicitud.tipo] = 1;
+      paginasPedidosRef.current = {
+        ...paginasPedidosRef.current,
+        [solicitud.tipo]: 1,
+      };
+    }
+    const respuestasPorTipo = new Map(respuestas.map((item) => [item.tipo, item]));
 
     if (restauranteActual.carrito_whatsapp_activo === true) {
+      const solicitudWhatsapp = respuestasPorTipo.get("whatsapp");
       const data = await readJsonResponse(
-        respuestas[indice],
-        "/mi-restaurante/pedidos/whatsapp/",
+        solicitudWhatsapp.response,
+        solicitudWhatsapp.endpoint,
         "No se pudieron cargar los pedidos WhatsApp."
       );
       const listaPedidosWhatsapp = normalizarListaPedidos(data);
-      const idsActuales = listaPedidosWhatsapp.map((pedido) => String(pedido.id));
+      const solicitudRecientes = respuestasPorTipo.get("whatsappRecientes");
+      const dataRecientes = solicitudRecientes
+        ? await readJsonResponse(
+            solicitudRecientes.response,
+            solicitudRecientes.endpoint,
+            "No se pudieron comprobar los pedidos WhatsApp recientes."
+          )
+        : data;
+      const idsActuales = normalizarListaPedidos(dataRecientes).map((pedido) => String(pedido.id));
       const storageKey = `menly:pedidos-whatsapp-conocidos:${restauranteActual.id}`;
 
       if (pedidosWhatsappConocidosRef.current === null) {
@@ -294,36 +359,58 @@ export default function PedidosDashboard() {
       }
 
       setPedidosWhatsapp(listaPedidosWhatsapp);
-      indice += 1;
+      setPaginacionPedidos((actual) => ({
+        ...actual,
+        whatsapp: normalizarPaginacionPedidos(data, paginasSolicitadas.whatsapp),
+      }));
     } else {
       setPedidosWhatsapp([]);
+      setPaginacionPedidos((actual) => ({ ...actual, whatsapp: PAGINACION_INICIAL }));
     }
 
     if (restauranteActual.solicitudes_especiales_activas === true) {
-      const response = respuestas[indice];
+      const solicitudEspeciales = respuestasPorTipo.get("especiales");
       const data = await readJsonResponse(
-        response,
-        "/mi-restaurante/pedidos/especiales/",
+        solicitudEspeciales.response,
+        solicitudEspeciales.endpoint,
         "No se pudieron cargar los pedidos especiales."
       );
       setPedidosEspeciales(normalizarListaPedidos(data));
-      indice += 1;
+      setPaginacionPedidos((actual) => ({
+        ...actual,
+        especiales: normalizarPaginacionPedidos(data, paginasSolicitadas.especiales),
+      }));
     } else {
       setPedidosEspeciales([]);
+      setPaginacionPedidos((actual) => ({ ...actual, especiales: PAGINACION_INICIAL }));
     }
 
     if (restauranteActual.pedidos_pos === true) {
-      const manualesResponse = respuestas[indice];
+      const solicitudMenly = respuestasPorTipo.get("menly");
       const manualesData = await readJsonResponse(
-        manualesResponse,
-        "/mi-restaurante/pedidos/manuales/",
+        solicitudMenly.response,
+        solicitudMenly.endpoint,
         "No se pudieron cargar los pedidos Menly."
       );
       setPedidosManuales(normalizarListaPedidos(manualesData));
+      setPaginacionPedidos((actual) => ({
+        ...actual,
+        menly: normalizarPaginacionPedidos(manualesData, paginasSolicitadas.menly),
+      }));
     } else {
       setPedidosManuales([]);
+      setPaginacionPedidos((actual) => ({ ...actual, menly: PAGINACION_INICIAL }));
     }
   }, []);
+
+  const cambiarPaginaPedidos = useCallback(async (tipo, pagina) => {
+    const paginas = {
+      ...paginasPedidosRef.current,
+      [tipo]: Math.max(1, pagina),
+    };
+    paginasPedidosRef.current = paginas;
+    await cargarListasPedidos(restaurante, paginas);
+  }, [cargarListasPedidos, restaurante]);
 
   const cargarPedidos = useCallback(
     async (restauranteActual, rolActual) => {
@@ -452,11 +539,9 @@ export default function PedidosDashboard() {
         );
       } else {
         setPedidosEspeciales((actuales) =>
-          pedidoActualizado.estado === "entregado"
-            ? actuales.filter((pedido) => pedido.id !== id)
-            : actuales.map((pedido) =>
-                pedido.id === id ? pedidoActualizado : pedido
-              )
+          actuales.map((pedido) =>
+            pedido.id === id ? pedidoActualizado : pedido
+          )
         );
       }
 
@@ -818,6 +903,9 @@ export default function PedidosDashboard() {
       setMostrarFormularioEspecial(false);
       setPedidoEditando(null);
       setFormEspecial(formEspecialInicial);
+      if (!pedidoEditando) {
+        paginasPedidosRef.current = { ...paginasPedidosRef.current, especiales: 1 };
+      }
       await cargarPedidos(restaurante, usuario?.rol);
     } catch {
       // Conserva el formulario abierto para permitir corregir o reintentar.
@@ -1170,6 +1258,9 @@ export default function PedidosDashboard() {
       setFormManual(formManualInicial);
       setPedidoManualEditando(null);
       setTabActiva("menly");
+      if (!pedidoManualEditando) {
+        paginasPedidosRef.current = { ...paginasPedidosRef.current, menly: 1 };
+      }
       await cargarPedidos(restaurante, usuario?.rol);
     } catch {
       // Conserva el formulario abierto para permitir corregir o reintentar.
@@ -1260,13 +1351,13 @@ export default function PedidosDashboard() {
                     aria-label="Seleccionar tipo de pedidos"
                   >
                     {posActivo && (
-                      <option value="menly">Pedidos Menly ({pedidosManuales.length})</option>
+                      <option value="menly">Pedidos Menly ({paginacionPedidos.menly.count})</option>
                     )}
                     {whatsappActivo && (
-                      <option value="whatsapp">Pedidos por WhatsApp ({pedidosWhatsapp.length})</option>
+                      <option value="whatsapp">Pedidos por WhatsApp ({paginacionPedidos.whatsapp.count})</option>
                     )}
                     {especialesActivo && (
-                      <option value="especiales">Pedidos especiales ({pedidosEspeciales.length})</option>
+                      <option value="especiales">Pedidos especiales ({paginacionPedidos.especiales.count})</option>
                     )}
                   </select>
                   <button className="crear-reserva-btn" type="button" onClick={abrirCrearManual}>
@@ -1290,17 +1381,17 @@ export default function PedidosDashboard() {
                 <div className="tabs-row pedidos-tabs">
                   {posActivo && (
                     <button className={`tab ${tabActiva === "menly" ? "active" : ""}`} onClick={() => setTabActiva("menly")}>
-                      Pedidos Menly ({pedidosManuales.length})
+                      Pedidos Menly ({paginacionPedidos.menly.count})
                     </button>
                   )}
                   {whatsappActivo && (
                     <button className={`tab ${tabActiva === "whatsapp" ? "active" : ""}`} onClick={() => setTabActiva("whatsapp")}>
-                      Pedidos por WhatsApp ({pedidosWhatsapp.length})
+                      Pedidos por WhatsApp ({paginacionPedidos.whatsapp.count})
                     </button>
                   )}
                   {especialesActivo && (
                     <button className={`tab ${tabActiva === "especiales" ? "active" : ""}`} onClick={() => setTabActiva("especiales")}>
-                      Pedidos especiales ({pedidosEspeciales.length})
+                      Pedidos especiales ({paginacionPedidos.especiales.count})
                     </button>
                   )}
                   {especialesActivo && (
@@ -1385,6 +1476,11 @@ export default function PedidosDashboard() {
                       ))}
                     </tbody>
                   </table>
+                  <PaginacionPedidos
+                    paginacion={paginacionPedidos.menly}
+                    onAnterior={() => cambiarPaginaPedidos("menly", paginacionPedidos.menly.page - 1)}
+                    onSiguiente={() => cambiarPaginaPedidos("menly", paginacionPedidos.menly.page + 1)}
+                  />
                 </section>
               )}
 
@@ -1437,6 +1533,11 @@ export default function PedidosDashboard() {
                       ))}
                     </tbody>
                   </table>
+                  <PaginacionPedidos
+                    paginacion={paginacionPedidos.whatsapp}
+                    onAnterior={() => cambiarPaginaPedidos("whatsapp", paginacionPedidos.whatsapp.page - 1)}
+                    onSiguiente={() => cambiarPaginaPedidos("whatsapp", paginacionPedidos.whatsapp.page + 1)}
+                  />
                 </section>
               )}
 
@@ -1489,6 +1590,11 @@ export default function PedidosDashboard() {
                       ))}
                     </tbody>
                   </table>
+                  <PaginacionPedidos
+                    paginacion={paginacionPedidos.especiales}
+                    onAnterior={() => cambiarPaginaPedidos("especiales", paginacionPedidos.especiales.page - 1)}
+                    onSiguiente={() => cambiarPaginaPedidos("especiales", paginacionPedidos.especiales.page + 1)}
+                  />
                 </section>
               )}
             </>

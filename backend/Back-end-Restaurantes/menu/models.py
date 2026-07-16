@@ -4,6 +4,7 @@ import secrets
 from django.db import models
 from cloudinary.models import CloudinaryField
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.utils.text import slugify
@@ -429,6 +430,26 @@ class SolicitudEspecial(models.Model):
         return f"{self.nombre} {self.apellido} - {self.restaurante.nombre_empresa}"
 
 
+class RestaurantePedidoSecuencia(models.Model):
+    restaurante = models.OneToOneField(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="secuencia_pedidos",
+    )
+    ultimo_numero = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(9999)],
+    )
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "secuencia de pedidos del restaurante"
+        verbose_name_plural = "secuencias de pedidos de restaurantes"
+
+    def __str__(self):
+        return f"{self.restaurante.nombre_empresa}: #{self.ultimo_numero}"
+
+
 class PedidoWhatsApp(models.Model):
     TIPO_DELIVERY = "delivery"
     TIPO_RETIRO_LOCAL = "retiro_local"
@@ -494,12 +515,6 @@ class PedidoWhatsApp(models.Model):
         indexes = [
             models.Index(fields=["restaurante", "-fecha_creacion"], name="pedw_rest_fecha_idx"),
             models.Index(fields=["restaurante", "estado"], name="pedw_rest_estado_idx"),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["restaurante", "numero_pedido"],
-                name="unique_pedido_whatsapp_numero_por_rest"
-            )
         ]
 
     def __str__(self):
@@ -671,12 +686,6 @@ class PedidoEspecial(models.Model):
             models.Index(fields=["restaurante", "estado"], name="pedesp_rest_estado_idx"),
             models.Index(fields=["restaurante", "fecha_entrega"], name="pedesp_rest_entrega_idx"),
         ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["restaurante", "numero_pedido"],
-                name="unique_pedido_especial_numero_por_rest"
-            )
-        ]
 
     def __str__(self):
         return f"Pedido especial #{self.numero_pedido} - {self.restaurante.nombre_empresa}"
@@ -749,12 +758,6 @@ class PedidoManual(models.Model):
         indexes = [
             models.Index(fields=["restaurante", "-fecha_creacion"], name="pedman_rest_fecha_idx"),
             models.Index(fields=["restaurante", "estado"], name="pedman_rest_estado_idx"),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["restaurante", "numero_pedido"],
-                name="unique_pedido_manual_numero_por_rest"
-            )
         ]
 
     def __str__(self):
@@ -1119,6 +1122,56 @@ class HorarioAtencion(models.Model):
     def __str__(self):
         estado = "Cerrado" if self.cerrado else f"{self.hora_apertura} - {self.hora_cierre}"
         return f"{self.restaurante.nombre_empresa} | {self.get_dia_display()} | {estado}"
+
+
+class TurnoOperativo(models.Model):
+    ORIGEN_HORARIO = "horario"
+    ORIGEN_APERTURA_EXCEPCIONAL = "apertura_excepcional"
+    ORIGENES_INICIO = [
+        (ORIGEN_HORARIO, "Horario programado"),
+        (ORIGEN_APERTURA_EXCEPCIONAL, "Apertura excepcional"),
+    ]
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="turnos_operativos",
+    )
+    inicio = models.DateTimeField()
+    fin_programado = models.DateTimeField()
+    fecha_operativa = models.DateField()
+    origen_inicio = models.CharField(max_length=30, choices=ORIGENES_INICIO)
+    cerrado = models.BooleanField(default=False)
+    fecha_cierre_real = models.DateTimeField(null=True, blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-inicio"]
+        indexes = [
+            models.Index(
+                fields=["restaurante", "-inicio"],
+                name="turno_rest_inicio_idx",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["restaurante"],
+                condition=models.Q(cerrado=False),
+                name="unique_turno_operativo_activo_por_rest",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(fin_programado__gt=models.F("inicio")),
+                name="turno_fin_posterior_inicio",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.restaurante.nombre_empresa}: "
+            f"{self.inicio.isoformat()} - {self.fin_programado.isoformat()}"
+        )
+
 
 class MetodoPago(models.Model):
     restaurante = models.ForeignKey(

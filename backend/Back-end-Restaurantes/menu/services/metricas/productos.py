@@ -1,6 +1,7 @@
 from django.db.models import Sum
 
 from menu.models import Producto
+from menu.services.turnos_operativos import obtener_turno_operativo_actual
 from .pedidos import (
     fecha_hoy,
     inicio_mes,
@@ -124,10 +125,21 @@ def clicks_productos_total(restaurante):
 
 
 def metricas_productos(restaurante, hoy=None):
+    usar_turno_actual = hoy is None
     hoy = hoy or fecha_hoy()
     desde_mes = inicio_mes(hoy)
+    turno = obtener_turno_operativo_actual(restaurante) if usar_turno_actual else None
+    mas_vendido_turno = (
+        producto_mas_vendido(restaurante, turno.inicio, turno.fin)
+        if turno and turno.inicio and turno.fin
+        else None
+    )
     return {
-        "mas_vendido_hoy": producto_mas_vendido(restaurante, hoy, hoy),
+        "mas_vendido_hoy": (
+            mas_vendido_turno
+            if usar_turno_actual
+            else producto_mas_vendido(restaurante, hoy, hoy)
+        ),
         "mas_vendido_mes": producto_mas_vendido(restaurante, desde_mes, hoy),
         "top_por_cantidad": top_productos_por_cantidad(restaurante, desde_mes, hoy),
         "top_por_ingresos": top_productos_por_ingresos(restaurante, desde_mes, hoy),

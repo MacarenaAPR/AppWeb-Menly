@@ -1,4 +1,4 @@
-from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,ActivacionCocina,SesionCocina,ReporteMetrica,PushSubscription
+from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,TurnoOperativo,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,RestaurantePedidoSecuencia,ActivacionCocina,SesionCocina,ReporteMetrica,PushSubscription
 from .forms import ProductoCSVImportForm
 
 import csv
@@ -391,6 +391,8 @@ class PedidoWhatsAppAdmin(admin.ModelAdmin):
         "estado",
         "fecha_creacion",
     )
+
+
     list_filter = ("estado", "tipo_entrega", "restaurante", "fecha_creacion")
     search_fields = (
         "nombre_cliente",
@@ -408,6 +410,37 @@ class PedidoWhatsAppAdmin(admin.ModelAdmin):
         "mensaje_whatsapp_generado",
         "whatsapp_destino",
         "total",
+    )
+
+
+@admin.register(RestaurantePedidoSecuencia)
+class RestaurantePedidoSecuenciaAdmin(admin.ModelAdmin):
+    list_display = ("restaurante", "ultimo_numero", "fecha_actualizacion")
+    search_fields = ("restaurante__nombre_empresa", "restaurante__slug")
+    readonly_fields = ("restaurante", "ultimo_numero", "fecha_actualizacion")
+
+
+@admin.register(TurnoOperativo)
+class TurnoOperativoAdmin(admin.ModelAdmin):
+    list_display = (
+        "restaurante",
+        "inicio",
+        "fin_programado",
+        "origen_inicio",
+        "cerrado",
+    )
+    list_filter = ("cerrado", "origen_inicio", "restaurante")
+    search_fields = ("restaurante__nombre_empresa", "restaurante__slug")
+    readonly_fields = (
+        "restaurante",
+        "inicio",
+        "fin_programado",
+        "fecha_operativa",
+        "origen_inicio",
+        "cerrado",
+        "fecha_cierre_real",
+        "creado_en",
+        "actualizado_en",
     )
 
 
