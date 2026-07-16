@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "../../api";
+import {
+  activarWebPush,
+  desactivarWebPush,
+  obtenerEstadoWebPush,
+} from "../../pushNotifications";
 
 
 export default function NotificacionesConfig() {
@@ -12,6 +17,9 @@ export default function NotificacionesConfig() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [pushEstado, setPushEstado] = useState("loading");
+  const [pushProcesando, setPushProcesando] = useState(false);
+  const [pushMensaje, setPushMensaje] = useState("");
 
   const cargarConfiguracion = useCallback(async () => {
     try {
@@ -38,6 +46,52 @@ export default function NotificacionesConfig() {
   useEffect(() => {
     cargarConfiguracion();
   }, [cargarConfiguracion]);
+
+  useEffect(() => {
+    obtenerEstadoWebPush()
+      .then(({ estado }) => setPushEstado(estado))
+      .catch(() => setPushEstado("error"));
+  }, []);
+
+  const activarNotificacionesEquipo = async () => {
+    setPushProcesando(true);
+    setPushMensaje("");
+    try {
+      const { estado } = await activarWebPush();
+      setPushEstado(estado);
+      if (estado === "enabled") {
+        setPushMensaje("Notificaciones activadas en este equipo.");
+      }
+    } catch (requestError) {
+      setPushEstado("error");
+      setPushMensaje(requestError.message || "No se pudieron activar las notificaciones.");
+    } finally {
+      setPushProcesando(false);
+    }
+  };
+
+  const desactivarNotificacionesEquipo = async () => {
+    setPushProcesando(true);
+    setPushMensaje("");
+    try {
+      const { estado } = await desactivarWebPush();
+      setPushEstado(estado);
+      setPushMensaje("Notificaciones desactivadas en este equipo.");
+    } catch (requestError) {
+      setPushMensaje(requestError.message || "No se pudieron desactivar las notificaciones.");
+    } finally {
+      setPushProcesando(false);
+    }
+  };
+
+  const textoEstadoPush = {
+    loading: "Comprobando este equipo...",
+    enabled: "Notificaciones activadas",
+    disabled: "Notificaciones desactivadas",
+    denied: "Permiso bloqueado en el navegador",
+    unsupported: "Este navegador no es compatible",
+    error: "No se pudo comprobar el estado de las notificaciones",
+  }[pushEstado];
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -125,6 +179,35 @@ export default function NotificacionesConfig() {
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="usuarios-card">
+        <h3>Notificaciones en este equipo</h3>
+        <p>Recibe avisos de nuevos pedidos aunque Menly este minimizado.</p>
+        <p className="empty-text">{textoEstadoPush}</p>
+        {pushMensaje && <p className={pushEstado === "error" ? "empty-text" : "success-text"}>{pushMensaje}</p>}
+
+        <div className="usuarios-edit-actions">
+          {pushEstado === "enabled" ? (
+            <button
+              type="button"
+              className="usuarios-save-btn"
+              onClick={desactivarNotificacionesEquipo}
+              disabled={pushProcesando}
+            >
+              {pushProcesando ? "Desactivando..." : "Desactivar notificaciones en este equipo"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="usuarios-save-btn"
+              onClick={activarNotificacionesEquipo}
+              disabled={pushProcesando || pushEstado === "loading" || pushEstado === "unsupported" || pushEstado === "denied"}
+            >
+              {pushProcesando ? "Activando..." : "Activar notificaciones"}
+            </button>
+          )}
+        </div>
       </section>
     </div>
   );

@@ -11,13 +11,14 @@ from .serializers import CustomTokenObtainPairSerializer, ContactoPlanesSerializ
 from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
 from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoWhatsAppEstadoUpdateSerializer, PedidoWhatsAppSeguimientoPublicoSerializer, PedidoEspecialSerializer, PedidoManualSerializer, PedidoManualSeguimientoPublicoSerializer
 from .serializers import ReporteMetricaSerializer
+from .serializers import PushSubscriptionEndpointSerializer, PushSubscriptionSerializer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MetodoPagoPublicoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from .serializers import serializar_plan_restaurante
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, ProductoVariante, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, PedidoEspecial, PedidoManual, ReporteMetrica
+from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, ProductoVariante, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, PedidoEspecial, PedidoManual, ReporteMetrica, PushSubscription
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from django.db.models import Count, F, Max, Q, Prefetch
 from django.utils.text import slugify
@@ -52,6 +53,7 @@ from menu.services.metricas.resumen import (
 )
 from menu.services.estado_restaurante import calcular_estado_restaurante
 from menu.services.pedidos_whatsapp import calcular_hash_pedido_publico
+from menu.services.webpush import programar_push_nuevo_pedido
 from menu.services.estados_pedidos import (
     EstadoPedidoInvalido,
     TransicionEstadoInvalida,
@@ -1615,6 +1617,9 @@ class CrearPedidoWhatsAppPublicoView(APIView):
                     "respuesta",
                     "fecha_actualizacion",
                 ])
+            transaction.on_commit(
+                lambda pedido_id=pedido.id: programar_push_nuevo_pedido(pedido_id)
+            )
             return Response(respuesta, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -2007,6 +2012,89 @@ class PedidoEspecialDetalleDashboardView(APIView):
             })
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PushConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        get_restaurante_actual(request)
+        return Response({
+            "vapid_public_key": settings.WEBPUSH_VAPID_PUBLIC_KEY,
+            "configured": bool(
+                settings.WEBPUSH_VAPID_PUBLIC_KEY
+                and settings.WEBPUSH_VAPID_PRIVATE_KEY
+                and settings.WEBPUSH_VAPID_SUBJECT
+            ),
+        })
+
+
+class PushSubscriptionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PushSubscriptionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        perfil = get_perfil_activo_tenant(request)
+        restaurante = perfil.restaurante
+        endpoint = serializer.validated_data["endpoint"]
+        keys = serializer.validated_data["keys"]
+        tipo_dispositivo = serializer.validated_data["tipo_dispositivo"]
+
+        existente = PushSubscription.objects.filter(endpoint=endpoint).first()
+        if existente and existente.restaurante_id != restaurante.id:
+            return Response(
+                {"error": "No se pudo registrar esta suscripcion."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        suscripcion, creada = PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            restaurante=restaurante,
+            defaults={
+                "usuario": request.user,
+                "p256dh": keys["p256dh"],
+                "auth": keys["auth"],
+                "tipo_dispositivo": tipo_dispositivo,
+                "activo": True,
+            },
+        )
+        return Response(
+            {
+                "subscribed": True,
+                "tipo_dispositivo": suscripcion.tipo_dispositivo,
+            },
+            status=status.HTTP_201_CREATED if creada else status.HTTP_200_OK,
+        )
+
+    def delete(self, request):
+        serializer = PushSubscriptionEndpointSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        restaurante = get_restaurante_actual(request)
+        actualizadas = PushSubscription.objects.filter(
+            restaurante=restaurante,
+            endpoint=serializer.validated_data["endpoint"],
+            activo=True,
+        ).update(activo=False)
+        return Response({"subscribed": False, "updated": bool(actualizadas)})
+
+
+class PushSubscriptionStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PushSubscriptionEndpointSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        restaurante = get_restaurante_actual(request)
+        suscripcion = PushSubscription.objects.filter(
+            restaurante=restaurante,
+            endpoint=serializer.validated_data["endpoint"],
+            activo=True,
+        ).only("tipo_dispositivo").first()
+        return Response({
+            "subscribed": bool(suscripcion),
+            "tipo_dispositivo": suscripcion.tipo_dispositivo if suscripcion else None,
+        })
 
 
 class PedidoEspecialEstadoDashboardView(PedidoEspecialDetalleDashboardView):

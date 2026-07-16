@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getOptimizedImageUrl } from "../utils/images";
+import { MAX_CANTIDAD_POR_PRODUCTO } from "../constants/carrito";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 
@@ -34,7 +35,8 @@ export default function Menu({
   fallbackImage,
   carritoActivo = false,
   onAddToCart,
-  maxCantidad = 5,
+  maxCantidad = MAX_CANTIDAD_POR_PRODUCTO,
+  onMaxCantidad,
   carritoMensajeInactivo = "",
 }) {
   const menuTabsRef = useRef(null);
@@ -97,11 +99,17 @@ export default function Menu({
     cantidadesProductos[productoId] || 1;
 
   const cambiarCantidadProductoCard = (productoId, delta) => {
+    const cantidadActual = getCantidadProductoCard(productoId);
+    if (delta > 0 && cantidadActual >= maxCantidad) {
+      onMaxCantidad?.();
+      return;
+    }
+
     setCantidadesProductos((cantidadesActuales) => {
-      const cantidadActual = cantidadesActuales[productoId] || 1;
+      const cantidadVigente = cantidadesActuales[productoId] || 1;
       const nuevaCantidad = Math.min(
         maxCantidad,
-        Math.max(1, cantidadActual + delta)
+        Math.max(1, cantidadVigente + delta)
       );
 
       return {
@@ -303,7 +311,6 @@ export default function Menu({
                         className="producto-quantity-btn"
                         aria-label={`Aumentar cantidad de ${producto.nombre}`}
                         onClick={() => cambiarCantidadProductoCard(producto.id, 1)}
-                        disabled={getCantidadProductoCard(producto.id) >= maxCantidad}
                       >
                         +
                       </button>
@@ -399,6 +406,9 @@ export default function Menu({
                       value={cantidadProducto}
                       onChange={(event) => {
                         const value = Number(event.target.value);
+                        if (value > maxCantidad) {
+                          onMaxCantidad?.();
+                        }
                         setCantidadProducto(
                           Math.min(maxCantidad, Math.max(1, value || 1))
                         );

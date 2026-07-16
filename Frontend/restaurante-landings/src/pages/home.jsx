@@ -11,6 +11,10 @@ import { GiFireBowl } from "react-icons/gi";
 import { TiShoppingCart } from "react-icons/ti";
 import { MdOutlineShoppingBag } from "react-icons/md";
 import RestaurantPageLoader from "../components/RestaurantPageLoader";
+import {
+  MAX_CANTIDAD_POR_PRODUCTO,
+  MENSAJE_MAX_CANTIDAD_POR_PRODUCTO,
+} from "../constants/carrito";
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 const MENU_CACHE_TTL = 60 * 5 * 1000;
 
@@ -103,8 +107,6 @@ const formatearHorarioPublico = (horario) => {
 
   return `${formatearHoraHorario(horario.hora_apertura)} - ${formatearHoraHorario(horario.hora_cierre)}`;
 };
-
-const MAX_UNIDADES_POR_PRODUCTO = 5;
 
 const generarClaveIdempotencia = () => {
   const cryptoApi = window.crypto;
@@ -296,7 +298,6 @@ export default function Home() {
   };
 
   const agregarAlCarrito = (producto, cantidad = 1, variante = null) => {
-    let agregado = false;
     let maximoAlcanzado = false;
     const variantes = (producto.variantes || []).filter((item) => item.activo !== false);
     if (variantes.length > 0 && !variante) {
@@ -311,17 +312,18 @@ export default function Home() {
     setCarrito((items) => {
       const existente = items.find((item) => item.lineId === lineId);
       const cantidadSegura = Math.min(
-        MAX_UNIDADES_POR_PRODUCTO,
+        MAX_CANTIDAD_POR_PRODUCTO,
         Math.max(1, Number(cantidad) || 1)
       );
+      maximoAlcanzado = Number(cantidad) > MAX_CANTIDAD_POR_PRODUCTO;
 
       if (existente) {
+        const cantidadSolicitada = existente.cantidad + cantidadSegura;
         const nuevaCantidad = Math.min(
-          MAX_UNIDADES_POR_PRODUCTO,
-          existente.cantidad + cantidadSegura
+          MAX_CANTIDAD_POR_PRODUCTO,
+          cantidadSolicitada
         );
-        maximoAlcanzado = nuevaCantidad === existente.cantidad;
-        agregado = nuevaCantidad > existente.cantidad;
+        maximoAlcanzado = cantidadSolicitada > MAX_CANTIDAD_POR_PRODUCTO;
 
         return items.map((item) =>
           item.lineId === lineId
@@ -330,7 +332,6 @@ export default function Home() {
         );
       }
 
-      agregado = true;
       return [
         ...items,
         {
@@ -346,7 +347,9 @@ export default function Home() {
     });
 
     mostrarToastCarrito(
-      agregado ? "Producto agregado al carrito" : "Máximo 5 unidades por producto"
+      maximoAlcanzado
+        ? MENSAJE_MAX_CANTIDAD_POR_PRODUCTO
+        : "Producto agregado al carrito"
     );
   };
 
@@ -366,7 +369,7 @@ export default function Home() {
             ? {
                 ...item,
                 cantidad: Math.min(
-                  MAX_UNIDADES_POR_PRODUCTO,
+                  MAX_CANTIDAD_POR_PRODUCTO,
                   item.cantidad + delta
                 ),
               }
@@ -1649,13 +1652,16 @@ export default function Home() {
                       <input
                         type="number"
                         min="1"
-                        max={MAX_UNIDADES_POR_PRODUCTO}
+                        max={MAX_CANTIDAD_POR_PRODUCTO}
                         value={cantidadPromocion}
                         onChange={(event) => {
                           const value = Number(event.target.value);
+                          if (value > MAX_CANTIDAD_POR_PRODUCTO) {
+                            mostrarToastCarrito(MENSAJE_MAX_CANTIDAD_POR_PRODUCTO);
+                          }
                           setCantidadPromocion(
                             Math.min(
-                              MAX_UNIDADES_POR_PRODUCTO,
+                              MAX_CANTIDAD_POR_PRODUCTO,
                               Math.max(1, value || 1)
                             )
                           );
@@ -1719,7 +1725,8 @@ export default function Home() {
             fallbackImage={restaurante?.logo_url}
             carritoActivo={carritoDisponible}
             onAddToCart={agregarAlCarrito}
-            maxCantidad={MAX_UNIDADES_POR_PRODUCTO}
+            maxCantidad={MAX_CANTIDAD_POR_PRODUCTO}
+            onMaxCantidad={() => mostrarToastCarrito(MENSAJE_MAX_CANTIDAD_POR_PRODUCTO)}
             carritoMensajeInactivo={
               tiendaCerradaConCarrito
                 ? "Los pedidos estarán disponibles cuando la tienda esté abierta."
@@ -1954,8 +1961,8 @@ export default function Home() {
                           type="button"
                           aria-label={`Aumentar ${item.nombre}`}
                           onClick={() => {
-                            if (item.cantidad >= MAX_UNIDADES_POR_PRODUCTO) {
-                              mostrarToastCarrito("Máximo 5 unidades por producto");
+                            if (item.cantidad >= MAX_CANTIDAD_POR_PRODUCTO) {
+                              mostrarToastCarrito(MENSAJE_MAX_CANTIDAD_POR_PRODUCTO);
                               return;
                             }
                             cambiarCantidadCarrito(item.lineId, 1);

@@ -192,6 +192,12 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = (*default_headers, "idempotency-key")
 FRONTEND_PUBLIC_URL = config("FRONTEND_PUBLIC_URL", default="http://localhost:5173")
+WEBPUSH_VAPID_PUBLIC_KEY = config("WEBPUSH_VAPID_PUBLIC_KEY", default="")
+WEBPUSH_VAPID_PRIVATE_KEY = config("WEBPUSH_VAPID_PRIVATE_KEY", default="")
+WEBPUSH_VAPID_SUBJECT = config(
+    "WEBPUSH_VAPID_SUBJECT",
+    default="mailto:soporte@menly.cl",
+)
 COCINA_COOKIE_DOMAIN = config("COCINA_COOKIE_DOMAIN", default="") or None
 ADMIN_COOKIE_DOMAIN = config("ADMIN_COOKIE_DOMAIN", default="") or None
 ADMIN_REFRESH_COOKIE_NAME = "menly_admin_refresh"

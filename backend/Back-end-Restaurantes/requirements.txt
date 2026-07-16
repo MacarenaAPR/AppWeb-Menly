@@ -13,6 +13,7 @@ gunicorn==25.3.0
 idna==3.11
 packaging==26.0
 pillow==12.2.0
+pywebpush==2.3.0
 psycopg2-binary==2.9.11
 PyJWT==2.12.1
 python-decouple==3.8

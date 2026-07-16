@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { cocinaFetch, readJsonResponse } from "../api";
 import { getKdsPollingConfig } from "../session/kdsAvailability";
+import pedidoCocinaSound from "../assets/sound/Pedido-Cocina.mp3";
 import "../styles/Cocina.css";
 
 const estadoLabels = {
@@ -104,6 +105,8 @@ export default function PedidosCocina() {
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
   const [actualizandoId, setActualizandoId] = useState("");
   const [horaActual, setHoraActual] = useState(new Date());
+  const comandasConocidasRef = useRef(null);
+  const pedidoCocinaAudioRef = useRef(null);
 
   const cargarComandas = useCallback(async ({ silent = false } = {}) => {
     if (!silent) {
@@ -126,9 +129,46 @@ export default function PedidosCocina() {
         "/cocina/comandas/",
         "No se pudieron cargar las comandas."
       );
+      const nuevasComandas = data.comandas || [];
+      const idsActuales = nuevasComandas.map((comanda) => String(comanda.id));
+      const storageKey = `menly:comandas-conocidas:${data.restaurante?.slug || "kds"}`;
+
+      if (comandasConocidasRef.current === null) {
+        let idsPersistidos = [];
+        try {
+          const valorPersistido = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
+          idsPersistidos = Array.isArray(valorPersistido) ? valorPersistido : [];
+        } catch {
+          idsPersistidos = [];
+        }
+        comandasConocidasRef.current = new Set([...idsPersistidos, ...idsActuales]);
+      } else {
+        const hayComandaNueva = idsActuales.some(
+          (comandaId) => !comandasConocidasRef.current.has(comandaId)
+        );
+        idsActuales.forEach((comandaId) => comandasConocidasRef.current.add(comandaId));
+
+        if (data.estado_local?.abierto === true && hayComandaNueva) {
+          if (!pedidoCocinaAudioRef.current) {
+            pedidoCocinaAudioRef.current = new Audio(pedidoCocinaSound);
+          }
+          pedidoCocinaAudioRef.current.currentTime = 0;
+          pedidoCocinaAudioRef.current.play().catch(() => {});
+        }
+      }
+
+      try {
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify(Array.from(comandasConocidasRef.current))
+        );
+      } catch {
+        // La deteccion en memoria sigue activa si el almacenamiento no esta disponible.
+      }
+
       setRestaurante(data.restaurante || null);
       setEstadoLocal(data.estado_local || null);
-      setComandas(data.comandas || []);
+      setComandas(nuevasComandas);
       setUltimaActualizacion(new Date());
       setSesionInvalida(false);
       setError("");

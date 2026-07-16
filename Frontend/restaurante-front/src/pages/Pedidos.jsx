@@ -5,6 +5,7 @@ import ConfirmarCancelacionPedido from "../componentes/ConfirmarCancelacionPedid
 import { useSearchParams } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { permisosPorRol } from "../utils/permisos";
+import nuevoPedidoSound from "../assets/sound/Nuevo-Pedido.mp3";
 import {
   ESTADO_CANCELADO,
   estadoLabels,
@@ -165,6 +166,9 @@ export default function PedidosDashboard() {
   const estadoErrorTimerRef = useRef(null);
   const ultimoErrorEstadoRef = useRef("");
   const cargaInicialPromiseRef = useRef(null);
+  const pedidosWhatsappConocidosRef = useRef(null);
+  const nuevoPedidoAudioRef = useRef(null);
+  const paginaOcultaRef = useRef(document.hidden);
   const pedidoQueryTipo = normalizarTipoPedido(searchParams.get("tipo"));
   const pedidoQueryId = searchParams.get("pedido");
 
@@ -252,7 +256,44 @@ export default function PedidosDashboard() {
         "/mi-restaurante/pedidos/whatsapp/",
         "No se pudieron cargar los pedidos WhatsApp."
       );
-      setPedidosWhatsapp(normalizarListaPedidos(data));
+      const listaPedidosWhatsapp = normalizarListaPedidos(data);
+      const idsActuales = listaPedidosWhatsapp.map((pedido) => String(pedido.id));
+      const storageKey = `menly:pedidos-whatsapp-conocidos:${restauranteActual.id}`;
+
+      if (pedidosWhatsappConocidosRef.current === null) {
+        let idsPersistidos = [];
+        try {
+          const valorPersistido = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
+          idsPersistidos = Array.isArray(valorPersistido) ? valorPersistido : [];
+        } catch {
+          idsPersistidos = [];
+        }
+        pedidosWhatsappConocidosRef.current = new Set([...idsPersistidos, ...idsActuales]);
+      } else {
+        const idsNuevos = idsActuales.filter(
+          (pedidoId) => !pedidosWhatsappConocidosRef.current.has(pedidoId)
+        );
+        idsActuales.forEach((pedidoId) => pedidosWhatsappConocidosRef.current.add(pedidoId));
+
+        if (idsNuevos.length > 0 && !paginaOcultaRef.current) {
+          if (!nuevoPedidoAudioRef.current) {
+            nuevoPedidoAudioRef.current = new Audio(nuevoPedidoSound);
+          }
+          nuevoPedidoAudioRef.current.currentTime = 0;
+          nuevoPedidoAudioRef.current.play().catch(() => {});
+        }
+      }
+
+      try {
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify(Array.from(pedidosWhatsappConocidosRef.current))
+        );
+      } catch {
+        // La deteccion en memoria sigue activa si el almacenamiento no esta disponible.
+      }
+
+      setPedidosWhatsapp(listaPedidosWhatsapp);
       indice += 1;
     } else {
       setPedidosWhatsapp([]);
@@ -321,6 +362,37 @@ export default function PedidosDashboard() {
     cargaInicialPromiseRef.current = cargar();
     return undefined;
   }, [cargarPedidos, cargarRestaurante]);
+
+  useEffect(() => {
+    const actualizarVisibilidad = () => {
+      paginaOcultaRef.current = document.hidden;
+    };
+
+    document.addEventListener("visibilitychange", actualizarVisibilidad);
+    return () => document.removeEventListener("visibilitychange", actualizarVisibilidad);
+  }, []);
+
+  useEffect(() => {
+    const registrarPedidoNotificadoPorPush = (event) => {
+      if (event.data?.type !== "MENLY_PUSH_NOTIFICADO" || !event.data.pedido_id) return;
+
+      const pedidoId = String(event.data.pedido_id);
+      pedidosWhatsappConocidosRef.current?.add(pedidoId);
+      if (!restaurante?.id || !pedidosWhatsappConocidosRef.current) return;
+
+      try {
+        window.localStorage.setItem(
+          `menly:pedidos-whatsapp-conocidos:${restaurante.id}`,
+          JSON.stringify(Array.from(pedidosWhatsappConocidosRef.current))
+        );
+      } catch {
+        // La marca en memoria evita duplicar el sonido durante esta carga.
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener("message", registrarPedidoNotificadoPorPush);
+    return () => navigator.serviceWorker?.removeEventListener("message", registrarPedidoNotificadoPorPush);
+  }, [restaurante?.id]);
 
   useEffect(() => {
     detalleAbiertoRef.current = Boolean(detalle);

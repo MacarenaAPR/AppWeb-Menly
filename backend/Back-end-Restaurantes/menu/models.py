@@ -1213,3 +1213,48 @@ class RespaldoRestaurante(models.Model):
         return f"Respaldo {self.nombre_restaurante} - {self.fecha_respaldo}"
 
 
+class PushSubscription(models.Model):
+    TIPO_PANEL = "panel"
+    TIPO_KDS = "kds"
+    TIPOS_DISPOSITIVO = (
+        (TIPO_PANEL, "Panel"),
+        (TIPO_KDS, "KDS"),
+    )
+
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="suscripciones_push",
+    )
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="suscripciones_push",
+    )
+    endpoint = models.URLField(max_length=1000, unique=True)
+    p256dh = models.CharField(max_length=255)
+    auth = models.CharField(max_length=255)
+    tipo_dispositivo = models.CharField(
+        max_length=10,
+        choices=TIPOS_DISPOSITIVO,
+        default=TIPO_PANEL,
+    )
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-fecha_actualizacion",)
+        indexes = [
+            models.Index(
+                fields=("restaurante", "tipo_dispositivo", "activo"),
+                name="push_rest_tipo_activo_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_dispositivo_display()} - {self.restaurante.nombre_empresa}"
+
+

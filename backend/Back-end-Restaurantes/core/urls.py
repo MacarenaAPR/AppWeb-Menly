@@ -31,6 +31,7 @@ from menu.views import MesasView, MesaDetalleView,IconosView
 from menu.views import HorariosView, HorarioDetalleView
 from menu.views import MetodosPagoView, MetodoPagoDetalleView, MetodosPagoPublicosView, ProductoClickView
 from menu.views import RespaldosRestauranteView, UltimoRespaldoRestauranteView
+from menu.views import PushConfigView, PushSubscriptionStatusView, PushSubscriptionView
 
 urlpatterns = [
 
@@ -58,6 +59,9 @@ urlpatterns = [
 
     # 🏪 dashboard privado
     path("api/mi-restaurante/", MiRestauranteView.as_view(), name="mi-restaurante"),
+    path("api/push/config/", PushConfigView.as_view(), name="push-config"),
+    path("api/push/subscriptions/", PushSubscriptionView.as_view(), name="push-subscriptions"),
+    path("api/push/subscriptions/status/", PushSubscriptionStatusView.as_view(), name="push-subscription-status"),
     path("api/dashboard/ultimos-pedidos/", DashboardUltimosPedidosView.as_view(), name="dashboard-ultimos-pedidos"),
     path("api/metricas/reporte-mensual/", ReporteMensualMetricasView.as_view(), name="metricas-reporte-mensual"),
     path("api/metricas/reporte-anual/", ReporteAnualMetricasView.as_view(), name="metricas-reporte-anual"),

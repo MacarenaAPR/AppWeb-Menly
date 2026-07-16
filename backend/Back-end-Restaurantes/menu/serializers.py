@@ -2,7 +2,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, ProductoVariante, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica
+from .models import Producto, ProductoVariante, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica, PushSubscription
 from .utils import crear_notificacion_pedido_especial
 from .services.pedidos_whatsapp import (
     crear_pedido_whatsapp,
@@ -22,6 +22,30 @@ from django.db.models import Max
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class PushSubscriptionKeysSerializer(serializers.Serializer):
+    p256dh = serializers.RegexField(
+        regex=r"^[A-Za-z0-9_-]+={0,2}$",
+        max_length=255,
+    )
+    auth = serializers.RegexField(
+        regex=r"^[A-Za-z0-9_-]+={0,2}$",
+        max_length=255,
+    )
+
+
+class PushSubscriptionSerializer(serializers.Serializer):
+    endpoint = serializers.URLField(max_length=1000)
+    keys = PushSubscriptionKeysSerializer()
+    tipo_dispositivo = serializers.ChoiceField(
+        choices=PushSubscription.TIPOS_DISPOSITIVO,
+        default=PushSubscription.TIPO_PANEL,
+    )
+
+
+class PushSubscriptionEndpointSerializer(serializers.Serializer):
+    endpoint = serializers.URLField(max_length=1000)
 
 
 class ContactoPlanesSerializer(serializers.Serializer):

@@ -1,4 +1,4 @@
-from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,ActivacionCocina,SesionCocina,ReporteMetrica
+from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,ActivacionCocina,SesionCocina,ReporteMetrica,PushSubscription
 from .forms import ProductoCSVImportForm
 
 import csv
@@ -569,6 +569,14 @@ class MesaAdmin(admin.ModelAdmin):
     list_filter = ("restaurante", "activa")
     search_fields = ("nombre", "restaurante__nombre_empresa")
     ordering = ("restaurante", "numero")
+
+
+@admin.register(PushSubscription)
+class PushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("id", "restaurante", "usuario", "tipo_dispositivo", "activo", "fecha_actualizacion")
+    list_filter = ("tipo_dispositivo", "activo", "restaurante")
+    search_fields = ("restaurante__nombre_empresa", "usuario__username")
+    readonly_fields = ("endpoint", "p256dh", "auth", "fecha_creacion", "fecha_actualizacion")
 
 @admin.register(Icono)
 class IconoAdmin(admin.ModelAdmin):
