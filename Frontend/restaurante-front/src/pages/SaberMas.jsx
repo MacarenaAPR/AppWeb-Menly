@@ -14,10 +14,6 @@ import previewWeb from "../assets/recursologin2.png";
 import recursometrica from "../assets/recursometrica.png";
 import recursodashboard from "../assets/recursodashboard.png";
 import recursoproductos from "../assets/recursoproductos.png";
-import fotoBowl from "../assets/Bowl_de_salteado_colorido_y_sabroso-removebg-preview.png";
-import fotoVegetales from "../assets/Ilustración minimalista de vegetales.png";
-import fotoPlato from "../assets/Plato rústico con carne desmenuzada.png";
-import recursoWeb from "../assets/Recurso2.webp";
 import logoMenly from "../assets/logoMenly2.png";
 import recursopersona from "../assets/recursopersona.png";
 
@@ -299,10 +295,6 @@ export default function SaberMas() {
   const [isRubroInteracting, setIsRubroInteracting] = useState(false);
   const rubroDragStartX = useRef(null);
   const navigate = useNavigate();
-
-  const abrirWhatsApp = (url = WHATSAPP_GENERAL) => {
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
 
   const abrirPlan = () => {
     navigate("/planes");

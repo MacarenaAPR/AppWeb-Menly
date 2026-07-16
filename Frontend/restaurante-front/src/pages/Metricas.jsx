@@ -509,7 +509,7 @@ function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guar
     pdf.save(`reporte-mensual-menly-${reporte.mes}.pdf`);
   };
 
-  const ventaDiaria = reporte?.venta_diaria || [];
+  const ventaDiaria = useMemo(() => reporte?.venta_diaria || [], [reporte?.venta_diaria]);
   const chartOptions = useMemo(() => ({
     chart: {
       type: "bar",
@@ -693,7 +693,7 @@ function ReporteMensualModal({ reporte, loading, error, onClose, onGuardar, guar
 }
 
 function ReporteAnualModal({ reporte, loading, error, onClose, onGuardar, guardando }) {
-  const ventasPorMes = reporte?.ventas_por_mes || [];
+  const ventasPorMes = useMemo(() => reporte?.ventas_por_mes || [], [reporte?.ventas_por_mes]);
   const chartOptions = useMemo(() => ({
     chart: {
       type: "bar",

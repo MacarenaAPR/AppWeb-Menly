@@ -8,14 +8,26 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes("node_modules/react-router-dom")) return "router";
-          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+          const normalizedId = id.replaceAll("\\", "/");
+
+          if (normalizedId.includes("/node_modules/react-router-dom/")) return "router";
+          if (
+            normalizedId.includes("/node_modules/react/") ||
+            normalizedId.includes("/node_modules/react-dom/")
+          ) {
             return "react";
           }
           if (
-            id.includes("node_modules/axios") ||
-            id.includes("node_modules/bootstrap") ||
-            id.includes("node_modules/qrcode")
+            normalizedId.includes("/node_modules/apexcharts/") ||
+            normalizedId.includes("/node_modules/react-apexcharts/")
+          ) {
+            return "charts";
+          }
+          if (normalizedId.includes("/node_modules/jspdf/")) return "pdf";
+          if (
+            normalizedId.includes("/node_modules/axios/") ||
+            normalizedId.includes("/node_modules/bootstrap/") ||
+            normalizedId.includes("/node_modules/qrcode/")
           ) {
             return "vendor";
           }

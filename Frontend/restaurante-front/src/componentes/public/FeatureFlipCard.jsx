@@ -2,8 +2,6 @@ export default function FeatureFlipCard({
   icon,
   title,
   description,
-  image,
-  link,
   isActive,
   onToggle,
   accordionId,

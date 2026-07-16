@@ -19,7 +19,6 @@ import {
 } from "../utils/pedidos";
 import { FaMotorcycle } from "react-icons/fa6";
 import { AiOutlineShop } from "react-icons/ai";
-import { TbShoppingBag } from "react-icons/tb";
 
 const formatearMoneda = (valor = 0) => {
   const numero = Number(valor) || 0;
@@ -502,9 +501,7 @@ export default function Dashboard() {
 
   const iconoPedido = (tipoEntrega) => {
     if (tipoEntrega === "delivery") return <FaMotorcycle/>;
-    if (tipoEntrega === "retiro_local","retiro") return <AiOutlineShop/>;
-    if (tipoEntrega === "para_llevar","llevar") return <TbShoppingBag/>;
-    return "bi bi-receipt";
+    return <AiOutlineShop/>;
   };
 
   const formatearFecha = (fecha) =>

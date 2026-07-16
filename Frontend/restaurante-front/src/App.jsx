@@ -1,6 +1,7 @@
 
 
 import './App.css'
+import { lazy, Suspense } from 'react';
 import Dashboard from "./pages/Dashboard";
 import CartaProductos from "./pages/CartaProductos";
 import Login from "./pages/login";
@@ -13,7 +14,6 @@ import SolicitudesEspecialesDashboard from './pages/SolicitudesEspeciales'
 import PedidosDashboard from './pages/Pedidos'
 import PedidosCocina from './pages/PedidosCocina'
 import CocinaActivar from './pages/CocinaActivar'
-import MetricasDashboard from './pages/Metricas'
 import ConfiguracionRestaurante from './pages/Configuracion'
 import SaberMas from './pages/SaberMas'
 import Planes from './pages/Planes'
@@ -22,6 +22,8 @@ import Footer from './componentes/Footer'
 import SessionExpiryModal from './componentes/SessionExpiryModal'
 import { useLocation } from 'react-router-dom';
 import useAdminInactivity from './hooks/useAdminInactivity';
+
+const MetricasDashboard = lazy(() => import('./pages/Metricas'));
 
 
 function MetricasPlaceholder() {
@@ -60,7 +62,9 @@ function AppContent() {
           <Route path="/dashboard/:slug/pedidos" element={<PedidosDashboard />} />
           <Route path="/dashboard/:slug/metricas" element={
             <RequireRole roles={["dueno", "admin"]}>
-              <MetricasDashboard />
+              <Suspense fallback={null}>
+                <MetricasDashboard />
+              </Suspense>
             </RequireRole>
           } />
           <Route path="/carta-add/:slug" element={

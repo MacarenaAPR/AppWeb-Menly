@@ -173,7 +173,7 @@ export default function Planes() {
 
       setSuccess(data?.message || MENSAJE_EXITO);
       setFormData(formInicial);
-    } catch (error) {
+    } catch {
       setErrors({ general: "No pudimos enviar tu consulta. Intenta nuevamente." });
     } finally {
       setSubmitting(false);

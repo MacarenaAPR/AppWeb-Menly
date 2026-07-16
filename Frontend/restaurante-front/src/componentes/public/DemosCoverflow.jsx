@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "../../styles/DemosCoverflow.css";
 
 const DEMOS_AUTOPLAY_MS = 4000;
@@ -8,12 +8,12 @@ export default function DemosCoverflow({ demos }) {
   const [isInteracting, setIsInteracting] = useState(false);
   const dragStartX = useRef(null);
 
-  const moveDemo = (direction) => {
+  const moveDemo = useCallback((direction) => {
     setActiveDemo((current) => {
       const total = demos.length;
       return (current + direction + total) % total;
     });
-  };
+  }, [demos.length]);
 
   const getDemoPosition = (index) => {
     const total = demos.length;
@@ -60,7 +60,7 @@ export default function DemosCoverflow({ demos }) {
     }, DEMOS_AUTOPLAY_MS);
 
     return () => window.clearInterval(autoplay);
-  }, [demos.length, isInteracting]);
+  }, [demos.length, isInteracting, moveDemo]);
 
   return (
     <div className="saber-web-demos" id="demos-web">
@@ -89,7 +89,6 @@ export default function DemosCoverflow({ demos }) {
         >
           {demos.map((demo, index) => {
             const position = getDemoPosition(index);
-            const hasDemo = demo.url && demo.url !== "#";
 
             return (
               <article
