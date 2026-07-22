@@ -16,6 +16,7 @@ from .services.pedidos_whatsapp import (
 from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
 from .services.estados_pedidos import obtener_transiciones_permitidas
 from .services.secuencia_pedidos import obtener_siguiente_numero_pedido
+from .services.webpush_endpoints import validate_webpush_endpoint
 from django.contrib.auth.models import User
 from urllib.parse import quote
 from django.db import transaction
@@ -36,7 +37,10 @@ class PushSubscriptionKeysSerializer(serializers.Serializer):
 
 
 class PushSubscriptionSerializer(serializers.Serializer):
-    endpoint = serializers.URLField(max_length=1000)
+    endpoint = serializers.URLField(
+        max_length=1000,
+        validators=[validate_webpush_endpoint],
+    )
     keys = PushSubscriptionKeysSerializer()
     tipo_dispositivo = serializers.ChoiceField(
         choices=PushSubscription.TIPOS_DISPOSITIVO,

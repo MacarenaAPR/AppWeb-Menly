@@ -2,16 +2,27 @@ import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
+import requests
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import close_old_connections
 from pywebpush import WebPushException, webpush
 
 from menu.models import PedidoWhatsApp, PushSubscription
+from menu.services.webpush_endpoints import validate_webpush_endpoint
 
 
 logger = logging.getLogger(__name__)
 ESTADOS_SUSCRIPCION_INVALIDA = {404, 410}
 WEBPUSH_EXECUTOR = ThreadPoolExecutor(max_workers=4, thread_name_prefix="menly-webpush")
+
+
+class WebPushNoRedirectSession(requests.Session):
+    """Requests session that never follows a Push Service redirect."""
+
+    def request(self, method, url, **kwargs):
+        kwargs["allow_redirects"] = False
+        return super().request(method, url, **kwargs)
 
 
 def _desactivar_suscripcion_invalida(suscripcion, status_code):
@@ -43,43 +54,59 @@ def enviar_push_nuevo_pedido(pedido):
         activo=True,
     ).only("id", "endpoint", "p256dh", "auth")
 
-    for suscripcion in suscripciones.iterator():
-        try:
-            webpush(
-                subscription_info={
-                    "endpoint": suscripcion.endpoint,
-                    "keys": {
-                        "p256dh": suscripcion.p256dh,
-                        "auth": suscripcion.auth,
+    with WebPushNoRedirectSession() as requests_session:
+        for suscripcion in suscripciones.iterator():
+            try:
+                validate_webpush_endpoint(suscripcion.endpoint)
+            except ValidationError:
+                PushSubscription.objects.filter(pk=suscripcion.pk).update(activo=False)
+                logger.warning(
+                    "Suscripcion Web Push insegura desactivada antes del envio",
+                    extra={
+                        "pedido_id": pedido.id,
+                        "restaurante_id": pedido.restaurante_id,
+                        "suscripcion_id": suscripcion.id,
                     },
-                },
-                data=json.dumps(payload),
-                vapid_private_key=settings.WEBPUSH_VAPID_PRIVATE_KEY,
-                vapid_claims={"sub": settings.WEBPUSH_VAPID_SUBJECT},
-                ttl=60,
-                timeout=5,
-            )
-        except WebPushException as error:
-            status_code = getattr(getattr(error, "response", None), "status_code", None)
-            _desactivar_suscripcion_invalida(suscripcion, status_code)
-            logger.warning(
-                "Fallo enviando Web Push",
-                extra={
-                    "pedido_id": pedido.id,
-                    "restaurante_id": pedido.restaurante_id,
-                    "suscripcion_id": suscripcion.id,
-                    "push_status": status_code,
-                },
-            )
-        except Exception:
-            logger.exception(
-                "Error inesperado enviando Web Push",
-                extra={
-                    "pedido_id": pedido.id,
-                    "restaurante_id": pedido.restaurante_id,
-                    "suscripcion_id": suscripcion.id,
-                },
-            )
+                )
+                continue
+
+            try:
+                webpush(
+                    subscription_info={
+                        "endpoint": suscripcion.endpoint,
+                        "keys": {
+                            "p256dh": suscripcion.p256dh,
+                            "auth": suscripcion.auth,
+                        },
+                    },
+                    data=json.dumps(payload),
+                    vapid_private_key=settings.WEBPUSH_VAPID_PRIVATE_KEY,
+                    vapid_claims={"sub": settings.WEBPUSH_VAPID_SUBJECT},
+                    ttl=60,
+                    timeout=5,
+                    requests_session=requests_session,
+                )
+            except WebPushException as error:
+                status_code = getattr(getattr(error, "response", None), "status_code", None)
+                _desactivar_suscripcion_invalida(suscripcion, status_code)
+                logger.warning(
+                    "Fallo enviando Web Push",
+                    extra={
+                        "pedido_id": pedido.id,
+                        "restaurante_id": pedido.restaurante_id,
+                        "suscripcion_id": suscripcion.id,
+                        "push_status": status_code,
+                    },
+                )
+            except Exception:
+                logger.exception(
+                    "Error inesperado enviando Web Push",
+                    extra={
+                        "pedido_id": pedido.id,
+                        "restaurante_id": pedido.restaurante_id,
+                        "suscripcion_id": suscripcion.id,
+                    },
+                )
 
 
 def enviar_push_nuevo_pedido_seguro(pedido):
