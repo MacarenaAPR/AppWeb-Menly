@@ -166,7 +166,10 @@ habilitan la lectura segura del encabezado y nunca conceden acceso al Admin.
 Mantenga `REMOTE_ADDR` cuando no exista un proxy confiable. El diagnostico
 enmascarado puede habilitarse temporalmente con `ADMIN_IP_DIAGNOSTICS=true` y
 esta desactivado por defecto.
-El login bloquea progresivamente por IP y por cuenta despues de cinco fallos.
+El login usa limites independientes para la combinacion IP+usuario, la cuenta
+y la IP. Los valores predeterminados son 5 fallos por combinacion, 15 por
+cuenta y 50 por IP. Las ventanas y duraciones se configuran con las variables
+`ADMIN_LOGIN_PAIR_*`, `ADMIN_LOGIN_ACCOUNT_*` y `ADMIN_LOGIN_IP_*`.
 
 Esto permite mantener el repositorio público sin exponer credenciales.
 

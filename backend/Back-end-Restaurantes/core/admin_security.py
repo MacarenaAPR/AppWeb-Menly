@@ -3,6 +3,7 @@ import ipaddress
 import logging
 import math
 import time
+import unicodedata
 
 from django.conf import settings
 from django.core.cache import cache
@@ -18,6 +19,7 @@ _DIAGNOSTIC_HEADERS = (
     "HTTP_FORWARDED",
 )
 _MAX_PROXY_CHAIN_LENGTH = 20
+_CACHE_NAMESPACE = "admin-security:v2"
 
 
 def _admin_prefix():
@@ -168,17 +170,42 @@ def _digest(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def _identifiers(request):
-    ip_value = _client_ip(request)
-    username = request.POST.get("username", "").strip().casefold()
-    identifiers = [("ip", _digest(f"ip:{ip_value}"))]
+def _normalize_username(value):
+    return unicodedata.normalize("NFKC", str(value or "")).strip().casefold()
+
+
+def _scope_identifiers(ip_value, username):
+    identifiers = []
+    valid_ip = _parse_ip(ip_value)
+    if valid_ip is not None:
+        normalized_ip = str(valid_ip)
+        identifiers.append(("ip", _digest(f"ip:{normalized_ip}")))
+        if username:
+            identifiers.append(
+                ("pair", _digest(f"pair:{normalized_ip}\0{username}"))
+            )
     if username:
         identifiers.append(("account", _digest(f"account:{username}")))
-    return ip_value, identifiers
+    return identifiers
+
+
+def _identifiers(request):
+    ip_value = _client_ip(request)
+    username = _normalize_username(request.POST.get("username", ""))
+    return ip_value, _scope_identifiers(ip_value, username)
 
 
 def _cache_key(kind, identifier, suffix):
-    return f"admin-security:{kind}:{identifier}:{suffix}"
+    return f"{_CACHE_NAMESPACE}:{kind}:{identifier}:{suffix}"
+
+
+def _bucket_policy(kind):
+    prefix = f"ADMIN_LOGIN_{kind.upper()}"
+    return {
+        "max_failures": getattr(settings, f"{prefix}_MAX_FAILURES"),
+        "window_seconds": getattr(settings, f"{prefix}_WINDOW_SECONDS"),
+        "lock_seconds": getattr(settings, f"{prefix}_LOCK_SECONDS"),
+    }
 
 
 def _active_lock(identifiers):
@@ -194,54 +221,57 @@ def _active_lock(identifiers):
 
 
 def _register_failure(identifiers):
-    max_failures = settings.ADMIN_LOGIN_MAX_FAILURES
-    window_seconds = settings.ADMIN_LOGIN_WINDOW_SECONDS
-    base_lockout = settings.ADMIN_LOGIN_LOCKOUT_BASE_SECONDS
-    max_lockout = settings.ADMIN_LOGIN_LOCKOUT_MAX_SECONDS
     now = time.time()
     locked_until = 0
 
     for kind, identifier in identifiers:
+        policy = _bucket_policy(kind)
         failures_key = _cache_key(kind, identifier, "failures")
-        if cache.add(failures_key, 1, timeout=window_seconds):
+        if cache.add(
+            failures_key,
+            1,
+            timeout=policy["window_seconds"],
+        ):
             failures = 1
         else:
             try:
                 failures = cache.incr(failures_key)
             except ValueError:
-                cache.set(failures_key, 1, timeout=window_seconds)
+                cache.set(
+                    failures_key,
+                    1,
+                    timeout=policy["window_seconds"],
+                )
                 failures = 1
 
-        if failures < max_failures:
+        if failures < policy["max_failures"]:
             continue
 
-        level_key = _cache_key(kind, identifier, "level")
-        try:
-            level = cache.incr(level_key)
-        except ValueError:
-            cache.set(level_key, 1, timeout=max_lockout * 2)
-            level = 1
-
-        lockout_seconds = min(base_lockout * (2 ** (level - 1)), max_lockout)
-        bucket_locked_until = now + lockout_seconds
-        cache.set(
-            _cache_key(kind, identifier, "locked-until"),
+        lock_key = _cache_key(kind, identifier, "locked-until")
+        bucket_locked_until = now + policy["lock_seconds"]
+        if not cache.add(
+            lock_key,
             bucket_locked_until,
-            timeout=lockout_seconds,
-        )
+            timeout=policy["lock_seconds"],
+        ):
+            try:
+                bucket_locked_until = float(cache.get(lock_key, 0))
+            except (TypeError, ValueError):
+                bucket_locked_until = 0
         cache.delete(failures_key)
         locked_until = max(locked_until, bucket_locked_until)
 
     return locked_until
 
 
-def _clear_failures(identifiers):
+def _clear_account_failures(identifiers):
     for kind, identifier in identifiers:
+        if kind == "ip":
+            continue
         cache.delete_many(
             [
                 _cache_key(kind, identifier, "failures"),
                 _cache_key(kind, identifier, "locked-until"),
-                _cache_key(kind, identifier, "level"),
             ]
         )
 
@@ -290,7 +320,7 @@ class AdminSecurityMiddleware:
 
         response = self.get_response(request)
         if getattr(request, "user", None) is not None and request.user.is_authenticated:
-            _clear_failures(identifiers)
+            _clear_account_failures(identifiers)
             logger.info(
                 "admin_login_success user_id=%s ip=%s",
                 request.user.pk,

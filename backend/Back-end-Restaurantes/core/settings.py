@@ -212,13 +212,32 @@ ADMIN_TRUSTED_PROXY_NETWORKS = config(
     "ADMIN_TRUSTED_PROXY_NETWORKS", default="", cast=Csv()
 )
 ADMIN_IP_DIAGNOSTICS = _config_bool("ADMIN_IP_DIAGNOSTICS", default=False)
-ADMIN_LOGIN_MAX_FAILURES = config("ADMIN_LOGIN_MAX_FAILURES", default=5, cast=int)
-ADMIN_LOGIN_WINDOW_SECONDS = config("ADMIN_LOGIN_WINDOW_SECONDS", default=900, cast=int)
-ADMIN_LOGIN_LOCKOUT_BASE_SECONDS = config(
-    "ADMIN_LOGIN_LOCKOUT_BASE_SECONDS", default=900, cast=int
+ADMIN_LOGIN_PAIR_MAX_FAILURES = config(
+    "ADMIN_LOGIN_PAIR_MAX_FAILURES", default=5, cast=int
 )
-ADMIN_LOGIN_LOCKOUT_MAX_SECONDS = config(
-    "ADMIN_LOGIN_LOCKOUT_MAX_SECONDS", default=86400, cast=int
+ADMIN_LOGIN_PAIR_WINDOW_SECONDS = config(
+    "ADMIN_LOGIN_PAIR_WINDOW_SECONDS", default=900, cast=int
+)
+ADMIN_LOGIN_PAIR_LOCK_SECONDS = config(
+    "ADMIN_LOGIN_PAIR_LOCK_SECONDS", default=900, cast=int
+)
+ADMIN_LOGIN_IP_MAX_FAILURES = config(
+    "ADMIN_LOGIN_IP_MAX_FAILURES", default=50, cast=int
+)
+ADMIN_LOGIN_IP_WINDOW_SECONDS = config(
+    "ADMIN_LOGIN_IP_WINDOW_SECONDS", default=900, cast=int
+)
+ADMIN_LOGIN_IP_LOCK_SECONDS = config(
+    "ADMIN_LOGIN_IP_LOCK_SECONDS", default=1800, cast=int
+)
+ADMIN_LOGIN_ACCOUNT_MAX_FAILURES = config(
+    "ADMIN_LOGIN_ACCOUNT_MAX_FAILURES", default=15, cast=int
+)
+ADMIN_LOGIN_ACCOUNT_WINDOW_SECONDS = config(
+    "ADMIN_LOGIN_ACCOUNT_WINDOW_SECONDS", default=900, cast=int
+)
+ADMIN_LOGIN_ACCOUNT_LOCK_SECONDS = config(
+    "ADMIN_LOGIN_ACCOUNT_LOCK_SECONDS", default=1800, cast=int
 )
 COCINA_SESSION_LIFETIME = timedelta(
     days=config("COCINA_SESSION_DAYS", default=30, cast=int)
@@ -515,4 +534,32 @@ if not DEBUG and not IS_TESTING:
         raise RuntimeError(
             "ADMIN_TRUSTED_PROXY_NETWORKS es obligatorio al confiar en "
             "HTTP_X_FORWARDED_FOR."
+        )
+
+    admin_login_limits = {
+        "ADMIN_LOGIN_PAIR_MAX_FAILURES": ADMIN_LOGIN_PAIR_MAX_FAILURES,
+        "ADMIN_LOGIN_PAIR_WINDOW_SECONDS": ADMIN_LOGIN_PAIR_WINDOW_SECONDS,
+        "ADMIN_LOGIN_PAIR_LOCK_SECONDS": ADMIN_LOGIN_PAIR_LOCK_SECONDS,
+        "ADMIN_LOGIN_IP_MAX_FAILURES": ADMIN_LOGIN_IP_MAX_FAILURES,
+        "ADMIN_LOGIN_IP_WINDOW_SECONDS": ADMIN_LOGIN_IP_WINDOW_SECONDS,
+        "ADMIN_LOGIN_IP_LOCK_SECONDS": ADMIN_LOGIN_IP_LOCK_SECONDS,
+        "ADMIN_LOGIN_ACCOUNT_MAX_FAILURES": ADMIN_LOGIN_ACCOUNT_MAX_FAILURES,
+        "ADMIN_LOGIN_ACCOUNT_WINDOW_SECONDS": ADMIN_LOGIN_ACCOUNT_WINDOW_SECONDS,
+        "ADMIN_LOGIN_ACCOUNT_LOCK_SECONDS": ADMIN_LOGIN_ACCOUNT_LOCK_SECONDS,
+    }
+    if any(value <= 0 for value in admin_login_limits.values()):
+        raise RuntimeError(
+            "Los limites de login del Admin deben ser enteros positivos."
+        )
+
+    if ADMIN_LOGIN_IP_MAX_FAILURES <= ADMIN_LOGIN_PAIR_MAX_FAILURES:
+        raise RuntimeError(
+            "ADMIN_LOGIN_IP_MAX_FAILURES debe ser mayor que "
+            "ADMIN_LOGIN_PAIR_MAX_FAILURES."
+        )
+
+    if ADMIN_LOGIN_ACCOUNT_MAX_FAILURES < ADMIN_LOGIN_PAIR_MAX_FAILURES:
+        raise RuntimeError(
+            "ADMIN_LOGIN_ACCOUNT_MAX_FAILURES no puede ser menor que "
+            "ADMIN_LOGIN_PAIR_MAX_FAILURES."
         )
