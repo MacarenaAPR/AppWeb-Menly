@@ -159,9 +159,13 @@ Estas variables **no se almacenan en el repositorio**, sino en el entorno del se
 
 El acceso a Django Admin se limita en produccion mediante
 `ADMIN_ALLOWED_NETWORKS` (IPs o redes CIDR separadas por coma). La ruta puede
-cambiarse con `ADMIN_URL_PATH`. Si Render entrega la IP original en
-`X-Forwarded-For`, configure `ADMIN_CLIENT_IP_HEADER=HTTP_X_FORWARDED_FOR`;
-mantenga el valor predeterminado `REMOTE_ADDR` si el proxy no sanea ese header.
+cambiarse con `ADMIN_URL_PATH`. En Render, configure
+`ADMIN_CLIENT_IP_HEADER=HTTP_X_FORWARDED_FOR` y declare separadamente las redes
+de los proxies inmediatos en `ADMIN_TRUSTED_PROXY_NETWORKS`. Estas redes solo
+habilitan la lectura segura del encabezado y nunca conceden acceso al Admin.
+Mantenga `REMOTE_ADDR` cuando no exista un proxy confiable. El diagnostico
+enmascarado puede habilitarse temporalmente con `ADMIN_IP_DIAGNOSTICS=true` y
+esta desactivado por defecto.
 El login bloquea progresivamente por IP y por cuenta despues de cinco fallos.
 
 Esto permite mantener el repositorio público sin exponer credenciales.

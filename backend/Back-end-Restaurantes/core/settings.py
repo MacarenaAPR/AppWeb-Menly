@@ -205,7 +205,13 @@ ADMIN_REFRESH_COOKIE_NAME = "menly_admin_refresh"
 ADMIN_REMEMBER_COOKIE_NAME = "menly_admin_remember"
 ADMIN_URL_PATH = config("ADMIN_URL_PATH", default="admin").strip("/")
 ADMIN_ALLOWED_NETWORKS = config("ADMIN_ALLOWED_NETWORKS", default="", cast=Csv())
-ADMIN_CLIENT_IP_HEADER = config("ADMIN_CLIENT_IP_HEADER", default="REMOTE_ADDR")
+ADMIN_CLIENT_IP_HEADER = config(
+    "ADMIN_CLIENT_IP_HEADER", default="REMOTE_ADDR"
+).strip().upper()
+ADMIN_TRUSTED_PROXY_NETWORKS = config(
+    "ADMIN_TRUSTED_PROXY_NETWORKS", default="", cast=Csv()
+)
+ADMIN_IP_DIAGNOSTICS = _config_bool("ADMIN_IP_DIAGNOSTICS", default=False)
 ADMIN_LOGIN_MAX_FAILURES = config("ADMIN_LOGIN_MAX_FAILURES", default=5, cast=int)
 ADMIN_LOGIN_WINDOW_SECONDS = config("ADMIN_LOGIN_WINDOW_SECONDS", default=900, cast=int)
 ADMIN_LOGIN_LOCKOUT_BASE_SECONDS = config(
@@ -480,7 +486,33 @@ if not DEBUG and not IS_TESTING:
         )
 
     try:
-        for network in ADMIN_ALLOWED_NETWORKS:
-            __import__("ipaddress").ip_network(network.strip(), strict=False)
+        ipaddress_module = __import__("ipaddress")
+        allowed_networks = [
+            ipaddress_module.ip_network(network.strip(), strict=False)
+            for network in ADMIN_ALLOWED_NETWORKS
+            if network.strip()
+        ]
+        trusted_proxy_networks = [
+            ipaddress_module.ip_network(network.strip(), strict=False)
+            for network in ADMIN_TRUSTED_PROXY_NETWORKS
+            if network.strip()
+        ]
     except ValueError as exc:
-        raise RuntimeError("ADMIN_ALLOWED_NETWORKS contiene una red invalida.") from exc
+        raise RuntimeError(
+            "La configuracion de redes del Admin contiene una red invalida."
+        ) from exc
+
+    if any(network.prefixlen == 0 for network in allowed_networks):
+        raise RuntimeError("ADMIN_ALLOWED_NETWORKS no permite redes /0.")
+
+    if any(network.prefixlen == 0 for network in trusted_proxy_networks):
+        raise RuntimeError("ADMIN_TRUSTED_PROXY_NETWORKS no permite redes /0.")
+
+    if (
+        ADMIN_CLIENT_IP_HEADER == "HTTP_X_FORWARDED_FOR"
+        and not trusted_proxy_networks
+    ):
+        raise RuntimeError(
+            "ADMIN_TRUSTED_PROXY_NETWORKS es obligatorio al confiar en "
+            "HTTP_X_FORWARDED_FOR."
+        )

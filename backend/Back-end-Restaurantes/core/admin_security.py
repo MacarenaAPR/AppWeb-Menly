@@ -11,31 +11,157 @@ from django.http import HttpResponse, HttpResponseNotFound
 
 logger = logging.getLogger("core.admin_security")
 
+_DIAGNOSTIC_HEADERS = (
+    "HTTP_X_FORWARDED_FOR",
+    "HTTP_TRUE_CLIENT_IP",
+    "HTTP_CF_CONNECTING_IP",
+    "HTTP_FORWARDED",
+)
+_MAX_PROXY_CHAIN_LENGTH = 20
+
 
 def _admin_prefix():
     return f"/{settings.ADMIN_URL_PATH.strip('/')}/"
 
 
-def _client_ip(request):
-    header = getattr(settings, "ADMIN_CLIENT_IP_HEADER", "REMOTE_ADDR")
-    raw_value = request.META.get(header, "")
-    if header == "HTTP_X_FORWARDED_FOR":
-        raw_value = raw_value.split(",", 1)[0]
+def _parse_ip(raw_value):
+    value = str(raw_value or "").strip()
+    if not value or "%" in value:
+        return None
 
-    value = raw_value.strip()
     try:
-        return str(ipaddress.ip_address(value))
+        return ipaddress.ip_address(value)
     except ValueError:
-        return "unknown"
+        return None
 
 
-def _allowed_networks():
+def _networks(setting_name):
     networks = []
-    for value in getattr(settings, "ADMIN_ALLOWED_NETWORKS", []):
+    for value in getattr(settings, setting_name, []):
         value = value.strip()
         if value:
             networks.append(ipaddress.ip_network(value, strict=False))
     return networks
+
+
+def _address_in_networks(address, networks):
+    return any(
+        address.version == network.version and address in network
+        for network in networks
+    )
+
+
+def _mask_ip(ip_value):
+    address = _parse_ip(ip_value)
+    if address is None:
+        return "unknown"
+    if address.version == 4:
+        octets = str(address).split(".")
+        return ".".join((*octets[:3], "x"))
+    network = ipaddress.ip_network(f"{address}/48", strict=False)
+    return f"{network.network_address.compressed}/48"
+
+
+def _chain_element_count(raw_value):
+    if not raw_value:
+        return 0
+    return min(len(str(raw_value).split(",")), _MAX_PROXY_CHAIN_LENGTH + 1)
+
+
+def _parse_forwarded_chain(raw_value):
+    if not raw_value:
+        return None
+
+    parts = str(raw_value).split(",")
+    if not 1 <= len(parts) <= _MAX_PROXY_CHAIN_LENGTH:
+        return None
+
+    addresses = []
+    for part in parts:
+        address = _parse_ip(part)
+        if address is None:
+            return None
+        addresses.append(address)
+    return addresses
+
+
+def _diagnose_client_ip(request, ip_value, method, chain_length):
+    if not getattr(settings, "ADMIN_IP_DIAGNOSTICS", False):
+        return
+
+    present = ["REMOTE_ADDR"] if request.META.get("REMOTE_ADDR") else []
+    present.extend(
+        header for header in _DIAGNOSTIC_HEADERS if request.META.get(header)
+    )
+    logger.info(
+        "admin_ip_diagnostic headers=%s detected_ip=%s chain_length=%s method=%s",
+        ",".join(present) or "none",
+        _mask_ip(ip_value),
+        chain_length,
+        method,
+    )
+
+
+def _client_ip(request):
+    header = getattr(settings, "ADMIN_CLIENT_IP_HEADER", "REMOTE_ADDR")
+    remote_address = _parse_ip(request.META.get("REMOTE_ADDR"))
+
+    if header == "REMOTE_ADDR":
+        ip_value = str(remote_address) if remote_address is not None else "unknown"
+        method = "remote_addr" if remote_address is not None else "invalid_remote_addr"
+        _diagnose_client_ip(request, ip_value, method, 0)
+        return ip_value
+
+    raw_chain = request.META.get(header, "")
+    chain_length = _chain_element_count(raw_chain)
+    trusted_proxies = _networks("ADMIN_TRUSTED_PROXY_NETWORKS")
+
+    if remote_address is None:
+        _diagnose_client_ip(request, "unknown", "invalid_remote_addr", chain_length)
+        return "unknown"
+
+    if not _address_in_networks(remote_address, trusted_proxies):
+        ip_value = str(remote_address)
+        _diagnose_client_ip(
+            request,
+            ip_value,
+            "remote_addr_untrusted_proxy",
+            chain_length,
+        )
+        return ip_value
+
+    chain = _parse_forwarded_chain(raw_chain)
+    if chain is None:
+        _diagnose_client_ip(
+            request,
+            "unknown",
+            "invalid_forwarded_chain",
+            chain_length,
+        )
+        return "unknown"
+
+    # Render documents the first X-Forwarded-For element as the real client.
+    # Every later element must be another explicitly trusted proxy; otherwise
+    # the chain is ambiguous and is rejected instead of accepting spoofed data.
+    if any(
+        not _address_in_networks(address, trusted_proxies)
+        for address in chain[1:]
+    ):
+        _diagnose_client_ip(
+            request,
+            "unknown",
+            "untrusted_forwarded_hop",
+            len(chain),
+        )
+        return "unknown"
+
+    ip_value = str(chain[0])
+    _diagnose_client_ip(request, ip_value, "trusted_forwarded_header", len(chain))
+    return ip_value
+
+
+def _allowed_networks():
+    return _networks("ADMIN_ALLOWED_NETWORKS")
 
 
 def _ip_is_allowed(ip_value):
@@ -47,7 +173,7 @@ def _ip_is_allowed(ip_value):
         address = ipaddress.ip_address(ip_value)
     except ValueError:
         return False
-    return any(address in network for network in networks)
+    return _address_in_networks(address, networks)
 
 
 def _digest(value):
@@ -157,7 +283,11 @@ class AdminSecurityMiddleware:
 
         ip_value = _client_ip(request)
         if not _ip_is_allowed(ip_value):
-            logger.warning("admin_access_denied ip=%s path=%s", ip_value, request.path)
+            logger.warning(
+                "admin_access_denied ip=%s path=%s",
+                _mask_ip(ip_value),
+                request.path,
+            )
             return HttpResponseNotFound()
 
         login_path = f"{prefix}login/"
@@ -167,18 +297,22 @@ class AdminSecurityMiddleware:
         _, identifiers = _identifiers(request)
         locked_until = _active_lock(identifiers)
         if locked_until:
-            logger.warning("admin_login_blocked ip=%s", ip_value)
+            logger.warning("admin_login_blocked ip=%s", _mask_ip(ip_value))
             return _lockout_response(locked_until)
 
         response = self.get_response(request)
         if getattr(request, "user", None) is not None and request.user.is_authenticated:
             _clear_failures(identifiers)
-            logger.info("admin_login_success user_id=%s ip=%s", request.user.pk, ip_value)
+            logger.info(
+                "admin_login_success user_id=%s ip=%s",
+                request.user.pk,
+                _mask_ip(ip_value),
+            )
             return response
 
         locked_until = _register_failure(identifiers)
-        logger.warning("admin_login_failed ip=%s", ip_value)
+        logger.warning("admin_login_failed ip=%s", _mask_ip(ip_value))
         if locked_until:
-            logger.error("admin_login_lockout ip=%s", ip_value)
+            logger.error("admin_login_lockout ip=%s", _mask_ip(ip_value))
             return _lockout_response(locked_until)
         return response
