@@ -103,6 +103,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.admin_security.AdminSecurityMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -202,6 +203,17 @@ COCINA_COOKIE_DOMAIN = config("COCINA_COOKIE_DOMAIN", default="") or None
 ADMIN_COOKIE_DOMAIN = config("ADMIN_COOKIE_DOMAIN", default="") or None
 ADMIN_REFRESH_COOKIE_NAME = "menly_admin_refresh"
 ADMIN_REMEMBER_COOKIE_NAME = "menly_admin_remember"
+ADMIN_URL_PATH = config("ADMIN_URL_PATH", default="admin").strip("/")
+ADMIN_ALLOWED_NETWORKS = config("ADMIN_ALLOWED_NETWORKS", default="", cast=Csv())
+ADMIN_CLIENT_IP_HEADER = config("ADMIN_CLIENT_IP_HEADER", default="REMOTE_ADDR")
+ADMIN_LOGIN_MAX_FAILURES = config("ADMIN_LOGIN_MAX_FAILURES", default=5, cast=int)
+ADMIN_LOGIN_WINDOW_SECONDS = config("ADMIN_LOGIN_WINDOW_SECONDS", default=900, cast=int)
+ADMIN_LOGIN_LOCKOUT_BASE_SECONDS = config(
+    "ADMIN_LOGIN_LOCKOUT_BASE_SECONDS", default=900, cast=int
+)
+ADMIN_LOGIN_LOCKOUT_MAX_SECONDS = config(
+    "ADMIN_LOGIN_LOCKOUT_MAX_SECONDS", default=86400, cast=int
+)
 COCINA_SESSION_LIFETIME = timedelta(
     days=config("COCINA_SESSION_DAYS", default=30, cast=int)
 )
@@ -439,6 +451,8 @@ if not DEBUG and not IS_TESTING:
         "ALLOWED_HOSTS",
         "CORS_ALLOWED_ORIGINS",
         "CSRF_TRUSTED_ORIGINS",
+        "REDIS_URL",
+        "ADMIN_ALLOWED_NETWORKS",
     ]
     missing_env = _missing_env_vars(required_production_env)
 
@@ -456,3 +470,17 @@ if not DEBUG and not IS_TESTING:
 
     if not CSRF_TRUSTED_ORIGINS:
         raise RuntimeError("CSRF_TRUSTED_ORIGINS es obligatorio en produccion.")
+
+    if not ADMIN_URL_PATH:
+        raise RuntimeError("ADMIN_URL_PATH no puede estar vacio.")
+
+    if ADMIN_CLIENT_IP_HEADER not in {"REMOTE_ADDR", "HTTP_X_FORWARDED_FOR"}:
+        raise RuntimeError(
+            "ADMIN_CLIENT_IP_HEADER debe ser REMOTE_ADDR o HTTP_X_FORWARDED_FOR."
+        )
+
+    try:
+        for network in ADMIN_ALLOWED_NETWORKS:
+            __import__("ipaddress").ip_network(network.strip(), strict=False)
+    except ValueError as exc:
+        raise RuntimeError("ADMIN_ALLOWED_NETWORKS contiene una red invalida.") from exc

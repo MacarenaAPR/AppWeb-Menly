@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-#from django.conf import settings
+from django.conf import settings
 from django.urls import path
 from django.http import JsonResponse, HttpResponse
 from core.debug_views import debug_time
@@ -36,7 +36,7 @@ from menu.views import PushConfigView, PushSubscriptionStatusView, PushSubscript
 urlpatterns = [
 
 
-    path('admin/', admin.site.urls),
+    path(f'{settings.ADMIN_URL_PATH}/', admin.site.urls),
     path("healthz/", lambda request: JsonResponse({"status": "ok"}), name="healthz"),
     path("api/debug/time/", debug_time, name="debug-time"),
     path(
