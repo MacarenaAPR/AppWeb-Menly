@@ -75,8 +75,8 @@ class AdminSecurityTests(TestCase):
     def test_acceso_permitido_detras_de_proxy_confiable(self):
         response = self.client.get(
             "/admin/",
-            REMOTE_ADDR="10.0.0.4",
-            HTTP_X_FORWARDED_FOR="203.0.113.8, 10.0.0.4",
+            REMOTE_ADDR="10.197.4.2",
+            HTTP_X_FORWARDED_FOR="203.0.113.8, 198.51.100.99",
         )
         self.assertEqual(response.status_code, 302)
 
@@ -124,11 +124,11 @@ class AdminSecurityTests(TestCase):
         ADMIN_TRUSTED_PROXY_NETWORKS=["10.0.0.0/8"],
         ADMIN_ALLOWED_NETWORKS=["203.0.113.0/24"],
     )
-    def test_rechaza_salto_no_confiable_en_cadena(self):
+    def test_un_elemento_agregado_no_puede_autorizar_al_cliente(self):
         response = self.client.get(
             "/admin/",
             REMOTE_ADDR="10.197.4.2",
-            HTTP_X_FORWARDED_FOR="203.0.113.8, 198.51.100.99, 10.197.4.2",
+            HTTP_X_FORWARDED_FOR="198.51.100.99, 203.0.113.8",
         )
         self.assertEqual(response.status_code, 404)
 

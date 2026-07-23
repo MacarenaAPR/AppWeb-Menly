@@ -140,21 +140,9 @@ def _client_ip(request):
         )
         return "unknown"
 
-    # Render documents the first X-Forwarded-For element as the real client.
-    # Every later element must be another explicitly trusted proxy; otherwise
-    # the chain is ambiguous and is rejected instead of accepting spoofed data.
-    if any(
-        not _address_in_networks(address, trusted_proxies)
-        for address in chain[1:]
-    ):
-        _diagnose_client_ip(
-            request,
-            "unknown",
-            "untrusted_forwarded_hop",
-            len(chain),
-        )
-        return "unknown"
-
+    # Render guarantees that it sets the real client IP as the first element.
+    # Later elements are validated for syntax and length, but they do not
+    # participate in authorization and are not required to be Render proxies.
     ip_value = str(chain[0])
     _diagnose_client_ip(request, ip_value, "trusted_forwarded_header", len(chain))
     return ip_value
