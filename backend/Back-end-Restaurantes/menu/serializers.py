@@ -18,9 +18,17 @@ from .services.estados_pedidos import obtener_transiciones_permitidas
 from .services.secuencia_pedidos import obtener_siguiente_numero_pedido
 from .services.webpush_endpoints import validate_webpush_endpoint
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from urllib.parse import quote
 from django.db import transaction
 import logging
+
+from .permissions import validate_user_limits
+from .services.auth_sessions import (
+    record_user_security_event,
+    revoke_user_authentication,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -126,49 +134,89 @@ class RespaldoRestauranteSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 class UsuarioRestauranteCreateSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150)
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, min_length=8)
-    nombre = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    username = serializers.CharField(
+        max_length=150,
+        error_messages={
+            "required": "El nombre de usuario es obligatorio.",
+            "blank": "El nombre de usuario es obligatorio.",
+        },
+    )
+    email = serializers.EmailField(
+        error_messages={
+            "required": "El email es obligatorio.",
+            "blank": "El email es obligatorio.",
+            "invalid": "Ingresa un email válido.",
+        },
+    )
+    password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+        error_messages={
+            "required": "La contraseña es obligatoria.",
+            "blank": "La contraseña no puede estar vacía.",
+            "null": "La contraseña no puede ser nula.",
+        },
+    )
     rol = serializers.ChoiceField(choices=["admin", "empleado"])
+
+    @staticmethod
+    def _validate_unique_email(restaurante, email, user_id=None):
+        email = (email or "").strip().lower()
+        if not email:
+            raise serializers.ValidationError("El email es obligatorio.")
+
+        same_restaurant = UsuarioRestaurante.objects.filter(
+            restaurante=restaurante,
+            user__email__iexact=email,
+        )
+        global_users = User.objects.filter(email__iexact=email)
+        if user_id:
+            same_restaurant = same_restaurant.exclude(user_id=user_id)
+            global_users = global_users.exclude(id=user_id)
+
+        if same_restaurant.exists():
+            raise serializers.ValidationError(
+                "Ya existe un usuario con ese correo en este restaurante."
+            )
+        if global_users.exists():
+            raise serializers.ValidationError(
+                "Este correo ya existe en el sistema (puede pertenecer a otro "
+                "usuario o superuser). Usa otro correo."
+            )
+        return email
+
+    @staticmethod
+    def _validate_password_for_user(password, user):
+        if not isinstance(password, str) or not password.strip():
+            raise serializers.ValidationError(
+                "La contraseña no puede estar vacía ni contener solo espacios."
+            )
+        try:
+            validate_password(password, user=user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)) from exc
+        return password
 
     def validate(self, data):
         request = self.context["request"]
         restaurante = request.user.perfil_restaurante.restaurante
         rol = data["rol"]
+        data["email"] = data["email"].strip().lower()
 
-        usuarios_activos = UsuarioRestaurante.objects.filter(
-            restaurante=restaurante,
-            activo=True
-        )
-
-        if usuarios_activos.count() >= 4:
-            raise serializers.ValidationError(
-                "Este restaurante ya alcanzó el máximo de usuarios permitidos."
-            )
-
-        if rol == "admin" and usuarios_activos.filter(rol="admin").count() >= 1:
-            raise serializers.ValidationError(
-                "Este restaurante ya tiene un administrador."
-            )
-
-        if rol == "empleado" and usuarios_activos.filter(rol="empleado").count() >= 2:
-            raise serializers.ValidationError(
-                "Este restaurante ya tiene el máximo de empleados permitidos."
-            )
+        try:
+            validate_user_limits(restaurante, rol=rol)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
         if User.objects.filter(username=data["username"]).exists():
-            raise serializers.ValidationError(
-                "Este nombre de usuario ya existe."
-            )
+            raise serializers.ValidationError("Usuario ya existe")
 
-        if User.objects.filter(email=data["email"]).exists():
-            raise serializers.ValidationError(
-                "Este correo ya está registrado."
-            )
-
+        self._validate_unique_email(restaurante, data["email"])
+        candidate = User(username=data["username"], email=data["email"])
+        self._validate_password_for_user(data["password"], candidate)
         return data
 
+    @transaction.atomic
     def create(self, validated_data):
         request = self.context["request"]
         dueno_perfil = request.user.perfil_restaurante
@@ -178,7 +226,6 @@ class UsuarioRestauranteCreateSerializer(serializers.Serializer):
             username=validated_data["username"],
             email=validated_data["email"],
             password=validated_data["password"],
-            first_name=validated_data.get("nombre", "")
         )
 
         usuario_restaurante = UsuarioRestaurante.objects.create(
@@ -188,8 +235,66 @@ class UsuarioRestauranteCreateSerializer(serializers.Serializer):
             activo=True,
             creado_por=dueno_perfil
         )
-
+        record_user_security_event(
+            operation="user_created",
+            affected_user=user,
+            actor=request.user,
+        )
         return usuario_restaurante
+
+
+class UsuarioRestauranteUpdateSerializer(UsuarioRestauranteCreateSerializer):
+    username = serializers.CharField(max_length=150, required=False)
+    email = serializers.EmailField(required=False)
+    password = serializers.CharField(
+        write_only=True,
+        required=False,
+        trim_whitespace=False,
+        error_messages={
+            "blank": "La contraseña no puede estar vacía.",
+            "null": "La contraseña no puede ser nula.",
+        },
+    )
+    rol = None
+
+    def validate(self, data):
+        request = self.context["request"]
+        restaurante = request.user.perfil_restaurante.restaurante
+        user = self.instance.user
+        username = data.get("username", user.username)
+        email = data.get("email", user.email).strip().lower()
+
+        if User.objects.filter(username=username).exclude(id=user.id).exists():
+            raise serializers.ValidationError("Usuario ya existe")
+        self._validate_unique_email(restaurante, email, user_id=user.id)
+
+        if "password" in data:
+            candidate = User(username=username, email=email)
+            self._validate_password_for_user(data["password"], candidate)
+
+        data["email"] = email
+        return data
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        request = self.context["request"]
+        user = instance.user
+        password_changed = "password" in validated_data
+
+        user.username = validated_data.get("username", user.username)
+        user.email = validated_data.get("email", user.email)
+        if password_changed:
+            user.set_password(validated_data["password"])
+        user.save()
+
+        if password_changed:
+            revoke_user_authentication(user)
+            record_user_security_event(
+                operation="password_changed",
+                affected_user=user,
+                actor=request.user,
+            )
+        return instance
 
 class UsuarioRestauranteListSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email", read_only=True)

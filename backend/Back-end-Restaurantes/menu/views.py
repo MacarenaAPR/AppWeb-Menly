@@ -12,6 +12,7 @@ from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
 from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoWhatsAppEstadoUpdateSerializer, PedidoWhatsAppSeguimientoPublicoSerializer, PedidoEspecialSerializer, PedidoManualSerializer, PedidoManualSeguimientoPublicoSerializer
 from .serializers import ReporteMetricaSerializer
 from .serializers import PushSubscriptionEndpointSerializer, PushSubscriptionSerializer
+from .serializers import UsuarioRestauranteCreateSerializer, UsuarioRestauranteUpdateSerializer
 from .serializers import IconoSerializer, RestauranteConfigSerializer, RestaurantePublicoDetalleSerializer, HorarioSerializer, MetodoPagoSerializer, MetodoPagoPublicoSerializer, MesaSerializer, CategoriaSerializer, RespaldoRestauranteSerializer
 from .serializers import serializar_plan_restaurante
 from rest_framework.views import APIView
@@ -478,36 +479,6 @@ def buscar_mesa_asignada(restaurante, valor):
     ).first()
 
 
-def validar_email_usuario(restaurante, email, user_id=None):
-    from django.contrib.auth.models import User
-
-    email = normalizar_email(email)
-
-    if not email:
-        return "El email es obligatorio."
-
-    mismo_restaurante = UsuarioRestaurante.objects.filter(
-        restaurante=restaurante,
-        user__email__iexact=email,
-    )
-
-    if user_id:
-        mismo_restaurante = mismo_restaurante.exclude(user_id=user_id)
-
-    if mismo_restaurante.exists():
-        return "Ya existe un usuario con ese correo en este restaurante."
-
-    usuario_global = User.objects.filter(email__iexact=email)
-
-    if user_id:
-        usuario_global = usuario_global.exclude(id=user_id)
-
-    if usuario_global.exists():
-        return "Este correo ya existe en el sistema (puede pertenecer a otro usuario o superuser). Usa otro correo."
-
-    return None
-
-
 def valor_booleano(valor):
     if isinstance(valor, bool):
         return valor
@@ -790,6 +761,19 @@ def es_dueno(perfil):
 class UsuariosView(APIView):
     permission_classes = [IsAuthenticated, CanManageUsuarios]
 
+    @staticmethod
+    def serializer_error_response(serializer):
+        errors = serializer.errors
+
+        def first_message(value):
+            if isinstance(value, dict):
+                return first_message(next(iter(value.values())))
+            if isinstance(value, (list, tuple)):
+                return first_message(value[0])
+            return str(value)
+
+        return Response({"error": first_message(errors)}, status=400)
+
     def get(self, request):
         perfil = get_perfil_activo(request)
         restaurante = perfil.restaurante
@@ -814,49 +798,17 @@ class UsuariosView(APIView):
 
     def post(self, request):
         perfil = get_perfil_activo(request)
-        restaurante = perfil.restaurante
 
         if perfil.rol != "dueno":
             return Response({"error": "No autorizado"}, status=403)
 
-        username = request.data.get("username")
-        email = normalizar_email(request.data.get("email"))
-        password = request.data.get("password")
-        rol = request.data.get("rol")
-
-        from django.contrib.auth.models import User
-        from .permissions import validate_user_limits
-
-        if rol not in ["admin", "empleado"]:
-            return Response({"error": "Rol invalido"}, status=400)
-
-        try:
-            validate_user_limits(restaurante, rol=rol)
-        except ValueError as e:
-            return Response({"error": str(e)}, status=400)
-
-        if User.objects.filter(username=username).exists():
-            return Response({"error": "Usuario ya existe"}, status=400)
-
-        error_email = validar_email_usuario(restaurante, email)
-        if error_email:
-            return Response({"error": error_email}, status=400)
-
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password
+        serializer = UsuarioRestauranteCreateSerializer(
+            data=request.data,
+            context={"request": request},
         )
-        user.is_active = True
-        user.save(update_fields=["is_active"])
-
-        UsuarioRestaurante.objects.create(
-            user=user,
-            restaurante=restaurante,
-            rol=rol,
-            activo=True,
-            creado_por=perfil
-        )
+        if not serializer.is_valid():
+            return self.serializer_error_response(serializer)
+        serializer.save()
 
         return Response({"message": "Usuario creado"}, status=201)
 
@@ -880,33 +832,21 @@ class UsuariosView(APIView):
 
         campos_edicion = ["username", "email", "password"]
         if any(campo in request.data for campo in campos_edicion):
-            user = usuario.user
-            username = request.data.get("username", user.username)
-            email = normalizar_email(request.data.get("email", user.email))
-            password = request.data.get("password")
-
-            from django.contrib.auth.models import User
-
-            if User.objects.filter(username=username).exclude(id=user.id).exists():
-                return Response({"error": "Usuario ya existe"}, status=400)
-
-            error_email = validar_email_usuario(
-                perfil.restaurante,
-                email,
-                user_id=user.id
+            serializer = UsuarioRestauranteUpdateSerializer(
+                usuario,
+                data=request.data,
+                partial=True,
+                context={"request": request},
             )
-            if error_email:
-                return Response({"error": error_email}, status=400)
+            if not serializer.is_valid():
+                return self.serializer_error_response(serializer)
+            password_changed = "password" in serializer.validated_data
+            serializer.save()
 
-            user.username = username
-            user.email = email
-
-            if password:
-                user.set_password(password)
-
-            user.save()
-
-            return Response({"message": "Usuario actualizado"})
+            response = Response({"message": "Usuario actualizado"})
+            if password_changed and usuario.user_id == request.user.id:
+                clear_admin_refresh_cookie(response)
+            return response
 
         if usuario.id == perfil.id:
             return Response(
