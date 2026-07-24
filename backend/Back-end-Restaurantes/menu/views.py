@@ -35,7 +35,7 @@ from datetime import datetime, timedelta
 from calendar import monthrange
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
-from menu.permissions import CanManageConfiguracion, CanManageUsuarios,CanViewBitacora,CanManageProductos,CanManageReservas,CanManageMesas,CanManageHorarios,CanManageMetodosPago,CanManageRespaldos
+from menu.permissions import CanManageConfiguracion, CanManageUsuarios,CanViewBitacora,CanManageProductos,CanManageReservas,CanManageMesas,CanManageHorarios,CanManageMetodosPago,CanManageRespaldos,IsDuenoOrAdmin
 from menu.permissions import MENSAJE_CUENTA_INACTIVA
 from menu.permissions import CanManageCategorias, TenantScopedQuerysetMixin
 from menu.permissions import get_object_for_restaurante_or_404
@@ -1795,12 +1795,12 @@ def validar_plan_reportes(restaurante, nombre_reporte):
     )
 
 
-def calcular_reporte_mensual(restaurante):
-    return construir_reporte_mensual(restaurante)
+def calcular_reporte_mensual(restaurante, **periodo):
+    return construir_reporte_mensual(restaurante, **periodo)
 
 
-def calcular_reporte_anual(restaurante):
-    return construir_reporte_anual(restaurante)
+def calcular_reporte_anual(restaurante, **periodo):
+    return construir_reporte_anual(restaurante, **periodo)
 
 
 def cambiar_estado_desde_panel(request, pedido, tipo, serializer_class):
@@ -2368,7 +2368,7 @@ class CocinaCerrarView(APIView):
 
 
 class PedidosMetricasDashboardView(APIView):
-    permission_classes = [IsAuthenticated, CanManageReservas]
+    permission_classes = [IsAuthenticated, IsDuenoOrAdmin]
 
     def get(self, request):
         perfil = get_perfil_activo(request)
@@ -2376,7 +2376,7 @@ class PedidosMetricasDashboardView(APIView):
 
 
 class MetricasResumenView(APIView):
-    permission_classes = [IsAuthenticated, CanManageReservas]
+    permission_classes = [IsAuthenticated, IsDuenoOrAdmin]
 
     def get(self, request):
         perfil = get_perfil_activo(request)
@@ -2401,7 +2401,7 @@ class MetricasResumenView(APIView):
 
 
 class ReporteMensualMetricasView(APIView):
-    permission_classes = [IsAuthenticated, CanManageReservas]
+    permission_classes = [IsAuthenticated, IsDuenoOrAdmin]
 
     def get(self, request):
         perfil = get_perfil_activo(request)
@@ -2415,7 +2415,7 @@ class ReporteMensualMetricasView(APIView):
 
 
 class ReporteAnualMetricasView(APIView):
-    permission_classes = [IsAuthenticated, CanManageReservas]
+    permission_classes = [IsAuthenticated, IsDuenoOrAdmin]
 
     def get(self, request):
         perfil = get_perfil_activo(request)
@@ -2429,7 +2429,7 @@ class ReporteAnualMetricasView(APIView):
 
 
 class ReportesMetricasView(APIView):
-    permission_classes = [IsAuthenticated, CanManageReservas]
+    permission_classes = [IsAuthenticated, IsDuenoOrAdmin]
 
     def get(self, request):
         perfil = get_perfil_activo(request)
@@ -2453,7 +2453,7 @@ class ReportesMetricasView(APIView):
 
 
 class ReporteMetricaDetalleView(APIView):
-    permission_classes = [IsAuthenticated, CanManageReservas]
+    permission_classes = [IsAuthenticated, IsDuenoOrAdmin]
 
     def get(self, request, reporte_id):
         perfil = get_perfil_activo(request)
@@ -2468,7 +2468,7 @@ class ReporteMetricaDetalleView(APIView):
 
 
 class ReporteMetricaGuardarView(APIView):
-    permission_classes = [IsAuthenticated, CanManageReservas]
+    permission_classes = [IsAuthenticated, IsDuenoOrAdmin]
 
     def post(self, request):
         perfil = get_perfil_activo(request)
@@ -2482,9 +2482,6 @@ class ReporteMetricaGuardarView(APIView):
         periodo_mes = request.data.get("periodo_mes")
         periodo_anio = request.data.get("periodo_anio")
         titulo = (request.data.get("titulo") or "").strip()
-        resumen = request.data.get("resumen") or {}
-        datos = request.data.get("datos") or {}
-
         if tipo not in dict(ReporteMetrica.TIPOS):
             return Response(
                 {"tipo": "Tipo de reporte invalido."},
@@ -2502,6 +2499,31 @@ class ReporteMetricaGuardarView(APIView):
                 {"periodo_anio": "El periodo anual es obligatorio."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        try:
+            if tipo == ReporteMetrica.TIPO_MENSUAL:
+                anio_calculo, mes_calculo = map(int, str(periodo_mes).split("-"))
+                if str(periodo_mes) != f"{anio_calculo:04d}-{mes_calculo:02d}":
+                    raise ValueError
+                datos = calcular_reporte_mensual(
+                    restaurante,
+                    anio=anio_calculo,
+                    mes=mes_calculo,
+                )
+            else:
+                if str(periodo_anio) != f"{int(periodo_anio):04d}":
+                    raise ValueError
+                datos = calcular_reporte_anual(
+                    restaurante,
+                    anio=int(periodo_anio),
+                )
+        except (TypeError, ValueError):
+            campo = "periodo_mes" if tipo == ReporteMetrica.TIPO_MENSUAL else "periodo_anio"
+            return Response(
+                {campo: "El periodo tiene un formato invalido."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        resumen = datos["resumen_global"]
 
         filtros = {
             "restaurante": restaurante,

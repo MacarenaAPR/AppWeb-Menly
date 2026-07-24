@@ -6,6 +6,7 @@ from .pedidos import (
     fecha_hoy,
     inicio_mes,
     pedidos_especiales_finalizados,
+    pedidos_manuales_finalizados,
     pedidos_whatsapp_finalizados,
 )
 
@@ -54,7 +55,7 @@ def _sumar_item(acumulados, item, canal):
             "nombre": nombre,
             "cantidad": 0,
             "total_vendido": 0,
-            "canales": {"whatsapp": 0, "especiales": 0},
+            "canales": {"whatsapp": 0, "especiales": 0, "menly": 0},
         },
     )
     actual["cantidad"] += cantidad
@@ -62,7 +63,13 @@ def _sumar_item(acumulados, item, canal):
     actual["canales"][canal] = actual["canales"].get(canal, 0) + cantidad
 
 
-def productos_vendidos(restaurante, desde=None, hasta=None, canal=None):
+def productos_vendidos(
+    restaurante,
+    desde=None,
+    hasta=None,
+    canal=None,
+    incluir_especiales_inactivos=False,
+):
     """Ranking de productos vendidos usando solo pedidos finalizados."""
     acumulados = {}
 
@@ -71,10 +78,34 @@ def productos_vendidos(restaurante, desde=None, hasta=None, canal=None):
             for item in pedido.productos_snapshot or []:
                 _sumar_item(acumulados, item, "whatsapp")
 
-    if canal in (None, "especiales") and restaurante.solicitudes_especiales_activas:
+    if (
+        canal in (None, "especiales")
+        and (
+            restaurante.solicitudes_especiales_activas
+            or incluir_especiales_inactivos
+        )
+    ):
         for pedido in pedidos_especiales_finalizados(restaurante, desde, hasta):
             for item in pedido.items or []:
                 _sumar_item(acumulados, item, "especiales")
+
+    if canal in (None, "menly"):
+        pedidos = pedidos_manuales_finalizados(
+            restaurante, desde, hasta
+        ).prefetch_related("items")
+        for pedido in pedidos:
+            for item in pedido.items.all():
+                _sumar_item(
+                    acumulados,
+                    {
+                        "producto_id": item.producto_id,
+                        "nombre": item.nombre_producto,
+                        "cantidad": item.cantidad,
+                        "precio_unitario": item.precio_unitario,
+                        "subtotal": item.subtotal,
+                    },
+                    "menly",
+                )
 
     return sorted(
         acumulados.values(),
@@ -82,24 +113,75 @@ def productos_vendidos(restaurante, desde=None, hasta=None, canal=None):
     )
 
 
-def top_productos_por_cantidad(restaurante, desde=None, hasta=None, canal=None, limit=10):
-    return productos_vendidos(restaurante, desde, hasta, canal)[:limit]
+def top_productos_por_cantidad(
+    restaurante,
+    desde=None,
+    hasta=None,
+    canal=None,
+    limit=10,
+    incluir_especiales_inactivos=False,
+):
+    return productos_vendidos(
+        restaurante,
+        desde,
+        hasta,
+        canal,
+        incluir_especiales_inactivos,
+    )[:limit]
 
 
-def top_productos_por_ingresos(restaurante, desde=None, hasta=None, canal=None, limit=10):
+def top_productos_por_ingresos(
+    restaurante,
+    desde=None,
+    hasta=None,
+    canal=None,
+    limit=10,
+    incluir_especiales_inactivos=False,
+):
     return sorted(
-        productos_vendidos(restaurante, desde, hasta, canal),
+        productos_vendidos(
+            restaurante,
+            desde,
+            hasta,
+            canal,
+            incluir_especiales_inactivos,
+        ),
         key=lambda item: (-item["total_vendido"], -item["cantidad"], item["nombre"]),
     )[:limit]
 
 
-def producto_mas_vendido(restaurante, desde=None, hasta=None, canal=None):
-    productos = top_productos_por_cantidad(restaurante, desde, hasta, canal, limit=1)
+def producto_mas_vendido(
+    restaurante,
+    desde=None,
+    hasta=None,
+    canal=None,
+    incluir_especiales_inactivos=False,
+):
+    productos = top_productos_por_cantidad(
+        restaurante,
+        desde,
+        hasta,
+        canal,
+        limit=1,
+        incluir_especiales_inactivos=incluir_especiales_inactivos,
+    )
     return productos[0] if productos else None
 
 
-def producto_menos_vendido(restaurante, desde=None, hasta=None, canal=None):
-    productos = productos_vendidos(restaurante, desde, hasta, canal)
+def producto_menos_vendido(
+    restaurante,
+    desde=None,
+    hasta=None,
+    canal=None,
+    incluir_especiales_inactivos=False,
+):
+    productos = productos_vendidos(
+        restaurante,
+        desde,
+        hasta,
+        canal,
+        incluir_especiales_inactivos,
+    )
     return min(productos, key=lambda item: (item["cantidad"], item["nombre"])) if productos else None
 
 
