@@ -79,7 +79,7 @@ TENANT_BASE_DOMAINS = config(
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    'core.apps.MenlyAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
