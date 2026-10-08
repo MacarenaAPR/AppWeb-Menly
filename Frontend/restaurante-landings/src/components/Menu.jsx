@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { getOptimizedImageUrl } from "../utils/images";
 import { MAX_CANTIDAD_POR_PRODUCTO } from "../constants/carrito";
+import { CategoryIcon } from "../icons/categoryIcons";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 
 const renderCategoryIcon = (categoria) => (
-  <i className={categoria?.icono || "fa-solid fa-utensils"} aria-hidden="true"></i>
+  <CategoryIcon icon={categoria?.icono} />
 );
 
 const getProductImage = (producto, fallbackImage, size = {}) => {

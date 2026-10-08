@@ -425,16 +425,16 @@
   .page-shell.theme_9 {
     --theme-9-single-hero-overlay: linear-gradient(
       180deg,
-      rgba(0, 0, 0, 0.68) 0%,
-      rgba(0, 0, 0, 0.56) 42%,
-      rgba(0, 0, 0, 0.82) 100%
+      color-mix(in srgb, var(--color-cinco) 52%, transparent) 0%,
+      color-mix(in srgb, var(--color-cinco) 42%, transparent) 44%,
+      color-mix(in srgb, var(--color-cinco) 72%, transparent) 100%
     );
   }
 
   .page-shell.theme_9 .hero-panel {
     display: grid !important;
-    height: auto !important;
-    min-height: 620px !important;
+    height: clamp(540px, 145vw, 590px) !important;
+    min-height: 0 !important;
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
@@ -450,8 +450,8 @@
   .page-shell.theme_9 .hero-visual-left img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    object-position: center center;
+    object-fit: cover;
+    object-position: center 48%;
   }
 
   .page-shell.theme_9 .hero-visual-right {
@@ -463,9 +463,10 @@
     z-index: 3 !important;
     grid-area: 1 / 1 !important;
     width: min(100%, 560px) !important;
-    min-height: 620px;
+    height: 100% !important;
+    min-height: 0;
     margin: 0 auto !important;
-    padding: 24px 18px 215px !important;
+    padding: 18px 16px 112px !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
@@ -474,14 +475,16 @@
   }
 
   .page-shell.theme_9 .hero-logo-theme-9 {
-    width: clamp(110px, 34vw, 145px);
+    width: clamp(190px, 58vw, 280px);
     height: auto;
-    max-height: 125px;
+    max-height: none;
+    object-fit: contain;
+    transform: none;
   }
 
   .page-shell.theme_9 .hero-logo-wrapper-theme-9 {
-    height: clamp(220px, 68vw, 290px);
-    margin-bottom: 16px;
+    height: clamp(128px, 38vw, 166px);
+    margin-bottom: 10px;
   }
 
   .page-shell.theme_9 .hero-panel h1 {
@@ -493,39 +496,74 @@
   .page-shell.theme_9 .hero-panel p {
     width: min(100%, 340px);
     max-width: 100%;
+    margin: 0;
+    font-family: var(--font-family-p-hero-panel);
+    font-size: clamp(0.72rem, 2.8vw, 0.84rem);
+    line-height: 1.25;
     text-align: center;
     white-space: normal !important;
     overflow-wrap: anywhere;
+    -webkit-line-clamp: 2;
+  }
+
+  .page-shell.theme_9 .hero-actions-theme-9 {
+    width: auto;
+    margin: 12px auto 0;
+  }
+
+  .page-shell.theme_9 .hero-actions-theme-9 .button-primary {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 150px;
+    max-width: 190px;
+    margin-inline: auto;
+    padding: 10px 24px;
   }
 
   .page-shell.theme_9 .hero-features-theme-9 {
     position: absolute;
-    bottom: 16px;
+    bottom: 10px;
     left: 50%;
     display: grid;
-    width: calc(100% - 24px);
+    width: calc(100% - 20px);
     margin: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     transform: translateX(-50%);
   }
 
   .page-shell.theme_9 .hero-features-theme-9 .hero-feature {
-    min-height: 54px;
-    padding: 5px 8px;
+    grid-column: span 2;
+    min-height: 38px;
+    padding: 2px 4px;
+    gap: 2px;
     border-left: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 0;
   }
 
-  .page-shell.theme_9 .hero-features-theme-9 .hero-feature:nth-child(even) {
+  .page-shell.theme_9 .hero-features-theme-9 .hero-feature:nth-child(2),
+  .page-shell.theme_9 .hero-features-theme-9 .hero-feature:nth-child(3),
+  .page-shell.theme_9 .hero-features-theme-9 .hero-feature:nth-child(5) {
     border-left: 1px solid rgba(255, 255, 255, 0.18);
   }
 
-  .page-shell.theme_9 .hero-features-theme-9 .hero-feature:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
+  .page-shell.theme_9 .hero-features-theme-9 .hero-feature:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+
+  .page-shell.theme_9 .hero-features-theme-9 .hero-feature:nth-child(5) {
+    grid-column: 4 / span 2;
+  }
+
+  .page-shell.theme_9 .hero-features-theme-9 .hero-feature i {
+    font-size: clamp(1.125rem, 5vw, 1.3rem);
   }
 
   .page-shell.theme_9 .hero-features-theme-9 .hero-feature span {
     max-width: 100%;
+    min-height: 0;
+    display: block;
+    font-size: clamp(0.56rem, 2.5vw, 0.68rem);
+    line-height: 1.1;
     white-space: normal !important;
     overflow-wrap: anywhere;
   }
