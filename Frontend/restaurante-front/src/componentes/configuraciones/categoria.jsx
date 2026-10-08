@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { authFetch } from "../../api";
+import { CategoryIcon } from "../../icons/categoryIcons";
 
 
 export default function CategoriasConfig() {
@@ -16,6 +17,10 @@ export default function CategoriasConfig() {
     icono:"",
   });
   const [iconos, setIconos] = useState([]);
+  const iconClassesById = useMemo(
+    () => new Map(iconos.map((icono) => [String(icono.id), icono.clase_css])),
+    [iconos],
+  );
   const restauranteStorage = JSON.parse(localStorage.getItem("restaurante") || "null");
   const esDueno = restauranteStorage?.rol === "dueno";
   const puedeToggle = ["dueno", "admin"].includes(restauranteStorage?.rol);
@@ -229,7 +234,9 @@ export default function CategoriasConfig() {
               categorias.map((categoria) => (
                 <div key={categoria.id} className="categorias-row">
                   <strong className="categoria-nombre-icono">
-                    <i className={categoria.icono_detalle?.clase_css || "fa-solid fa-tag"}></i>
+                    <CategoryIcon
+                      icon={iconClassesById.get(String(categoria.icono)) || "fa-solid fa-tag"}
+                    />
                     {categoria.nombre}
                   </strong>
                   <span>{categoria.orden ?? "-"}</span>
@@ -305,7 +312,7 @@ export default function CategoriasConfig() {
                       }
                       title={icono.nombre}
                     >
-                      <i className={icono.clase_css}></i>
+                      <CategoryIcon icon={icono.clase_css} />
                     </button>
                   ))}
                 </div>
