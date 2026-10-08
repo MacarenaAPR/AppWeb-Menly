@@ -146,49 +146,51 @@
 }
 .page-shell .productos-list {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px 16px;
-  display: grid
+  gap: 16px;
+  display: grid;
+  align-items: stretch
 }
 .page-shell .producto-card {
   color: var(--product-card-text);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   min-width: 0;
+  min-height: 100%;
   border: 1px solid var(--product-card-border);
-  border-radius: 12px;
+  border-radius: 18px;
   background: var(--product-card-background);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  gap: 12px;
-  min-height: 108px;
-  padding: 8px 12px 8px 8px;
+  gap: 0;
+  padding: 0;
   overflow: hidden
 }
 .page-shell .producto-card-main {
-  display: grid;
-  grid-template-columns: 70px minmax(0, 1fr);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
-  padding: 8px 4px;
-  align-items: center;
-  min-height: 86px;
-  gap: 12px;
+  min-height: 0;
+  padding: 0;
+  align-items: stretch;
+  gap: 0;
   border: 0;
   background: transparent;
   text-align: left
 }
 .page-shell .producto-card-image {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
+  width: 100%;
+  height: clamp(150px, 10vw, 170px);
+  aspect-ratio: auto;
+  border-radius: 0;
   position: relative;
   display: block;
-  flex: 0 0 70px;
-  min-width: 70px;
-  min-height: 70px;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 0;
   border: 0;
   background: var(--landing-bg-card);
-  overflow: hidden;
-  align-self: center
+  overflow: hidden
 }
 .page-shell .producto-card-image img {
   display: block;
@@ -204,14 +206,17 @@
 }
 .page-shell .producto-card-content {
   min-width: 0;
-  padding: 3px 2px;
+  padding: 5px 15px 0;
   display: flex;
-  min-height: 64px;
+  flex: 1 1 auto;
+  min-height: 0;
   flex-direction: column;
-  justify-content: space-between
+  justify-content: flex-start;
+  gap: none;
 }
 .page-shell .producto-head {
-  display: block
+  display: block;
+  margin: 0
 }
 .page-shell .producto-head > div {
   min-width: 0
@@ -219,52 +224,83 @@
 .page-shell .producto-card h3 {
   margin: 0;
   color: var(--product-card-text);
-  font-size: var(--product-card-font-size-title);
+  font-size: clamp(1.05rem, 1.35vw, 1.3rem);
   font-family: var(--font-family-general);
   font-weight: 800;
-  line-height: 1.25
+  line-height: 1.2
 }
 .page-shell .producto-category,
-.page-shell .producto-card p,
 .page-shell .producto-action {
   display: none
 }
-.page-shell .producto-head > span {
-  display: block;
-  text-align: end;
-  margin-top: 10px;
+.page-shell .producto-card p {
+  display: -webkit-box;
+  margin: 0;
+  min-height: 1em;
+  color: var(--landing-text-muted);
+  font-size: clamp(0.82rem, 0.95vw, 0.95rem);
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden
+}
+.page-shell .producto-card-price {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: flex-start;
+  text-align: start;
+  margin: 0;
+  padding: 0;
   color: var(--product-card-price);
-  font-size:var(--product-card-font-size-price);
-  font-weight: 750
+  font-family: var(--font-family-base);
+  font-size: clamp(2rem, 1.25vw, 1.3rem);
+  font-weight: 850;
+  line-height: 1.05
+}
+.page-shell .producto-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 14px 12px;
+  gap: 10px
+}
+.page-shell .producto-card-price small {
+  margin-bottom: 2px;
+  font-family: var(--font-family-general);
+  font-size: 0.68rem;
+  font-weight: 700
 }
 .page-shell .producto-card-actions {
   display: flex;
-  align-items: stretch;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-end;
   width: auto;
-  min-width: 80px;
-  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  flex-direction: row;
   gap: 8px
 }
 .page-shell .producto-add-cart {
   border-color: var(--btn-borde-carrito);
-  align-self: center;
-  min-width: 80px;
-  min-height: 30px;
+  align-self: stretch;
+  min-width: 96px;
+  min-height: 34px;
   margin: 0;
-  padding: 0 16px;
+  padding: 6px 14px;
   border-radius: 999px;
   background: var(--btn-background-carrito);
   color: var(--btn-text-carrito);
   font-family: var(--font-family-btns);
   position: static;
   justify-self: center;
-  width: auto;
-  max-width: 100px;
-  height: 30px;
+  width: min(100%, 150px);
+  max-width: 150px;
+  height: auto;
   border: 1px solid var(--btn-borde-carrito);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   white-space: nowrap
 }
 .page-shell .producto-add-cart::before {

@@ -279,52 +279,54 @@ export default function Menu({
                         <h3>{producto.nombre}</h3>
                         <span className="producto-category">{selectedCategoryName}</span>
                       </div>
-                      <span className="producto-card-price">
-                        {variantesActivas(producto).length > 0 && <small>Desde</small>}
-                        ${precioMinimo(producto).toLocaleString("es-CL")}
-                      </span>
                     </div>
-                    <p>{producto.descripcion}</p>
+                    {producto.descripcion && <p>{producto.descripcion}</p>}
                     <span className="producto-action">Ver detalle</span>
                   </div>
                 </button>
-                {carritoActivo && (
-                  <div className="producto-card-actions">
-                    <div
-                      className="producto-quantity-control"
-                      aria-label={`Cantidad de ${producto.nombre}`}
-                    >
+                <div className="producto-card-footer">
+                  <span className="producto-card-price">
+                    {variantesActivas(producto).length > 0 && <small>Desde</small>}
+                    ${precioMinimo(producto).toLocaleString("es-CL")}
+                  </span>
+                  {carritoActivo && (
+                    <div className="producto-card-actions">
+                      <div
+                        className="producto-quantity-control"
+                        aria-label={`Cantidad de ${producto.nombre}`}
+                      >
+                        <button
+                          type="button"
+                          className="producto-quantity-btn"
+                          aria-label={`Disminuir cantidad de ${producto.nombre}`}
+                          onClick={() => cambiarCantidadProductoCard(producto.id, -1)}
+                          disabled={getCantidadProductoCard(producto.id) <= 1}
+                        >
+                          −
+                        </button>
+                        <span className="producto-quantity-value">
+                          {getCantidadProductoCard(producto.id)}
+                        </span>
+                        <button
+                          type="button"
+                          className="producto-quantity-btn"
+                          aria-label={`Aumentar cantidad de ${producto.nombre}`}
+                          onClick={() => cambiarCantidadProductoCard(producto.id, 1)}
+                        >
+                          +
+                        </button>
+                      </div>
+
                       <button
                         type="button"
-                        className="producto-quantity-btn"
-                        aria-label={`Disminuir cantidad de ${producto.nombre}`}
-                        onClick={() => cambiarCantidadProductoCard(producto.id, -1)}
-                        disabled={getCantidadProductoCard(producto.id) <= 1}
+                        className="producto-add-cart"
+                        onClick={() => agregarDesdeTarjeta(producto)}
                       >
-                        −
-                      </button>
-                      <span className="producto-quantity-value">
-                        {getCantidadProductoCard(producto.id)}
-                      </span>
-                      <button
-                        type="button"
-                        className="producto-quantity-btn"
-                        aria-label={`Aumentar cantidad de ${producto.nombre}`}
-                        onClick={() => cambiarCantidadProductoCard(producto.id, 1)}
-                      >
-                        +
+                        Agregar
                       </button>
                     </div>
-
-                    <button
-                      type="button"
-                      className="producto-add-cart"
-                      onClick={() => agregarDesdeTarjeta(producto)}
-                    >
-                      Agregar
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </article>
             ))}
           </div>

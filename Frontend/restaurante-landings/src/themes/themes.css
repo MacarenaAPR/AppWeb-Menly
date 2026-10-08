@@ -903,11 +903,11 @@
 .theme_9 {
     /*COLORES*/
     --color-uno:#ffff;
-    --color-dos:#FFBC38;
-    --color-tres:#BF2220;
-    --color-cuatro:#202020;
-    --color-cinco:#090909;
-    --color-muted:#b3b3b38e;
+    --color-dos:#ffb218;
+    --color-tres:#c40e0b;
+    --color-cuatro:#080808;
+    --color-cinco:#000000;
+    --color-muted:#2b2b2b8e;
     /*font family*/
     --font-family-general:"Arsenal SC";
     --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
@@ -1037,7 +1037,7 @@
     --font-size-text-title-menu:clamp(2rem, 4vw, 3.4rem);
     
     /*menu-tab*/
-    --menu-tab-color-borde:var(--color-tres);
+    --menu-tab-color-borde:var(--color-muted);
     --menu-tab-color-bg:var(--color-tres);
     --menu-tab-color-text:var(--color-uno);
     --menu-tab-font-size-text:0.8rem;

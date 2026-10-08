@@ -6,7 +6,7 @@ import SolicitudEspecialForm from "../components/SolicitudEspecialForm";
 import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
 import { apiFetch, BASE_URL } from "../Services/api";
 import { getSlugFromHostname } from "../utils/getSlugFromHostname";
-import { getOptimizedImageUrl } from "../utils/images";
+import { getOptimizedImageUrl, resolveImageUrl } from "../utils/images";
 import { GiFireBowl } from "react-icons/gi";
 import { TiShoppingCart } from "react-icons/ti";
 import { MdOutlineShoppingBag } from "react-icons/md";
@@ -266,12 +266,12 @@ export default function Home() {
     const fallbackImage =
       restaurante?.logo_url ||
       (restaurante?.imgen_principal
-        ? getOptimizedImageUrl(restaurante.imgen_principal, {
-            baseUrl: CLOUDINARY_BASE,
-            width: size.width || 800,
-            height: size.height || 600,
-          })
+        ? resolveImageUrl(restaurante.imgen_principal, CLOUDINARY_BASE, "/favicon.svg")
         : "/favicon.svg");
+
+    if (!image && !restaurante?.logo_url && restaurante?.imgen_principal) {
+      return fallbackImage;
+    }
 
     return getOptimizedImageUrl(image, {
       baseUrl: CLOUDINARY_BASE,
@@ -681,18 +681,36 @@ export default function Home() {
     width: 160,
     height: 160,
   });
-  const imagenPrincipalOptimizada = getOptimizedImageUrl(restaurante?.imgen_principal, {
-    baseUrl: CLOUDINARY_BASE,
-    fallbackImage: "",
-    width: 1200,
-    height: 900,
-  });
+  const logoOriginal = resolveImageUrl(restaurante?.logo_url, CLOUDINARY_BASE, "");
+  const imagenPrincipalOriginal = resolveImageUrl(
+    restaurante?.imgen_principal,
+    CLOUDINARY_BASE,
+    ""
+  );
   const imagenFormularioOptimizada = getOptimizedImageUrl(restaurante?.imgen_form, {
     baseUrl: CLOUDINARY_BASE,
     fallbackImage: "/img/default.jpg",
     width: 1000,
     height: 800,
   });
+  const imagenHeroIzquierda = imagenPrincipalOriginal || getOptimizedImageUrl(
+    imagenesRestaurante[0]?.url || restaurante?.imgen_form || restaurante?.logo_url,
+    {
+      baseUrl: CLOUDINARY_BASE,
+      fallbackImage: "/favicon.svg",
+      width: 1000,
+      height: 900,
+    }
+  );
+  const fuenteHeroDerecha = imagenesRestaurante[0]?.url || restaurante?.imgen_form;
+  const imagenHeroDerechaOptimizada = fuenteHeroDerecha
+    ? getOptimizedImageUrl(fuenteHeroDerecha, {
+        baseUrl: CLOUDINARY_BASE,
+        fallbackImage: imagenHeroIzquierda || "/favicon.svg",
+        width: 1000,
+        height: 900,
+      })
+    : imagenPrincipalOriginal || logoOptimizado || "/favicon.svg";
 
   useEffect(() => {
     if (BASE_URL) {
@@ -728,7 +746,7 @@ export default function Home() {
       restaurante.descripcion ||
       `Revisa el menú de ${nombre}, descubre nuestros platos y realiza tu reserva online.`;
     const ogImage = getAbsoluteUrl(
-      logoOptimizado || imagenPrincipalOptimizada || "/favicon.svg"
+      logoOptimizado || imagenPrincipalOriginal || "/favicon.svg"
     );
 
     document.title = `${nombre} | Menú Digital`;
@@ -789,7 +807,7 @@ export default function Home() {
       servesCuisine: "Restaurant",
       hasMenu: `${window.location.href.split("#")[0]}#menu`,
     });
-  }, [imagenPrincipalOptimizada, logoOptimizado, restaurante]);
+  }, [imagenPrincipalOriginal, logoOptimizado, restaurante]);
 
   useEffect(() => {
     if (restaurante && restaurante.delivery_activo !== true && tipoEntregaPedido === "delivery") {
@@ -1080,8 +1098,7 @@ export default function Home() {
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
     ? restaurante.theme_color
     : "theme_9";
-  const heroBadgeText =
-    restaurante?.slogan || "Slogan";
+  const heroBadgeText = String(restaurante?.slogan || "").trim();
   const reservasActivas = Boolean(restaurante?.reservas_activas);
   const solicitudesEspecialesActivas = Boolean(restaurante?.solicitudes_especiales_activas);
   const mostrarSeccionAcciones = reservasActivas || solicitudesEspecialesActivas;
@@ -1092,6 +1109,35 @@ export default function Home() {
       : "reservation-showcase reservation-showcase--dos";
   const carritoWhatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   const deliveryActivo = restaurante?.delivery_activo === true;
+  const heroFeatures = (
+    <div
+      className={`hero-features${themeClass === "theme_9" ? " hero-features-theme-9" : ""}`}
+      aria-label="Características del restaurante"
+    >
+      <div className="hero-feature">
+        <i className="bi bi-basket2" aria-hidden="true"></i>
+        <span>Ingredientes frescos</span>
+      </div>
+      <div className="hero-feature">
+        <i className="bi bi-person-workspace" aria-hidden="true"></i>
+        <span>Preparado al momento</span>
+      </div>
+      <div className="hero-feature">
+        <i className="bi bi-fire" aria-hidden="true"></i>
+        <span>Sabor casero</span>
+      </div>
+      {carritoWhatsappActivo && deliveryActivo && (
+        <div className="hero-feature">
+          <i className="bi bi-bicycle" aria-hidden="true"></i>
+          <span>Delivery</span>
+        </div>
+      )}
+      <div className="hero-feature">
+        <i className="bi bi-lightning-charge" aria-hidden="true"></i>
+        <span>Atención rápida</span>
+      </div>
+    </div>
+  );
   const tiendaCerradaConCarrito =
     carritoWhatsappActivo && restaurante?.abierto_ahora === false;
   const carritoDisponible = carritoWhatsappActivo && !tiendaCerradaConCarrito;
@@ -1264,7 +1310,7 @@ export default function Home() {
       className={`page-shell ${themeClass}`}
       style={{
         "--img-principal-base-restaurante": restaurante?.imgen_principal
-          ? `url(${imagenPrincipalOptimizada})`
+          ? `url(${imagenPrincipalOriginal})`
           : "none",
       }}
     >
@@ -1364,28 +1410,59 @@ export default function Home() {
         <section className="hero-panel" id="inicio">
           <figure
             className="hero-visual hero-visual-left theme-one-primary-visual"
-            aria-hidden="true"
           >
-            <img src={imagenPrincipalOptimizada} alt="" />
+            <img
+              src={imagenHeroIzquierda}
+              alt={`Propuesta gastronómica de ${restaurante?.nombre_empresa || "este restaurante"}`}
+              fetchPriority="high"
+            />
           </figure>
 
           <div className="hero-copy">
-            
-
-            <h1>{restaurante?.nombre_empresa}</h1>
-            <div className="hero-theme-badge">
-              <span>{heroBadgeText}</span>
-            </div>
-            <p>
+            {themeClass === "theme_9" ? (
+              logoOriginal && (
+                <div className="hero-logo-wrapper-theme-9">
+                  <img
+                    className="hero-brand-logo hero-logo-theme-9"
+                    src={logoOriginal}
+                    alt={`Logo de ${restaurante?.nombre_empresa || "restaurante"}`}
+                    width="220"
+                    height="220"
+                    fetchPriority="high"
+                  />
+                </div>
+              )
+            ) : (
+              logoOptimizado && (
+                <img
+                  className="hero-brand-logo"
+                  src={logoOptimizado}
+                  alt={`Logo de ${restaurante?.nombre_empresa || "restaurante"}`}
+                  width="220"
+                  height="220"
+                  fetchPriority="high"
+                />
+              )
+            )}
+            {themeClass !== "theme_9" && <h1>{restaurante?.nombre_empresa}</h1>}
+            {themeClass !== "theme_9" && heroBadgeText && (
+              <div className="hero-theme-badge">
+                <span>{heroBadgeText}</span>
+              </div>
+            )}
+            <p className={themeClass === "theme_9" ? "hero-welcome-theme-9" : undefined}>
               {restaurante?.mensaje_bienvenida ||
                 restaurante?.descripcion ||
                 "Sabores preparados con ingredientes frescos para convertir cada momento en algo especial."}
             </p>
 
-            <div className="hero-actions">
+            <div className={`hero-actions${themeClass === "theme_9" ? " hero-actions-theme-9" : ""}`}>
+              <a className="button-primary" href="#menu">
+                Ver menú <span aria-hidden="true">→</span>
+              </a>
               {reservasActivas && (
                 <a
-                  className="button-primary"
+                  className="button-secondary"
                   href="#reserva"
                   onClick={(event) => {
                     event.preventDefault();
@@ -1395,31 +1472,9 @@ export default function Home() {
                   Reserva ahora
                 </a>
               )}
-              <a className="button-secondary" href="#menu">
-                Ver menú
-              </a>
-              
-            
             </div>
 
-            <div className="hero-tags" aria-label="Beneficios">
-              <div className="hero-tags-track">
-                <div className="hero-tags-group">
-                  <span>Atención rápida</span>
-                  <span>Ingredientes frescos</span>
-                  <span>Preparado al momento</span>
-                  <span>Sabor casero</span>
-                  {carritoWhatsappActivo && deliveryActivo && <span>Delivery</span>}
-                </div>
-                <div className="hero-tags-group" aria-hidden="true">
-                  <span>Atención rápida</span>
-                  <span>Ingredientes frescos</span>
-                  <span>Preparado al momento</span>
-                  <span>Sabor casero</span>
-                  {carritoWhatsappActivo && deliveryActivo && <span>Delivery</span>}
-                </div>
-              </div>
-            </div>
+            {themeClass !== "theme_9" && heroFeatures}
 
             {restaurante?.link_delivery && (
               <div className="partner-row">
@@ -1438,10 +1493,13 @@ export default function Home() {
             )}
           </div>
 
-          <figure className="hero-visual hero-visual-right" aria-hidden="true">
+          {themeClass === "theme_9" && heroFeatures}
+
+          <figure className="hero-visual hero-visual-right">
             <img
-              src={imagenesRestaurante[0]?.url || imagenFormularioOptimizada}
-              alt=""
+              src={imagenHeroDerechaOptimizada}
+              alt={`Ambiente de ${restaurante?.nombre_empresa || "este restaurante"}`}
+              fetchPriority="high"
             />
           </figure>
         </section>

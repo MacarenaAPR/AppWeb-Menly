@@ -54,13 +54,14 @@
   align-items: stretch;
   gap: 0;
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(470px, 1.55fr) minmax(220px, 1fr);
+  grid-template-columns: minmax(0, 27fr) minmax(520px, 46fr) minmax(0, 27fr);
   width: 100%;
-  min-height: 325px;
+  height: clamp(480px, 62vh, 600px);
+  min-height: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: var(--landing-bg-section);
+  background: #030303;
   box-shadow: none;
   overflow: hidden;
   position: relative;
@@ -72,12 +73,11 @@
   text-wrap: balance;
 }
 .page-shell .hero-panel h1 {
-  max-width: 760px;
-  margin-top:30px;
-  margin-bottom: 5px;
-  color: var(--color-text-h1-hero-panel);
-  font-size:var(--font-size-h1-hero-panel) ;
-  line-height: 0.98;
+  max-width: 680px;
+  margin: 4px 0 6px;
+  color: var(--color-text-h1-hero-panel, #fff);
+  font-size: clamp(2rem, 3vw, 3.75rem);
+  line-height: 0.94;
   text-wrap: balance;
   font-family: var(--font-family-base);
   font-weight: 550;
@@ -91,13 +91,12 @@
   line-height: 1.65;
 }
 .page-shell .hero-panel p {
-  max-width: 540px;
-  color: var(--color-text-p-hero-panel);
+  max-width: 560px;
+  color: #f5f5f5;
   font-size: var(--font-size-p-hero-panel);
   font-family: var(--font-family-p-hero-panel);
-  line-height: 1.5;
-  margin-top: 10px;
-  margin-bottom: 20px;
+  line-height: 1.42;
+  margin: 4px 0 16px;
   font-weight: 700;
 }
 
@@ -110,7 +109,7 @@
   justify-content: center;
   width: fit-content;
   max-width: 100%;
-  margin-bottom:10px;
+  margin-bottom: 6px;
   padding: var(--hero-badge-padding);
   transform: rotate(var(--hero-badge-rotate));
   isolation: isolate;
@@ -175,10 +174,21 @@
 }
 .page-shell .hero-actions {
   justify-content: center;
-  margin-top: auto;
-  margin-bottom: 0px;
+  margin: 2px 0 0;
   display: flex;
-  gap: clamp(28px, 5vw, 78px);
+  gap: 12px;
+}
+
+.page-shell .hero-actions .button-primary,
+.page-shell .hero-actions .button-secondary {
+  width: clamp(150px, 12vw, 170px);
+  min-width: 150px;
+  min-height: 46px;
+  padding-block: 9px;
+  border-radius: 999px;
+  gap: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 
@@ -193,14 +203,22 @@
   gap: 0px;
   justify-content: center;
   max-width: none;
-  padding: 24px clamp(42px, 5vw, 82px) 0;
+  padding: 24px clamp(30px, 3vw, 54px) 22px;
   text-align: center;
   position: relative;
   z-index: 3;
   min-width: 0;
   color: var(--landing-text-main);
-  background: var(--landing-bg-hero-center);
-  clip-path: polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%);
+  background:
+    radial-gradient(circle at 50% 28%, color-mix(in srgb, var(--color-primary, #fff) 14%, transparent), transparent 40%),
+    #030303;
+}
+
+.page-shell .hero-brand-logo {
+  width: clamp(96px, 8vw, 148px);
+  height: clamp(82px, 7vw, 132px);
+  object-fit: contain;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.7));
 }
 
 /*IMAGENES*/
@@ -208,7 +226,8 @@
   display: grid;
   place-items: center;
   min-width: 0;
-  min-height: 325px;
+  height: 100%;
+  min-height: 0;
   margin: 0;
   overflow: hidden;
   background: var(--landing-bg-card);
@@ -217,9 +236,74 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: left;
+  object-position: center;
 }
-/*TAGS DE ROTACION.*/
+
+.hero-visual-left,
+.hero-visual-right {
+  position: relative;
+}
+
+.hero-visual-left::after,
+.hero-visual-right::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero-visual-left::after {
+  background: linear-gradient(90deg, transparent 24%, rgba(3, 3, 3, 0.12) 42%, rgba(3, 3, 3, 0.58) 72%, #030303 100%);
+}
+
+.hero-visual-right::after {
+  background: linear-gradient(270deg, transparent 24%, rgba(3, 3, 3, 0.12) 42%, rgba(3, 3, 3, 0.58) 72%, #030303 100%);
+}
+
+.hero-features {
+  display: flex;
+  width: min(100%, 720px);
+  margin-top: 22px;
+  padding-top: 0;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.hero-feature {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 2px clamp(6px, 0.9vw, 12px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.hero-feature:first-child {
+  border-left: 0;
+}
+
+.hero-feature i {
+  color: var(--color-primary, var(--color-text-tags-span, #f2b632));
+  font-size: clamp(1.15rem, 1.35vw, 1.5rem);
+  line-height: 1;
+}
+
+.hero-feature span {
+  color: #fff;
+  font-family: var(--font-family-tags-span);
+  font-size: clamp(0.55rem, 0.62vw, 0.68rem);
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Compatibilidad con el antiguo carrusel de beneficios. */
 .hero-tags {
   width: 100%;
   margin-top: auto;

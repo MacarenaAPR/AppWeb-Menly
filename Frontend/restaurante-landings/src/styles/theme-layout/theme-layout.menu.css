@@ -49,7 +49,7 @@
   color: var(--landing-text-muted)
 }
 .page-shell .menu-tab.is-active .category-icon {
-  color: var(--menu-tab-active-color-text)
+  color: var(--color-uno)
 }
 .page-shell .menu-bubble-header {
   color: var(--landing-text-main)
@@ -60,7 +60,7 @@
   padding: clamp(18px, 3vw, 28px)
 }
 .menu-header {
-  margin-bottom: 18px;
+  margin-bottom: 0px;
   text-align: left
 }
 .menu-header h2 {
@@ -144,17 +144,18 @@
   order: 3
 }
 .page-shell .menu-wrapper {
-  border: 1px solid var(--border-color-menu-wrapper);
-  border-radius: var(--border-radius-menu-wrapper);
-  background: var(--bg-color-menu-wrapper);
-  box-shadow: var(--box-shadow-menu-wrapper);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   width: calc(100% - 48px);
   max-width: 1220px;
-  margin: 28px auto 70px;
-  overflow: hidden
+  height: auto;
+  margin: 42px auto 70px;
+  overflow: visible
 }
 .page-shell .menu-section {
-  padding: clamp(26px, 3.6vw, 46px) 28px 42px
+  padding: 0
 }
 .page-shell .menu-header {
   text-align: center
@@ -175,12 +176,12 @@
 .page-shell .menu-tabs {
   display: flex;
   gap: 12px;
-  margin: 26px 0 28px;
+  margin: 5px 0 5px;
   padding: 0 8px 8px;
-  overflow-x: auto;
+  overflow: visible;
   scrollbar-width: none;
-  flex-wrap: nowrap;
-  overflow-y: hidden;
+  flex-wrap: wrap;
+  justify-content: center;
   border: 0;
   background: transparent;
   scroll-behavior: smooth;
@@ -210,8 +211,8 @@
   flex-direction: row;
   border: 1px solid var(--menu-tab-color-borde);
   border-radius: 18px;
-  background: var(--menu-tab-color-bg);
-  color: var(--menu-tab-color-text);
+  background: var(--color-cuatro);
+  color: var(--color-uno);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -222,12 +223,12 @@
   font-family: var(--font-family-general);
 }
 .page-shell .menu-tab .category-icon {
-  color: inherit
+  color: var(--color-tres)
 }
 .page-shell .menu-tab.is-active {
   border-color: var(--menu-tab-active-color-borde);
-  background: var(--menu-tab-active-color-bg);
-  color: var(--menu-tab-active-color-text)!important;
+  background: var(--color-tres);
+  color: var(--color-uno)!important;
 }
 .page-shell .menu-bubble {
   padding: 0;
