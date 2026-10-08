@@ -265,11 +265,15 @@ export default function Menu({
                 >
                   <div className="producto-card-image">
                     <img
-                      src={getProductImage(producto, fallbackImage, { width: 220, height: 220 })}
+                      src={getProductImage(producto, fallbackImage, {
+                        width: 1200,
+                        height: 675,
+                        crop: "pad",
+                      })}
                       alt={producto.nombre}
                       loading="lazy"
-                      width="220"
-                      height="220"
+                      width="1200"
+                      height="675"
                     />
                   </div>
 

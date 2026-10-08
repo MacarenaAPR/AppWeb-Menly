@@ -390,7 +390,6 @@
     --product-card-price: var(--color-dos);
     --product-card-font-size-title:1rem;
     --product-card-font-size-price:1.3rem;
-
     /*PRODUCTO MODAL*/
     --product-modal-p-color-text:var(--color-uno);
     --producto-modal-cart-modal-qty-color-text:var(--color-dos);
@@ -909,9 +908,10 @@
     --color-cinco:#000000;
     --color-muted:#2b2b2b8e;
     /*font family*/
-    --font-family-general:"Arsenal SC";
-    --font-family-base: "Bebas Neue", "Arial Black", system-ui, sans-serif;
+    --font-family-general:"Bebas Neue", sans-serif;
+    --font-family-base: "Oswald", sans-serif;
     --font-family-btns:"Bebas Neue";
+    --font-family-card-producto-p: Arial, "Helvetica Neue", sans-serif;
     /*base*/
     /*BTN BUTTON PRIMARY*/
     --btn-primary-color-bg:var(--color-cinco);
@@ -1014,6 +1014,7 @@
     --product-card-price: var(--color-dos);
     --product-card-font-size-title:1rem;
     --product-card-font-size-price:1.3rem;
+    --letter-spacing-product-card-h3:1.2px;
 
     /*PRODUCTO MODAL*/
     --product-modal-p-color-text:var(--color-uno);

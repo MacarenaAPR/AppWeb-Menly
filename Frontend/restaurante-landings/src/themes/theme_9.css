@@ -310,6 +310,27 @@
   margin-top: 18px;
 }
 
+.page-shell.theme_9 .hero-actions-theme-9 .button-primary {
+  border-color: var(--color-dos);
+  background: var(--btn-primary-color-bg);
+  color: var(--color-dos);
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+
+.page-shell.theme_9 .hero-actions-theme-9 .button-primary:hover {
+  border-color: var(--color-dos);
+  background: var(--color-dos);
+  color: var(--color-cuatro);
+  transform: translateY(-1px);
+}
+
+.page-shell.theme_9 .hero-actions-theme-9 .button-primary:active {
+  border-color: var(--color-dos);
+  background: var(--color-dos);
+  color: var(--color-cuatro);
+  transform: scale(0.97);
+}
+
 .page-shell.theme_9 .hero-features-theme-9 {
   position: absolute;
   bottom: 35px;
