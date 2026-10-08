@@ -694,7 +694,7 @@ export default function Home() {
     height: 800,
   });
   const imagenHeroIzquierda = imagenPrincipalOriginal || getOptimizedImageUrl(
-    imagenesRestaurante[0]?.url || restaurante?.imgen_form || restaurante?.logo_url,
+    imagenesRestaurante[0]?.url || restaurante?.imgen_principal || restaurante?.logo_url,
     {
       baseUrl: CLOUDINARY_BASE,
       fallbackImage: "/favicon.svg",
