@@ -702,7 +702,7 @@ export default function Home() {
       height: 900,
     }
   );
-  const fuenteHeroDerecha = imagenesRestaurante[0]?.url || restaurante?.imgen_form;
+  const fuenteHeroDerecha = imagenesRestaurante[0]?.url || restaurante?.imgen_principal;
   const imagenHeroDerechaOptimizada = fuenteHeroDerecha
     ? getOptimizedImageUrl(fuenteHeroDerecha, {
         baseUrl: CLOUDINARY_BASE,
