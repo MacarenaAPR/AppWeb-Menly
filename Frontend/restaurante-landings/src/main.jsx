@@ -5,9 +5,10 @@ import './index.css'
 import './themes/themes.css'
 import './styles/theme-layout.css'
 import './themes/theme-1.css'
-import './themes/theme_8.css'
+import './themes/theme_8.hero.css'
 import './themes/theme_9.css'
 import './themes/theme_6.css'
+import './styles/theme-layout/responsive/theme-layout.breakpoints.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById("root")).render(

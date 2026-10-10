@@ -1,0 +1,534 @@
+/* ======================================================
+   BREAKPOINTS GLOBALES AUTORITATIVOS
+   Móvil: <= 775px · Tablet: 776px–1020px · Desktop: >= 1021px
+
+   Se carga después de los estilos de cada theme para resolver de forma
+   compartida las media queries históricas que se superponen entre 776px
+   y 1020px. Solo modifica geometría, distribución y dimensiones.
+====================================================== */
+
+/* Un único header compacto para móvil y tablet. Reutiliza el drawer existente. */
+@media (max-width: 1020px) {
+  body.mobile-nav-open {
+    overflow: hidden;
+  }
+
+  .page-shell .site-header {
+    position: sticky;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 64px;
+    padding: 7px 112px 7px 12px;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: clamp(8px, 1.5vw, 12px);
+    overflow: visible;
+  }
+
+  .page-shell .mobile-menu-toggle {
+    position: static;
+    display: inline-flex !important;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    flex: 0 0 44px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 1px solid var(--color-border-accent, var(--color-border));
+    border-radius: 12px;
+    background: var(--color-surface-translucent, var(--color-surface));
+    color: var(--color-text-display, var(--color-text-primary));
+    cursor: pointer;
+    order: 0;
+  }
+
+  .page-shell .mobile-menu-toggle span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    margin-inline: auto;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  .page-shell .brand-block {
+    display: flex;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: clamp(8px, 1.4vw, 12px);
+    overflow: hidden;
+    order: 1;
+  }
+
+  .page-shell .brand-logo {
+    width: clamp(44px, 5.2vw, 52px);
+    height: clamp(44px, 5.2vw, 52px);
+    max-width: 52px;
+    flex: 0 0 auto;
+    object-fit: contain;
+  }
+
+  .page-shell .span-info-brand-block {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .page-shell .brand-name,
+  .page-shell .brand-tag {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .page-shell .brand-name {
+    font-size: clamp(0.82rem, 1.55vw, var(--brand-name-text-size));
+  }
+
+  .page-shell .header-actions {
+    display: flex;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    flex: 0 0 auto;
+    order: 2;
+  }
+
+  .page-shell .header-social {
+    display: none;
+  }
+
+  .page-shell .cart-trigger-header,
+  .cart-trigger-floating,
+  .whatsapp-floating-btn {
+    position: fixed;
+    top: 10px;
+    bottom: auto;
+    z-index: 90;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    flex: 0 0 44px;
+    border-radius: 999px;
+  }
+
+  .page-shell .cart-trigger-header,
+  .cart-trigger-floating {
+    right: 62px;
+    gap: 0;
+  }
+
+  .whatsapp-floating-btn {
+    right: 12px;
+  }
+
+  .page-shell .cart-trigger-header span,
+  .cart-trigger-floating span,
+  .whatsapp-floating-btn span {
+    display: none;
+  }
+
+  .page-shell .cart-trigger-header strong,
+  .cart-trigger-floating strong {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+  }
+
+  .page-shell .site-nav {
+    position: fixed;
+    inset: 0 0 0 auto;
+    z-index: 80;
+    display: flex;
+    width: min(82vw, 330px);
+    min-height: 100svh;
+    padding: 82px 20px 24px;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 12px;
+    border: 0;
+    background: var(--landing-bg-section);
+    box-shadow: -18px 0 50px rgba(0, 0, 0, 0.3);
+    transform: translateX(105%);
+    transition: transform 180ms ease;
+    visibility: hidden;
+    pointer-events: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .page-shell .site-nav.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .page-shell .site-nav a {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 14px;
+    flex: 0 0 auto;
+    align-items: center;
+    border: 1px solid var(--landing-border-color);
+    border-radius: 10px;
+    background: transparent;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .page-shell .mobile-nav-close {
+    display: inline-grid;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    place-items: center;
+    align-self: flex-end;
+    border: 1px solid var(--color-border-accent, var(--color-border));
+    border-radius: 50%;
+    background: var(--color-surface-translucent, var(--color-surface));
+    color: var(--color-text-display, var(--color-text-primary));
+    cursor: pointer;
+  }
+
+  .page-shell .mobile-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: block;
+    width: auto;
+    border: 0;
+    background: rgba(0, 0, 0, 0.48);
+  }
+}
+
+@media (min-width: 776px) and (max-width: 1020px) {
+  html,
+  body,
+  #root,
+  .page-shell {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .page-shell .page-content {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 0;
+    overflow-x: clip;
+  }
+
+  /* Hero compartido para los themes editoriales de tres zonas. */
+  .page-shell:not(.theme_8):not(.theme_9) .page-content > .hero-panel {
+    display: grid !important;
+    height: clamp(540px, 55vw, 600px) !important;
+    min-height: 540px !important;
+    grid-template-columns: minmax(120px, 22fr) minmax(390px, 56fr) minmax(120px, 22fr) !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-copy {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    min-width: 0;
+    margin: 0 !important;
+    padding: clamp(24px, 3vw, 34px) clamp(22px, 3.5vw, 38px) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-visual-left,
+  .page-shell:not(.theme_8):not(.theme_9) .hero-visual-right {
+    position: relative !important;
+    display: grid !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-brand-logo {
+    width: clamp(84px, 10vw, 112px);
+    height: auto;
+    max-height: 104px;
+    object-fit: contain;
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-panel h1 {
+    max-width: 100%;
+    font-size: clamp(1.9rem, 4.2vw, 3rem);
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-panel p {
+    max-width: 440px;
+    font-size: clamp(0.86rem, 1.45vw, 1rem);
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-features {
+    display: grid;
+    width: min(100%, 430px);
+    margin-top: clamp(14px, 2vw, 20px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-feature {
+    min-height: 58px;
+    padding: 6px 10px;
+    border-left: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-feature:nth-child(even) {
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .page-shell:not(.theme_8):not(.theme_9) .hero-feature:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  /* Themes 8/9: misma variante de imagen única, adaptada al espacio tablet. */
+  .page-shell:is(.theme_8, .theme_9) .page-content > .hero-panel {
+    display: grid !important;
+    height: clamp(610px, 72vw, 700px) !important;
+    min-height: 610px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-visual-left {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-visual-left img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 25%;
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-visual-right {
+    display: none !important;
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-copy {
+    width: min(100%, 700px) !important;
+    height: 100% !important;
+    margin: 0 auto !important;
+    padding: 24px clamp(24px, 4vw, 42px) 190px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    background: transparent !important;
+    clip-path: none !important;
+    filter: none !important;
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-logo-wrapper-theme-9 {
+    width: 100%;
+    height: clamp(168px, 22vw, 220px);
+    margin-bottom: clamp(8px, 1.5vw, 14px);
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-logo-theme-9 {
+    width: clamp(110px, 14vw, 145px);
+    height: auto;
+    max-height: 140px;
+    object-fit: contain;
+    transform: scale(1.75);
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-welcome-theme-9 {
+    width: min(100%, 520px);
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-actions-theme-9 {
+    margin-top: clamp(12px, 2vw, 18px);
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-features-theme-9 {
+    position: absolute;
+    bottom: 18px;
+    left: 50%;
+    display: grid;
+    width: min(760px, calc(100% - 48px));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    transform: translateX(-50%);
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-features-theme-9 .hero-feature {
+    grid-column: span 2;
+    min-height: 60px;
+    padding: 6px clamp(6px, 1.2vw, 12px);
+    border-bottom: 0;
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-features-theme-9 .hero-feature:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-features-theme-9 .hero-feature:nth-child(5) {
+    grid-column: 4 / span 2;
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-features-theme-9 .hero-feature i {
+    font-size: clamp(1.12rem, 2.2vw, 1.4rem);
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .hero-features-theme-9 .hero-feature span {
+    max-width: 130px;
+    min-height: 0;
+    font-size: clamp(0.58rem, 1.2vw, 0.7rem);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .page-shell .hero-actions .button-primary,
+  .page-shell .hero-actions .button-secondary {
+    min-width: 150px;
+    min-height: 44px;
+    padding: 10px 20px;
+  }
+
+  /* Secciones y cards. */
+  .page-shell .promo-panel,
+  .page-shell .menu-wrapper,
+  .page-shell .reservation-showcase,
+  .page-shell .restaurant-details-showcase {
+    width: calc(100% - clamp(36px, 6vw, 64px));
+    max-width: 1180px;
+    min-width: 0;
+    margin-inline: auto;
+  }
+
+  .page-shell .promo-panel,
+  .page-shell .reservation-showcase,
+  .page-shell .restaurant-details-showcase {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page-shell .menu-section {
+    padding-inline: clamp(20px, 4vw, 34px);
+  }
+
+  .page-shell .menu-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  .page-shell .menu-tab {
+    min-width: 128px;
+    min-height: 44px;
+    flex: 0 0 auto;
+  }
+
+  .page-shell .productos-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(14px, 2.4vw, 22px);
+  }
+
+  .page-shell .producto-card,
+  .page-shell .producto-card-main,
+  .page-shell .producto-card-content,
+  .page-shell .producto-card-footer {
+    min-width: 0;
+  }
+
+  .page-shell .producto-card-image {
+    aspect-ratio: 16 / 9;
+  }
+
+  .page-shell .producto-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .page-shell .about-panel-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-shell .gallery-grid {
+    min-height: clamp(360px, 52vw, 480px);
+  }
+
+  .page-shell .product-modal,
+  .page-shell .cart-whatsapp-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .whatsapp-floating-btn,
+  .cart-trigger-floating {
+    top: auto;
+    width: 54px;
+    min-width: 54px;
+    height: 54px;
+    min-height: 54px;
+    padding: 0;
+  }
+
+  .whatsapp-floating-btn {
+    right: 18px;
+    bottom: 18px;
+  }
+
+  .cart-trigger-floating {
+    right: 18px;
+    bottom: 82px;
+  }
+
+  .whatsapp-floating-btn span,
+  .cart-trigger-floating span {
+    display: none;
+  }
+
+  .page-shell .landing-footer {
+    width: 100%;
+    padding-inline: clamp(20px, 4vw, 36px);
+  }
+}
+
+/* Transición fluida hacia las dimensiones desktop existentes. */
+@media (min-width: 1021px) {
+  .page-shell:not(.theme_8):not(.theme_9) .page-content > .hero-panel {
+    height: clamp(560px, 52vw, 600px);
+  }
+
+  .page-shell:is(.theme_8, .theme_9) .page-content > .hero-panel {
+    height: clamp(700px, 64vw, 840px);
+    min-height: 0;
+  }
+}

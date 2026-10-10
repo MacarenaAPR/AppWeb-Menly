@@ -1,7 +1,7 @@
 /* ===============================
    RESPONSIVE · MOBILE
 ================================ */
-@media (max-width: 768px) {
+@media (max-width: 775px) {
   html,
   #root,
   body {
@@ -675,7 +675,7 @@
 }
 
 /* Header y hero editorial mobile. Este bloque prevalece sobre variantes antiguas. */
-@media (max-width: 800px) {
+@media (max-width: 775px) {
   .page-shell .site-header {
     position: sticky;
     display: flex;
@@ -824,7 +824,7 @@
     display: none;
   }
 }
-@media (max-width: 768px) {
+@media (max-width: 775px) {
 
   .header-social {
     display: none;
@@ -894,7 +894,7 @@
     padding: 48px 18px 22px;
   }
 }
-@media (max-width: 768px) {
+@media (max-width: 775px) {
   .site-header {
     min-height: 64px;
     padding: 8px 12px;
@@ -982,14 +982,14 @@
     height: 180px;
   }
 }
-@media (max-width: 768px) {
+@media (max-width: 775px) {
   .promo-card-large .promo-slide-image.uses-fallback-image img {
     -webkit-mask-image: none;
     mask-image: none;
   }
 
 }
-@media (max-width: 800px) {
+@media (max-width: 775px) {
   .page-shell .site-header {
     display: flex;
     min-height: 64px;
@@ -1120,6 +1120,10 @@
 
   .page-shell .hero-visual-left {
     display: none !important;
+  }
+
+  .page-shell.theme_8 .hero-visual-left {
+    display: block !important;
   }
 
   .page-shell .hero-panel > .hero-visual.hero-visual-right {
@@ -1400,7 +1404,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 775px) {
   .hero-theme-badge {
     max-width: 100%;
     padding: 6px 32px;
@@ -1420,7 +1424,7 @@
 }
 
 /* Guard final del nuevo header/hero frente a las reglas responsive heredadas. */
-@media (max-width: 800px) {
+@media (max-width: 775px) {
   .page-shell .site-header {
     padding: 7px 112px 7px 62px;
   }
@@ -1438,9 +1442,9 @@
 
   .page-shell .hero-panel > .hero-copy {
     min-height: 620px;
-    padding: 138px 18px 18px !important;
+    padding: 18px 18px 18px !important;
     align-items: center !important;
-    justify-content: flex-end !important;
+    justify-content: center !important;
     text-align: center !important;
   }
 

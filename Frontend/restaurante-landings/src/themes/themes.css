@@ -689,176 +689,189 @@
 
 .theme_8 {
     /*COLORES*/
-    --color-uno:#8E2800;
-    --color-dos:#A69B02;
-    --color-tres:#B64926;
-    --color-cuatro:#746B03; /*usado para background*/
-    --color-cinco:#ffff;
-    --color-seis:#FEF1A5;
-    --color-muted:#b3b3b38e;
+    --color-background:#0D0D0D;
+    --color-surface:#181818;
+    --color-surface-secondary:#242424;
+    --color-primary:#FF6A00;
+    --color-primary-hover:#E85D00;
+    --color-secondary:#F5B51B;
+    --color-accent:#E52B20;
+    --color-text:#FFFFFF;
+    --color-text-secondary:#C7C7C7;
+    --color-border:#303030;
+    /* Alias históricos usados por el layout compartido */
+    --color-uno:var(--color-text);
+    --color-dos:var(--color-secondary);
+    --color-tres:var(--color-primary);
+    --color-cuatro:var(--color-surface);
+    --color-cinco:var(--color-background);
+    --color-seis:var(--color-text-secondary);
+    --color-muted:rgba(199, 199, 199, 0.22);
     /*font family*/
-    --font-family-general:"Arsenal SC";
-    --font-family-base: "Cormorant Unicase", "Arial Black", system-ui, sans-serif;
-    --font-family-btns:"Arsenal SC";
+    --font-family-general:"Shadows Into Light", "Arial Black", system-ui, sans-serif;
+    --font-family-base: "Shadows Into Light", "Arial Black", system-ui, sans-serif;
+    --font-family-btns:"Bebas Neue";
+    --font-family-card-producto-p: Arial, "Helvetica Neue", sans-serif;
     /*base*/
     /*BTN BUTTON PRIMARY reserva*/
-    --btn-primary-color-bg:var(--color-uno);
-    --btn-primary-color-text:var(--color-seis);
-    --btn-primary-color-border:var(--color-uno);
+    --btn-primary-color-bg:var(--color-background);
+    --btn-primary-color-text:var(--color-primary);
+    --btn-primary-color-border:var(--color-primary);
     --btn-primary-color-box-shadow:#000000;
-    --btn-primary-hover-color-bg:var(--color-tres);
+    --btn-primary-hover-color-bg:var(--color-primary-hover);
     
     
     /*BTN BUTTON Secondary ver menu*/
     --btn-secondary-color-bg:var(--color-dos);
-    --btn-secondary-color-text:var(--color-seis);
+    --btn-secondary-color-text:var(--color-background);
     --btn-secondary-color-border:var(--color-dos);
     --btn-secondary-color-box-shadow:#000000;
-    --btn-secondary-hover-color-bg:var(--color-cuatro);
+    --btn-secondary-hover-color-bg:var(--color-primary-hover);
     
     /*Landings general*/
     --bg-general:var(--color-cinco);
-    --text-color-general:var(--color-cuatro);
+    --text-color-general:var(--color-text);
     
     /*site-header*/
-    --bg-general-site-header:var(--color-cuatro);
-    --color-border-bottom-header:var(--color-cuatro);
-    --color-text-header-social-span:var(--color-seis);
-    --bg-header-social:var(--color-tres);
-    --color-text-header-social-a:var(--color-seis);
-    --color-text-hover-header:var(--color-cuatro);
-    --brand-name-text-color:var(--color-seis);
-    --size-text-header: 1.1rem;
-    --letter-spacing-header:0em;
+    --bg-general-site-header:var(--color-surface);
+    --color-border-bottom-header:var(--color-border);
+    --color-text-header-social-span:var(--color-text);
+    --bg-header-social:var(--color-primary);
+    --color-text-header-social-a:var(--color-background);
+    --color-text-hover-header:var(--color-secondary);
+    --brand-name-text-color:var(--color-text);
+    --size-text-header: 1.25rem;
+    --letter-spacing-header:0.1em;
     --font-family-header: var(--font-family-general);
     --brand-tag-font-family:var(--font-family-general);
-    --brand-tag-text-size:0.6rem;
-    --brand-name-text-size:0.9rem;
-    --brand-name-text-color:var(--color-seis);
+    --brand-tag-text-size:0.7rem;
+    --brand-name-text-size:1rem;
+    --brand-name-text-color:var(--color-text);
     --brand-name-text-transform:Uppercase;
     
     /*CART-trigger carrito header*/
     --bg-color-strong-cart-trigger:var(--color-dos);
     --bg-color-cart-trigger:var(--color-dos);
     --border-color-cart-trigger:var(--color-dos);
-    --color-text-cart-trigger:var(--color-seis);
+    --color-text-cart-trigger:var(--color-background);
     --shadow-cart-trigger:0 10px 24px rgba(0, 0, 0, 0.7);
     
     /*HERO*/
     /*hero-panel h1*/
     --font-size-h1-hero-panel:clamp(2.4rem, 4.5vw, 4.6rem);
-    --color-text-h1-hero-panel:var(--color-uno); 
+    --color-text-h1-hero-panel:var(--color-primary);
     --letter-spacing-h1-hero-panel: 0.03em;
     --text-shadow-h1-hero-panel: 0 4px 4px #303030;
-    --transform-text-h1-hero-panel:none;
+    --transform-text-h1-hero-panel:perspective(1000px) rotateZ(-3deg);
 
     /*hero-panel h1 - mobile*/
-    --hero-panel-h1-color-text:var(--color-dos);
-    --hero-panel-p-color-text:var(--color-seis);
-    --hero-panel-h1-shadow-text:0 3px 14px rgba(255, 255, 255, 0.62);
+    --hero-panel-h1-color-text:var(--color-primary);
+    --hero-panel-p-color-text:var(--color-text);
+    --hero-panel-h1-shadow-text:0 3px 14px rgba(0, 0, 0, 0.62);
     
     /*hero panel P*/
-    --color-text-p-hero-panel:var(--color-cuatro);
+    --color-text-p-hero-panel:var(--color-text);
     --font-size-p-hero-panel:clamp(1rem, 1.12vw, 1.04rem);
     --font-family-p-hero-panel:var(--font-family-general);
     
     /*hero-theme-badge*/    
     --hero-badge-image: url("../assets/brushes/theme-9-hero-badge-brush.png");
     --hero-badge-background: transparent;
-    --hero-badge-text: var(--color-tres);
-    --hero-badge-shadow: 0px;
-    --hero-badge-rotate: 0deg;
+    --hero-badge-text: var(--color-text);
+    --hero-badge-shadow: 0 4px 4px #202020;
+    --hero-badge-rotate: -2.5deg;
     --hero-badge-radius: 0;
     --hero-badge-padding: 8px 58px;
-    --hero-badge-letter-spacing: 0.05em;
+    --hero-badge-letter-spacing: 0.24em;
     --hero-badge-text-transform: uppercase ;
     --hero-badge-font-family: var(--font-family-general);
-    --hero-badge-font-size: 1.2rem;
+    --hero-badge-font-size: 1.5rem;
     --hero-badge-font-weight: 900;
-    --hero-badge-transform:0;
+    --hero-badge-transform:perspective(1000px) rotateZ(-4deg);
     
     /*tags hero*/
-    --color-text-tags-span:var(--color-cuatro);
+    --color-text-tags-span:var(--color-secondary);
     --font-family-tags-span:var(--font-family-general);
     --font-size-tags-span:clamp(0.66rem, 0.92vw, 0.84rem);
     
     /*PEDIDOS YA*/
-    --color-text-partner-now:var(--color-muted);
+    --color-text-partner-now:var(--color-text);
     --color-bg-btn-pedidosya: rgba(255, 0, 0, 0.829);
-    --color-bg-btn-pedidosya-hover: var(--color-tres);
+    --color-bg-btn-pedidosya-hover: var(--color-accent);
     --color-text-btn-pedidosya: #f5f5f5;
 
     /*destacados y promos*/
-    --color-svg-promo-tag:var(--color-tres);
-    --color-text-promo-tag:var(--color-dos);
+    --color-svg-promo-tag:var(--color-secondary);
+    --color-text-promo-tag:var(--color-primary);
     --font-family-promo-tag:var(--font-family-general);
     --font-size-promo-tag:1rem;
     
     /*commercial-badge*/
-    --bg-color-commercial-badge:var(--color-tres);
-    --color-text-commercial-badge:var(--color-cinco);
+    --bg-color-commercial-badge:var(--color-accent);
+    --color-text-commercial-badge:var(--color-text);
     --commercial-badge-font-family:var(--font-family-btns);
 
     /* PRODUCTOS */
-    --product-card-background: var(--color-uno);
-    --product-card-border: var(--color-uno);
-    --product-card-text: var(--color-seis);
-    --product-card-price: var(--color-dos);
-    --product-card-font-size-title:0.9rem;
-    --product-card-font-size-price:1.2rem;
+    --product-card-background: var(--color-surface);
+    --product-card-border: var(--color-border);
+    --product-card-text: var(--color-text);
+    --product-card-price: var(--color-secondary);
+    --product-card-font-size-title:1rem;
+    --product-card-font-size-price:1.3rem;
+    --letter-spacing-product-card-h3:1.2px;
 
     /*PRODUCTO MODAL*/
-    --product-modal-p-color-text:var(--color-uno);
-    --producto-modal-cart-modal-qty-color-text:var(--color-dos);
+    --product-modal-p-color-text:var(--color-text);
+    --producto-modal-cart-modal-qty-color-text:var(--color-secondary);
     /*btn agregar al carro*/
     --btn-background-carrito: var(--color-dos);
     --btn-borde-carrito: var(--color-dos);
-    --btn-text-carrito:var(--color-cinco);
+    --btn-text-carrito:var(--color-background);
 
     /*MENU-SECTION*/
     --bg-color-menu-wrapper:linear-gradient(
                                             150deg,
-                                            #ffff 5%,
-                                            #FFFF 60%,
-                                            #FFFF 90%);
-    --border-color-menu-wrapper:none;
+                                            rgba(255, 106, 0, 0.12) 0%,
+                                            var(--color-background) 25%,
+                                            var(--color-background) 100%);
+    --border-color-menu-wrapper:var(--color-border);
     --border-radius-menu-wrapper:10px;
     --box-shadow-menu-wrapper: 0 4px 6px 0 rgba(22, 22, 22, 0.8);
-    --color-text-title-menu:var(--color-cuatro);
-    --letter-spacing-menu:0px;
+    --color-text-title-menu:var(--color-text);
+    --letter-spacing-menu:7px;
     --font-size-text-title-menu:clamp(2rem, 4vw, 3.4rem);
     
     /*menu-tab*/
-    --menu-tab-color-borde:var(--color-cuatro);
-    --menu-tab-color-bg:var(--color-cuatro);
-    --menu-tab-color-text:var(--color-seis);
+    --menu-tab-color-borde:var(--color-border);
+    --menu-tab-color-bg:var(--color-surface-secondary);
+    --menu-tab-color-text:var(--color-text-secondary);
     --menu-tab-font-size-text:0.8rem;
     /*menu-tab-active*/
-    --menu-tab-active-color-borde:var(--color-cuatro);
-    --menu-tab-active-color-bg:var(--color-cuatro);
-    --menu-tab-active-color-tex:var(--color-uno);
+    --menu-tab-active-color-borde:var(--color-primary);
+    --menu-tab-active-color-bg:var(--color-primary);
+    --menu-tab-active-color-tex:var(--color-background);
 
     /*ABOUT BASE*/
-    --about-panel-color-border:var(--color-tres);
-    --about-title-text-font-size:1.5rem;
-    --about-title-text-color:var(--color-dos);
+    --about-panel-color-border:var(--color-border);
+    --about-title-text-font-size:1.7rem;
+    --about-title-text-color:var(--color-primary);
     --about-title-text-font-family:var(--font-family-base);
     --about-parrafo-text-font-family:var(--font-family-general);
-    --about-parrafo-text-color:var(--color-uno);
-    --about-subtitle-text-font-size:1rem;
-    --about-subtitle-text-color:var(--color-dos);
+    --about-parrafo-text-color:var(--color-text);
+    --about-subtitle-text-font-size:1.2rem;
+    --about-subtitle-text-color:var(--color-secondary);
     --about-parrafo-details-font-size:0.9rem;
-    --about-parrafo-details-color:var(--color-uno);
+    --about-parrafo-details-color:var(--color-text);
     
     /*SOCIAL ABOUT LINK*/
-    --about-social-link-bg:var(--color-dos);
-    --about-social-link-color:var(--color-seis);
-    --border-color-social-hover:var(--color-tres);
+    --about-social-link-bg:var(--color-primary);
+    --about-social-link-color:var(--color-background);
+    --border-color-social-hover:var(--color-primary-hover);
     
     /*GALERIA */
     --galeria-title-text-font-family:var(--font-family-base);
-    --galeria-title-text-color:var(--color-tres);
-    --galeria-title-text-letter-spacing:0px;
+    --galeria-title-text-color:var(--color-primary);
+    --galeria-title-text-letter-spacing:2px;
     --galeria-title-text-font-size:1.8rem;
 
      /*RESERVACION Y SOLICITUDES ESPECIALES*/
@@ -869,33 +882,27 @@
                                                 #666666 85%,
                                                 #666666 10%
                                             );
-    --reservation-card-color-text:var(--color-cinco);
+    --reservation-card-color-text:var(--color-text);
     --reservation-card-color-box-shadow:0 2px 4px 0 var(--color-muted);
     --reservation-card-color-borde:var(--color-muted);
     --reservation-action-card-color-bg:none;
     --reservation-action-card-color-borde:var(--color-muted);
-    --reservation-action-card-color-text:var(--color-cinco);
+    --reservation-action-card-color-text:var(--color-text);
     --reservation-action-card-color-box-shadow:var(--color-muted);
     --action-card-i-color-bg:none;
-    --action-card-i-color-text:var(--color-cinco);
+    --action-card-i-color-text:var(--color-text);
 
     /*RESERVA MODAL*/
-    --modal-reserva-color-text:var(--color-cuatro);
+    --modal-reserva-color-text:var(--color-text);
     /*extrassssss */
-    --landing-footer-text-color:var(--color-cinco);
+    --landing-footer-text-color:var(--color-text);
     --img-principal-base-restaurante: none;
     --color-bg: var(--color-cinco);/*utilizado en background de landings en page shell*/
-    --color-bg-primary: var(--color-tres); /*utilizado en footer como bg*/
+    --color-bg-primary: var(--color-surface-secondary); /*utilizado en footer como bg*/
     --color-text-primary: #f5f5f5;
-    --color-text-secondary: rgba(255, 255, 255, 0.781);
-    --color-surface:var(--color-cinco);
-    --color-primary: var(--color-tres);
-    --color-secondary: var(--color-tres);
-    --color-border: var(--color-cuatro);
-    --color-text-display: var(--color-cinco);
-    --color-surface-translucent: rgba(73, 73, 73, 0.9);
-    --color-border-accent: rgba(27, 27, 27, 0.22);
-    --color-accent: var(--color-cinco);
+    --color-text-display: var(--color-text);
+    --color-surface-translucent: rgba(24, 24, 24, 0.92);
+    --color-border-accent: rgba(255, 106, 0, 0.28);
 
 }
 

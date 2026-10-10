@@ -1098,6 +1098,7 @@ export default function Home() {
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
     ? restaurante.theme_color
     : "theme_9";
+  const usesThemeNineHeroLayout = themeClass === "theme_8" || themeClass === "theme_9";
   const heroBadgeText = String(restaurante?.slogan || "").trim();
   const reservasActivas = Boolean(restaurante?.reservas_activas);
   const solicitudesEspecialesActivas = Boolean(restaurante?.solicitudes_especiales_activas);
@@ -1111,7 +1112,7 @@ export default function Home() {
   const deliveryActivo = restaurante?.delivery_activo === true;
   const heroFeatures = (
     <div
-      className={`hero-features${themeClass === "theme_9" ? " hero-features-theme-9" : ""}`}
+      className={`hero-features${usesThemeNineHeroLayout ? " hero-features-theme-9" : ""}`}
       aria-label="Características del restaurante"
     >
       <div className="hero-feature">
@@ -1412,6 +1413,7 @@ export default function Home() {
             className="hero-visual hero-visual-left theme-one-primary-visual"
           >
             <img
+              className="hero-image-background-theme-8"
               src={imagenHeroIzquierda}
               alt={`Propuesta gastronómica de ${restaurante?.nombre_empresa || "este restaurante"}`}
               fetchPriority="high"
@@ -1419,7 +1421,7 @@ export default function Home() {
           </figure>
 
           <div className="hero-copy">
-            {themeClass === "theme_9" ? (
+            {usesThemeNineHeroLayout ? (
               logoOriginal && (
                 <div className="hero-logo-wrapper-theme-9">
                   <img
@@ -1444,19 +1446,19 @@ export default function Home() {
                 />
               )
             )}
-            {themeClass !== "theme_9" && <h1>{restaurante?.nombre_empresa}</h1>}
-            {themeClass !== "theme_9" && heroBadgeText && (
+            {!usesThemeNineHeroLayout && <h1>{restaurante?.nombre_empresa}</h1>}
+            {!usesThemeNineHeroLayout && heroBadgeText && (
               <div className="hero-theme-badge">
                 <span>{heroBadgeText}</span>
               </div>
             )}
-            <p className={themeClass === "theme_9" ? "hero-welcome-theme-9" : undefined}>
+            <p className={usesThemeNineHeroLayout ? "hero-welcome-theme-9" : undefined}>
               {restaurante?.mensaje_bienvenida ||
                 restaurante?.descripcion ||
                 "Sabores preparados con ingredientes frescos para convertir cada momento en algo especial."}
             </p>
 
-            <div className={`hero-actions${themeClass === "theme_9" ? " hero-actions-theme-9" : ""}`}>
+            <div className={`hero-actions${usesThemeNineHeroLayout ? " hero-actions-theme-9" : ""}`}>
               <a className="button-primary" href="#menu">
                 Ver menú <span aria-hidden="true">→</span>
               </a>
@@ -1474,7 +1476,7 @@ export default function Home() {
               )}
             </div>
 
-            {themeClass !== "theme_9" && heroFeatures}
+            {!usesThemeNineHeroLayout && heroFeatures}
 
             {restaurante?.link_delivery && (
               <div className="partner-row">
@@ -1493,7 +1495,7 @@ export default function Home() {
             )}
           </div>
 
-          {themeClass === "theme_9" && heroFeatures}
+          {usesThemeNineHeroLayout && heroFeatures}
 
           <figure className="hero-visual hero-visual-right">
             <img

@@ -120,7 +120,7 @@
   }
 }
 
-@media (min-width: 801px) and (max-width: 1100px) {
+@media (min-width: 776px) and (max-width: 1020px) {
   .page-shell.theme_9 .hero-panel {
     grid-template-columns: 27% 46% 27%;
   }
@@ -140,7 +140,7 @@
   }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 775px) {
   .page-shell.theme_9 .hero-panel {
     grid-template-columns: minmax(0, 1fr);
     overflow-x: hidden;
@@ -369,7 +369,7 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 1199px) {
+@media (min-width: 776px) and (max-width: 1020px) {
   .page-shell.theme_9 .hero-panel {
     height: clamp(440px, 48vw, 580px) !important;
     min-height: 0 !important;
@@ -421,7 +421,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 775px) {
   .page-shell.theme_9 {
     --theme-9-single-hero-overlay: linear-gradient(
       180deg,

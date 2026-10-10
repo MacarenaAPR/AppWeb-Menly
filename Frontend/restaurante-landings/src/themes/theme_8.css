@@ -1,145 +1,395 @@
 /*
- * THEME 8 — HERO VISUAL OVERRIDES
- * --------------------------------
- * Efecto de tres columnas con panel central inclinado.
- * Todos los selectores y variables quedan encapsulados en Theme 8.
+ * THEME 8 — LA ASESINA
+ * Replica de forma independiente la geometría y los breakpoints de Theme 9.
  */
-
 .page-shell.theme_8 {
-  --theme-8-hero-panel-bg: var(--color-cinco);
-  --theme-8-hero-shadow-color: color-mix(
-    in srgb,
-    var(--color-cuatro) 34%,
-    transparent
+  --theme-8-single-hero-overlay: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.48) 50%,
+    rgba(0, 0, 0, 0.72) 100%
   );
-  --theme-8-hero-shadow-color-hover: color-mix(
-    in srgb,
-    var(--color-cuatro) 46%,
-    transparent
-  );
-  --theme-8-hero-center-clip: polygon(
-    16% 0,
-    83% -2%,
-    96% 100%,
-    7% 100%
-  );
-  --theme-8-hero-tablet-clip: polygon(
-    5% 0,
-    95% 0,
-    100% 100%,
-    0 100%
-  );
-  --theme-8-hero-left-clip: polygon(
-    0% 0,
-    70% 0%,
-    100% 100%,
-    0% 100%
-  );
-  --theme-8-hero-right-clip: polygon(
-    0% 0,
-    100% 0,
-    100% 100%,
-    30% 100%
-  );
-  --theme-8-hero-transition: 280ms ease;
 }
 
 .page-shell.theme_8 .hero-panel {
-  grid-template-columns: 28% 44% 28%;
+  position: relative;
+  display: grid;
+  height: clamp(840px, 64vh, 700px);
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
   isolation: isolate;
   overflow: hidden;
-}
-
-.page-shell.theme_8 .hero-visual {
-  position: relative;
-  z-index: 1;
-  overflow: hidden;
-  transition: clip-path var(--theme-8-hero-transition);
+  background: var(--color-background);
+  box-shadow: inset 0 4px 0 var(--color-primary);
 }
 
 .page-shell.theme_8 .hero-visual-left {
-  clip-path: var(--theme-8-hero-left-clip);
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  clip-path: none;
+  filter: none;
+  overflow: hidden;
+  background: var(--color-background);
+}
+
+.page-shell.theme_8 .hero-visual-left::before {
+  content: none;
+}
+
+.page-shell.theme_8 .hero-visual-left::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--theme-8-single-hero-overlay);
+  pointer-events: none;
+}
+
+.page-shell.theme_8 .hero-visual-left img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  transform: none;
 }
 
 .page-shell.theme_8 .hero-visual-right {
-  clip-path: var(--theme-8-hero-right-clip);
-}
-
-.page-shell.theme_8 .hero-visual img {
-  display: block;
-  object-fit: cover;
-  transform: scale(1.01);
-  transform-origin: center;
-  transition: transform var(--theme-8-hero-transition);
+  display: none;
 }
 
 .page-shell.theme_8 .hero-copy {
+  position: relative;
+  z-index: 3;
+  grid-area: 1 / 1;
+  width: min(100%, 820px);
+  height: 100%;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 48px 28px 160px;
+  justify-content: center;
+  background: transparent;
+  clip-path: none;
+  filter: none;
+}
+
+.page-shell.theme_8 .hero-logo-wrapper-theme-9 {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  width: 100%;
+  height: clamp(260px, 20vw, 360px);
+  margin: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.page-shell.theme_8 .hero-logo-theme-9 {
+  display: block;
+  align-self: center;
+  width: clamp(130px, 10vw, 180px);
+  height: auto;
+  max-height: 150px;
+  margin: 0;
+  object-fit: contain;
+  object-position: center;
+  overflow: visible;
+  transform: scale(3);
+}
+
+.page-shell.theme_8 .hero-panel h1 {
+  max-width: 720px;
+  margin: 4px 0 6px;
+  font-size: clamp(2.25rem, 4vw, 4.35rem);
+}
+
+.page-shell.theme_8 .hero-theme-badge {
+  margin-bottom: 5px;
+}
+
+.page-shell.theme_8 .hero-panel p {
+  max-width: 600px;
+  margin: 0 0 20px;
+}
+
+.page-shell.theme_8 .hero-welcome-theme-9 {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  text-align: center;
+}
+
+.page-shell.theme_8 .hero-actions-theme-9 {
+  position: relative;
+  z-index: 2;
+  margin-top: 18px;
+}
+
+.page-shell.theme_8 .hero-actions-theme-9 .button-primary {
+  border-color: var(--color-primary);
+  background: var(--btn-primary-color-bg);
+  color: var(--color-primary);
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+
+.page-shell.theme_8 .hero-actions-theme-9 .button-primary:hover {
+  border-color: var(--color-primary-hover);
+  background: var(--color-primary-hover);
+  color: var(--color-background);
+  transform: translateY(-1px);
+}
+
+.page-shell.theme_8 .hero-actions-theme-9 .button-primary:active {
+  border-color: var(--color-primary-hover);
+  background: var(--color-primary-hover);
+  color: var(--color-background);
+  transform: scale(0.97);
+}
+
+.page-shell.theme_8 .hero-features-theme-9 {
+  position: absolute;
+  bottom: 35px;
+  left: 50%;
   z-index: 4;
-  margin-inline: clamp(-64px, -4vw, -36px);
-  padding-inline: clamp(66px, 7vw, 108px);
-  background: var(--theme-8-hero-panel-bg);
-  clip-path: var(--theme-8-hero-center-clip);
-  filter: drop-shadow(
-    0 12px 18px var(--theme-8-hero-shadow-color)
-  );
-  transition:
-    clip-path var(--theme-8-hero-transition),
-    filter var(--theme-8-hero-transition);
+  display: grid;
+  width: min(1100px, 80vw);
+  margin: 0;
+  padding: 0;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+  transform: translateX(-50%);
+}
+
+.page-shell.theme_8 .hero-features-theme-9 .hero-feature {
+  min-height: 72px;
+  padding: 4px clamp(10px, 1.4vw, 20px);
+  justify-content: flex-start;
+}
+
+.page-shell.theme_8 .hero-features-theme-9 .hero-feature i {
+  color: var(--color-primary);
+  font-size: clamp(1.25rem, 1.6vw, 1.65rem);
+}
+
+.page-shell.theme_8 .hero-features-theme-9 .hero-feature span {
+  max-width: 130px;
+  min-height: 2.4em;
+  display: grid;
+  place-items: start center;
+  font-size: clamp(0.58rem, 0.72vw, 0.72rem);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .page-shell.theme_8 .hero-panel:hover .hero-visual img {
-    transform: scale(1.035);
-  }
-
-  .page-shell.theme_8 .hero-panel:hover .hero-copy {
-    filter: drop-shadow(
-      0 14px 22px var(--theme-8-hero-shadow-color-hover)
-    );
+  .page-shell.theme_8 .hero-panel:hover .hero-visual-left img {
+    transform: none;
   }
 }
 
-@media (min-width: 801px) and (max-width: 1100px) {
+@media (min-width: 776px) and (max-width: 1020px) {
   .page-shell.theme_8 .hero-panel {
-    grid-template-columns: 27% 46% 27%;
+    height: clamp(440px, 48vw, 580px) !important;
+    min-height: 0 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  .page-shell.theme_8 .hero-copy {
-    margin-inline: clamp(-38px, -3vw, -24px);
-    padding-inline: clamp(48px, 5.5vw, 72px);
-    clip-path: var(--theme-8-hero-tablet-clip);
-  }
-}
-
-@media (max-width: 800px) {
-  .page-shell.theme_8 .hero-panel {
-    grid-template-columns: minmax(0, 1fr);
-    overflow-x: hidden;
+  .page-shell.theme_8 .hero-visual-left {
+    display: block !important;
   }
 
   .page-shell.theme_8 .hero-visual-right {
-    display: grid;
-    min-width: 0;
-    min-height: clamp(190px, 54vw, 260px);
-    clip-path: none;
-    filter: none;
+    display: none !important;
   }
 
   .page-shell.theme_8 .hero-copy {
-    width: 100%;
-    min-width: 0;
-    margin-inline: 0;
-    padding: 34px 24px 28px;
-    background: var(--theme-8-hero-panel-bg);
+    width: min(100%, 760px);
+    height: 100% !important;
+    margin: 0 auto !important;
+    padding: 32px 26px 125px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
     clip-path: none;
-    filter: none;
+  }
+
+  .page-shell.theme_8 .hero-logo-theme-9 {
+    width: clamp(116px, 14vw, 160px);
+    height: auto;
+    max-height: 140px;
+  }
+
+  .page-shell.theme_8 .hero-logo-wrapper-theme-9 {
+    height: clamp(232px, 28vw, 320px);
+    margin-bottom: 20px;
+  }
+
+  .page-shell.theme_8 .hero-panel h1 {
+    font-size: clamp(2.05rem, 5vw, 3.55rem);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 {
+    bottom: 22px;
+    width: min(1000px, 92vw);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature {
+    min-height: 64px;
+    padding-inline: clamp(5px, 1vw, 12px);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .page-shell.theme_8 .hero-visual,
-  .page-shell.theme_8 .hero-visual img,
+@media (max-width: 775px) {
+  .page-shell.theme_8 {
+    --theme-8-single-hero-overlay: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background) 52%, transparent) 0%,
+      color-mix(in srgb, var(--color-background) 42%, transparent) 44%,
+      color-mix(in srgb, var(--color-background) 72%, transparent) 100%
+    );
+  }
+
+  .page-shell.theme_8 .hero-panel {
+    display: grid !important;
+    height: clamp(540px, 145vw, 590px) !important;
+    min-height: 0 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .page-shell.theme_8 .hero-visual-left {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    grid-area: 1 / 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .page-shell.theme_8 .hero-visual-left img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: left;
+  }
+
+  .page-shell.theme_8 .hero-visual-right {
+    display: none !important;
+  }
+
   .page-shell.theme_8 .hero-copy {
-    transition: none;
+    position: relative !important;
+    z-index: 3 !important;
+    grid-area: 1 / 1 !important;
+    width: min(100%, 560px) !important;
+    height: 100% !important;
+    min-height: 0;
+    margin: 0 auto !important;
+    padding: 18px 16px 112px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    background: transparent !important;
+    overflow: hidden;
+  }
+
+  .page-shell.theme_8 .hero-logo-theme-9 {
+    width: clamp(190px, 58vw, 280px);
+    height: auto;
+    max-height: none;
+    object-fit: contain;
+    transform: none;
+  }
+
+  .page-shell.theme_8 .hero-logo-wrapper-theme-9 {
+    height: clamp(128px, 38vw, 166px);
+    margin-bottom: 10px;
+  }
+
+  .page-shell.theme_8 .hero-panel h1 {
+    max-width: 100%;
+    font-size: clamp(2rem, 11vw, 3.15rem);
+    text-align: center;
+  }
+
+  .page-shell.theme_8 .hero-panel p {
+    width: min(100%, 340px);
+    max-width: 100%;
+    margin: 0;
+    font-family: var(--font-family-p-hero-panel);
+    font-size: clamp(0.72rem, 2.8vw, 0.84rem);
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    -webkit-line-clamp: 2;
+  }
+
+  .page-shell.theme_8 .hero-actions-theme-9 {
+    width: auto;
+    margin: 12px auto 0;
+  }
+
+  .page-shell.theme_8 .hero-actions-theme-9 .button-primary {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 150px;
+    max-width: 190px;
+    margin-inline: auto;
+    padding: 10px 24px;
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    display: grid;
+    width: calc(100% - 20px);
+    margin: 0;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    transform: translateX(-50%);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature {
+    grid-column: span 2;
+    min-height: 38px;
+    padding: 2px 4px;
+    gap: 2px;
+    border-left: 0;
+    border-bottom: 0;
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature:nth-child(2),
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature:nth-child(3),
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature:nth-child(5) {
+    border-left: 1px solid rgba(255, 255, 255, 0.18);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature:nth-child(5) {
+    grid-column: 4 / span 2;
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature i {
+    font-size: clamp(1.125rem, 5vw, 1.3rem);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature span {
+    max-width: 100%;
+    min-height: 0;
+    display: block;
+    font-size: clamp(0.56rem, 2.5vw, 0.68rem);
+    line-height: 1.1;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
   }
 }

@@ -120,7 +120,7 @@
   }
 }
 
-@media (min-width: 801px) and (max-width: 1100px) {
+@media (min-width: 776px) and (max-width: 1020px) {
   .page-shell.theme_6 .hero-panel {
     grid-template-columns: 27% 46% 27%;
   }
@@ -140,7 +140,7 @@
   }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 775px) {
   .page-shell.theme_6 .hero-panel {
     grid-template-columns: minmax(0, 1fr);
     overflow-x: hidden;

@@ -1,8 +1,7 @@
 /* ===============================
    RESPONSIVE · TABLET
 ================================ */
-@media (max-width: 1024px) {
-  .site-header,
+@media (max-width: 1020px) {
   .hero-panel,
   .promo-panel,
   .gallery-grid,
@@ -22,13 +21,6 @@
   }
 }
 @media (max-width: 1020px) {
-
-  .page-shell .site-nav {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    padding-bottom: 8px;
-  }
-
   .page-shell .promo-panel,
   .reservation-showcase,
   .restaurant-details-showcase {
@@ -39,7 +31,7 @@
     min-height: 460px;
   }
 }
-@media (min-width: 769px) and (max-width: 1180px) {
+@media (min-width: 776px) and (max-width: 1020px) {
   .page-content {
     padding-inline: 18px;
   }
@@ -105,20 +97,7 @@
 
 
 }
-@media (max-width: 1060px) {
-  .page-shell .site-header {
-    grid-template-columns: minmax(110px, 0.6fr) auto minmax(250px, 1fr);
-    gap: 16px;
-  }
-
-  .page-shell .site-nav {
-    gap: 24px;
-  }
-
-  .header-social > span {
-    display: none;
-  }
-
+@media (min-width: 776px) and (max-width: 1020px) {
   .page-shell .hero-panel {
     grid-template-columns: minmax(170px, 0.75fr) minmax(410px, 1.5fr) minmax(170px, 0.75fr);
   }
@@ -139,7 +118,7 @@
 }
 
 /* Hero editorial compacto: conserva las tres zonas sin comprimir el centro. */
-@media (min-width: 801px) and (max-width: 1199px) {
+@media (min-width: 776px) and (max-width: 1020px) {
   .page-shell .hero-panel {
     grid-template-columns: minmax(130px, 24fr) minmax(430px, 52fr) minmax(130px, 24fr);
     height: clamp(480px, 53vw, 540px);

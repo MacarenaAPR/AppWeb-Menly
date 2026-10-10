@@ -1,0 +1,412 @@
+/*
+ * THEME 8 — HERO DE IMAGEN ÚNICA
+ * La geometría es responsive y la identidad visual sigue viniendo de los
+ * tokens del theme y de los datos del restaurante.
+ */
+.page-shell.theme_8 {
+  --theme-8-hero-surface: var(--color-background, #0d0d0d);
+  --theme-8-hero-accent: var(--color-primary, #ff6a00);
+  --theme-8-hero-accent-hover: var(--color-primary-hover, #e85d00);
+  --theme-8-hero-text: var(--color-text, #fff);
+  --theme-8-hero-text-muted: var(--color-text-secondary, #c7c7c7);
+  --theme-8-hero-overlay:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--theme-8-hero-surface) 20%, transparent) 0%,
+      color-mix(in srgb, var(--theme-8-hero-surface) 24%, transparent) 48%,
+      color-mix(in srgb, var(--theme-8-hero-surface) 78%, transparent) 100%
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--theme-8-hero-surface) 54%, transparent) 0%,
+      color-mix(in srgb, var(--theme-8-hero-surface) 20%, transparent) 34%,
+      color-mix(in srgb, var(--theme-8-hero-surface) 20%, transparent) 66%,
+      color-mix(in srgb, var(--theme-8-hero-surface) 54%, transparent) 100%
+    );
+}
+
+.page-shell.theme_8 .hero-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: 100%;
+  height: auto;
+  min-height: max(640px, calc(100svh - 68px));
+  padding: 0;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--theme-8-hero-surface);
+  box-shadow: inset 0 3px 0 var(--theme-8-hero-accent);
+}
+
+.page-shell.theme_8 .hero-visual-left {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  clip-path: none;
+  filter: none;
+  overflow: hidden;
+  background: var(--theme-8-hero-surface);
+}
+
+.page-shell.theme_8 .hero-visual-left::before {
+  content: none;
+}
+
+.page-shell.theme_8 .hero-visual-left::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--theme-8-hero-overlay);
+  pointer-events: none;
+}
+
+.page-shell.theme_8 .hero-visual-left img {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 32%;
+  transform: none;
+}
+
+.page-shell.theme_8 .hero-visual-right {
+  display: none;
+}
+
+.page-shell.theme_8 .hero-copy {
+  position: relative;
+  z-index: 3;
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  width: min(100%, 820px);
+  height: auto;
+  min-width: 0;
+  margin: 0 auto;
+  padding: clamp(46px, 7vh, 82px) clamp(24px, 4vw, 48px) clamp(34px, 5vh, 58px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(16px, 2vh, 24px);
+  text-align: center;
+  color: var(--theme-8-hero-text);
+  background: transparent;
+  clip-path: none;
+  filter: none;
+}
+
+.page-shell.theme_8 .hero-logo-wrapper-theme-9 {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.page-shell.theme_8 .hero-logo-theme-9 {
+  display: block;
+  width: clamp(280px, 28vw, 440px);
+  height: auto;
+  max-width: 100%;
+  max-height: min(42svh, 430px);
+  margin: 0;
+  object-fit: contain;
+  object-position: center;
+  transform: none;
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.48));
+}
+
+.page-shell.theme_8 .hero-welcome-theme-9,
+.page-shell.theme_8 .hero-panel p {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 640px);
+  max-width: 640px;
+  margin: 0;
+  color: var(--theme-8-hero-text-muted);
+  font-size: clamp(0.92rem, 1.2vw, 1.08rem);
+  font-weight: 600;
+  line-height: 1.55;
+  text-align: center;
+  text-wrap: balance;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
+.page-shell.theme_8 .hero-actions-theme-9 {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.page-shell.theme_8 .hero-actions-theme-9 .button-primary {
+  width: auto;
+  min-width: 174px;
+  min-height: 48px;
+  padding: 11px 26px;
+  border: 1px solid var(--theme-8-hero-accent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--theme-8-hero-accent) 10%, transparent);
+  color: var(--theme-8-hero-accent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    box-shadow 200ms ease,
+    transform 200ms ease;
+}
+
+.page-shell.theme_8 .hero-actions-theme-9 .button-primary:hover {
+  border-color: var(--theme-8-hero-accent-hover);
+  background: var(--theme-8-hero-accent-hover);
+  color: var(--theme-8-hero-surface);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--theme-8-hero-accent) 24%, transparent);
+  transform: translateY(-2px);
+}
+
+.page-shell.theme_8 .hero-actions-theme-9 .button-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.page-shell.theme_8 .hero-features-theme-9 {
+  position: relative;
+  inset: auto;
+  z-index: 4;
+  grid-column: 1;
+  grid-row: 2;
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 18px max(24px, calc((100vw - 1160px) / 2)) 22px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+  transform: none;
+  border-top: 1px solid color-mix(in srgb, var(--theme-8-hero-text) 13%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--theme-8-hero-surface) 48%, transparent),
+    color-mix(in srgb, var(--theme-8-hero-surface) 82%, transparent)
+  );
+  backdrop-filter: blur(3px);
+}
+
+.page-shell.theme_8 .hero-features-theme-9 .hero-feature {
+  min-height: 66px;
+  padding: 4px clamp(10px, 1.4vw, 20px);
+  justify-content: center;
+  gap: 8px;
+  border-left: 1px solid color-mix(in srgb, var(--theme-8-hero-text) 12%, transparent);
+}
+
+.page-shell.theme_8 .hero-features-theme-9 .hero-feature:first-child {
+  border-left: 0;
+}
+
+.page-shell.theme_8 .hero-features-theme-9 .hero-feature i {
+  color: var(--theme-8-hero-accent);
+  font-size: clamp(1.2rem, 1.5vw, 1.55rem);
+}
+
+.page-shell.theme_8 .hero-features-theme-9 .hero-feature span {
+  display: block;
+  max-width: 150px;
+  min-height: 0;
+  color: var(--theme-8-hero-text-muted);
+  font-size: clamp(0.64rem, 0.72vw, 0.76rem);
+  line-height: 1.25;
+}
+
+@media (min-width: 1440px) {
+  .page-shell.theme_8 .hero-copy {
+    width: min(100%, 900px);
+  }
+
+  .page-shell.theme_8 .hero-logo-theme-9 {
+    width: clamp(360px, 25vw, 460px);
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1100px) {
+  .page-shell.theme_8 .hero-panel {
+    min-height: max(660px, calc(100svh - 68px));
+  }
+
+  .page-shell.theme_8 .hero-copy {
+    width: min(100%, 720px);
+    padding: 42px 28px 34px;
+    gap: 16px;
+  }
+
+  .page-shell.theme_8 .hero-logo-theme-9 {
+    width: clamp(270px, 40vw, 390px);
+    max-height: min(38svh, 360px);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 {
+    padding-inline: clamp(18px, 4vw, 42px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature {
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, var(--theme-8-hero-text) 10%, transparent);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature:nth-child(-n + 3) {
+    border-top: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .page-shell.theme_8 {
+    --theme-8-hero-overlay: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--theme-8-hero-surface) 16%, transparent) 0%,
+      color-mix(in srgb, var(--theme-8-hero-surface) 30%, transparent) 34%,
+      color-mix(in srgb, var(--theme-8-hero-surface) 68%, transparent) 72%,
+      color-mix(in srgb, var(--theme-8-hero-surface) 84%, transparent) 100%
+    );
+  }
+
+  .page-shell.theme_8 .hero-panel {
+    display: grid !important;
+    height: auto !important;
+    min-height: 0 !important;
+    grid-template-rows: clamp(500px, 138vw, 550px) auto;
+  }
+
+  .page-shell.theme_8 .hero-visual-left {
+    background: var(--theme-8-hero-surface);
+  }
+
+  .page-shell.theme_8 .hero-visual-left::after {
+    z-index: 3;
+  }
+
+  .page-shell.theme_8 .hero-visual-left .hero-image-background-theme-8 {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 20% center;
+    filter: none;
+  }
+
+  .page-shell.theme_8 .hero-copy {
+    width: min(100%, 520px);
+    height: 100%;
+    min-height: 0;
+    padding: 24px 16px 22px;
+    gap: 9px;
+    justify-content: flex-end;
+    overflow: visible;
+  }
+
+  .page-shell.theme_8 .hero-logo-theme-9 {
+    width: clamp(180px, 54vw, 230px);
+    max-height: 220px;
+  }
+
+  .page-shell.theme_8 .hero-welcome-theme-9,
+  .page-shell.theme_8 .hero-panel p {
+    width: min(100%, 330px);
+    font-size: clamp(0.8rem, 3.2vw, 0.9rem);
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .page-shell.theme_8 .hero-actions-theme-9 {
+    width: min(100%, 220px);
+    flex-direction: column;
+  }
+
+  .page-shell.theme_8 .hero-actions-theme-9 .button-primary,
+  .page-shell.theme_8 .hero-actions-theme-9 .button-secondary {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    max-width: none;
+    margin: 0;
+    padding: 9px 20px;
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 {
+    min-height: 78px;
+    padding: 9px 4px 10px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature {
+    min-width: 0;
+    min-height: 58px;
+    padding: 5px 3px;
+    gap: 4px;
+    border-top: 0;
+    border-left: 1px solid color-mix(in srgb, var(--theme-8-hero-text) 10%, transparent);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature:first-child {
+    border-left: 0;
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature i {
+    font-size: clamp(0.95rem, 3.8vw, 1.12rem);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 .hero-feature span {
+    display: -webkit-box;
+    max-width: 100%;
+    min-height: 2.3em;
+    font-size: clamp(0.5rem, 1.8vw, 0.6rem);
+    line-height: 1.15;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (max-width: 390px) {
+  .page-shell.theme_8 .hero-copy {
+    padding-inline: 14px;
+  }
+
+  .page-shell.theme_8 .hero-logo-theme-9 {
+    width: clamp(176px, 53vw, 210px);
+  }
+
+  .page-shell.theme_8 .hero-features-theme-9 {
+    padding-inline: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-shell.theme_8 .hero-actions-theme-9 .button-primary {
+    transition: none;
+  }
+}
