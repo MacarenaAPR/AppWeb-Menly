@@ -707,7 +707,7 @@
     --color-muted:rgba(199, 199, 199, 0.22);
     /*font family*/
     --font-family-general:"Shadows Into Light", "Arial Black", system-ui, sans-serif;
-    --font-family-base: "Shadows Into Light", "Arial Black", system-ui, sans-serif;
+    --font-family-base: "Oswald", "Arial Black", system-ui, sans-serif;
     --font-family-btns:"Bebas Neue";
     --font-family-card-producto-p: Arial, "Helvetica Neue", sans-serif;
     /*base*/
@@ -770,7 +770,7 @@
     /*hero panel P*/
     --color-text-p-hero-panel:var(--color-text);
     --font-size-p-hero-panel:clamp(1rem, 1.12vw, 1.04rem);
-    --font-family-p-hero-panel:var(--font-family-general);
+    --font-family-p-hero-panel:var(--font-family-base);
     
     /*hero-theme-badge*/    
     --hero-badge-image: url("../assets/brushes/theme-9-hero-badge-brush.png");
@@ -821,6 +821,8 @@
     /*PRODUCTO MODAL*/
     --product-modal-p-color-text:var(--color-text);
     --producto-modal-cart-modal-qty-color-text:var(--color-secondary);
+    --product-modal-font-family-p:var(--font-family-base);
+    --product-modal-h2-font-family:var(--font-family-general);
     /*btn agregar al carro*/
     --btn-background-carrito: var(--color-dos);
     --btn-borde-carrito: var(--color-dos);
@@ -853,8 +855,8 @@
     --about-panel-color-border:var(--color-border);
     --about-title-text-font-size:1.7rem;
     --about-title-text-color:var(--color-primary);
-    --about-title-text-font-family:var(--font-family-base);
-    --about-parrafo-text-font-family:var(--font-family-general);
+    --about-title-text-font-family:var(--font-family-general);
+    --about-parrafo-text-font-family:var(--font-family-base);
     --about-parrafo-text-color:var(--color-text);
     --about-subtitle-text-font-size:1.2rem;
     --about-subtitle-text-color:var(--color-secondary);
@@ -867,7 +869,7 @@
     --border-color-social-hover:var(--color-primary-hover);
     
     /*GALERIA */
-    --galeria-title-text-font-family:var(--font-family-base);
+    --galeria-title-text-font-family:var(--font-family-general);
     --galeria-title-text-color:var(--color-primary);
     --galeria-title-text-letter-spacing:2px;
     --galeria-title-text-font-size:1.8rem;

@@ -78,7 +78,8 @@
 .product-modal-content h2 {
   margin: 0;
   font-size: clamp(2rem, 3.5vw, 3.2rem);
-  line-height: 1
+  line-height: 1;
+  font-family: var(--product-modal-h2-font-family);
 }
 .product-modal-content strong {
   color: var(--product-modal-strong-color-text);
@@ -88,7 +89,7 @@
   margin: 0;
   color: var(--product-modal-p-color-text);
   line-height: 1.7;
-  font-family:var(--font-family-general);
+  font-family:var(--product-modal-font-family-p);
 }
 .product-modal-add {
   width: fit-content;
