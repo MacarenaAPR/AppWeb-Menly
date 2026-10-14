@@ -254,7 +254,7 @@
   margin: 0;
   padding: 0;
   color: var(--product-card-price);
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-general);
   font-size: clamp(2rem, 1.25vw, 1.3rem);
   font-weight: 850;
   line-height: 1.05

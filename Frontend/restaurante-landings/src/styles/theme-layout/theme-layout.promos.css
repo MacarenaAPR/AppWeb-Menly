@@ -326,7 +326,7 @@
   line-height: 1.25;
 }
 .featured-carousel .promo-item-small strong {
-  color: var(--color-accent, var(--color-primary));
+  color: var(--color-text-promo-tag-strong);
   font-family: var(--font-family-base);
   font-size: var(--product-card-font-size-price);
   font-weight: 950;
@@ -475,7 +475,7 @@
 .page-shell .featured-carousel .promo-item-small strong {
   margin: 0;
   font-family: var(--font-family-general);
-  font-weight: 200;
+  font-weight: 950;
   text-shadow: 0 2px 5px rgba(0, 0, 0, 0.65);
 }
 .page-shell .featured-carousel .promo-item-small strong {

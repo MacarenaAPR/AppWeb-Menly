@@ -165,7 +165,7 @@
   color:var(--color-text-title-menu);;
   font-size: var(--font-size-text-title-menu);
   margin: 0;
-  font-family: var(--font-family-base);;
+  font-family: var(--font-family-title-menu);
   line-height: 1;
   letter-spacing: var(--letter-spacing-menu);
 }

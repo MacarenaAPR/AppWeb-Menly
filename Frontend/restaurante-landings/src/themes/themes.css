@@ -707,7 +707,7 @@
     --color-muted:rgba(199, 199, 199, 0.22);
     /*font family*/
     --font-family-general:"Shadows Into Light", "Arial Black", system-ui, sans-serif;
-    --font-family-base: "Oswald", "Arial Black", system-ui, sans-serif;
+    --font-family-base: Arial, "Arial Black", system-ui, sans-serif;
     --font-family-btns:"Bebas Neue";
     --font-family-card-producto-p: Arial, "Helvetica Neue", sans-serif;
     /*base*/
@@ -803,6 +803,7 @@
     --color-text-promo-tag:var(--color-primary);
     --font-family-promo-tag:var(--font-family-general);
     --font-size-promo-tag:1rem;
+    --color-text-promo-tag-strong:var(--color-secondary);
     
     /*commercial-badge*/
     --bg-color-commercial-badge:var(--color-accent);
@@ -815,7 +816,7 @@
     --product-card-text: var(--color-text);
     --product-card-price: var(--color-secondary);
     --product-card-font-size-title:1rem;
-    --product-card-font-size-price:1.3rem;
+    --product-card-font-size-price:1.5rem;
     --letter-spacing-product-card-h3:1.2px;
 
     /*PRODUCTO MODAL*/
@@ -840,6 +841,7 @@
     --color-text-title-menu:var(--color-text);
     --letter-spacing-menu:7px;
     --font-size-text-title-menu:clamp(2rem, 4vw, 3.4rem);
+    --font-family-title-menu:var(--font-family-general);
     
     /*menu-tab*/
     --menu-tab-color-borde:var(--color-border);
