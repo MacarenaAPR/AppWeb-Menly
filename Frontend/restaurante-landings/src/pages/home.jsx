@@ -1236,7 +1236,11 @@ export default function Home() {
 
   const detallesRestaurante = (
     <div className="restaurant-details-column">
-      <section className="gallery-panel" aria-label="Galería del restaurante">
+      <section
+        className="gallery-panel"
+        id={usesThemeSevenHeroLayout ? "galeria" : undefined}
+        aria-label="Galería del restaurante"
+      >
         <h2>Galería</h2>
         <div className="gallery-grid">
           {imagenesRestaurante.length > 0 ? (
@@ -1410,7 +1414,9 @@ export default function Home() {
           )}
           <div className="span-info-brand-block">
             <span className="brand-name">{restaurante?.nombre_empresa || "Restaurante"}</span>
-            <span className="brand-tag">{restaurante?.ciudad || "Bienvenido"}</span>
+            {(!usesThemeSevenHeroLayout || restaurante?.ciudad) && (
+              <span className="brand-tag">{restaurante?.ciudad || "Bienvenido"}</span>
+            )}
           </div>
           
         </div>
@@ -1424,8 +1430,11 @@ export default function Home() {
           >
             <i className="bi bi-x-lg" aria-hidden="true"></i>
           </button>
+          {usesThemeSevenHeroLayout && (
+            <a href="#inicio" onClick={() => setMobileNavOpen(false)}>Inicio</a>
+          )}
           <a href="#menu" onClick={() => setMobileNavOpen(false)}>Menú</a>
-          {reservasActivas && (
+          {!usesThemeSevenHeroLayout && reservasActivas && (
             <a
               href="#reserva"
               onClick={(event) => {
@@ -1436,7 +1445,9 @@ export default function Home() {
               Reservas
             </a>
           )}
-          <a href="#nosotros" onClick={() => setMobileNavOpen(false)}>Contacto</a>
+          {!usesThemeSevenHeroLayout && (
+            <a href="#nosotros" onClick={() => setMobileNavOpen(false)}>Contacto</a>
+          )}
         </nav>
 
         {mobileNavOpen && (
@@ -1449,29 +1460,31 @@ export default function Home() {
         )}
 
         <div className="header-actions">
-          <div className="header-social" aria-label="Redes sociales">
-            <span>Síguenos</span>
-            {restaurante?.facebook && (
-              <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
-                <i className="bi bi-facebook" aria-hidden="true"></i>
-              </a>
-            )}
-            {restaurante?.instagram && (
-              <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
-                <i className="bi bi-instagram" aria-hidden="true"></i>
-              </a>
-            )}
-            {restaurante?.whatsapp && (
-              <a
-                href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="WhatsApp"
-              >
-                <i className="bi bi-whatsapp" aria-hidden="true"></i>
-              </a>
-            )}
-          </div>
+          {!usesThemeSevenHeroLayout && (
+            <div className="header-social" aria-label="Redes sociales">
+              <span>Síguenos</span>
+              {restaurante?.facebook && (
+                <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                  <i className="bi bi-facebook" aria-hidden="true"></i>
+                </a>
+              )}
+              {restaurante?.instagram && (
+                <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                  <i className="bi bi-instagram" aria-hidden="true"></i>
+                </a>
+              )}
+              {restaurante?.whatsapp && (
+                <a
+                  href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="WhatsApp"
+                >
+                  <i className="bi bi-whatsapp" aria-hidden="true"></i>
+                </a>
+              )}
+            </div>
+          )}
           {carritoDisponible && !mostrarCarritoFlotante && renderBotonCarrito("cart-trigger-header")}
         </div>
       </header>
@@ -1531,7 +1544,7 @@ export default function Home() {
               <a className="button-primary" href="#menu">
                 Ver menú <span aria-hidden="true">→</span>
               </a>
-              {reservasActivas && (
+              {!usesThemeSevenHeroLayout && reservasActivas && (
                 <a
                   className="button-secondary"
                   href="#reserva"

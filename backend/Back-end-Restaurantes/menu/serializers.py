@@ -1179,7 +1179,7 @@ class PedidoManualSerializer(serializers.ModelSerializer):
         return pedido.creado_por.get_full_name() or pedido.creado_por.username
 
     def get_tracking_url(self, pedido):
-        return get_tracking_url(pedido, request=self.context.get("request"))
+        return f"https://{pedido.restaurante.slug}.menly.cl/seguimiento/pedido/{pedido.tracking_token}"
 
     def get_transiciones_permitidas(self, pedido):
         return obtener_transiciones_permitidas(pedido, "manual", "panel")

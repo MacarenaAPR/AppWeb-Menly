@@ -338,10 +338,13 @@ class PedidoManualDashboardTests(BaseTestCase):
         return payload
 
     def test_crear_pedido_manual_valido_calcula_total_y_origen_menly(self):
+        self.restaurante.slug = "laasesina-matatuhambre"
+        self.restaurante.save(update_fields=["slug"])
         response = self.client.post(
             "/api/mi-restaurante/pedidos/manuales/",
             self.payload_valido(),
             format="json",
+            HTTP_ORIGIN="https://www.menly.cl",
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -358,7 +361,11 @@ class PedidoManualDashboardTests(BaseTestCase):
         data = response.json()["pedido"]
         self.assertEqual(data["items"][0]["nombre_producto"], self.producto.nombre)
         self.assertTrue(data["tracking_token"])
-        self.assertIn(f"/seguimiento/pedido/{data['tracking_token']}", data["tracking_url"])
+        self.assertEqual(
+            data["tracking_url"],
+            f"https://{self.restaurante.slug}.menly.cl/seguimiento/pedido/{data['tracking_token']}",
+        )
+        self.assertNotIn("https://www.menly.cl/", data["tracking_url"])
         self.assertEqual(data["cliente_nombre"], "Camila")
         self.assertEqual(data["cliente_telefono"], "+56912345678")
 

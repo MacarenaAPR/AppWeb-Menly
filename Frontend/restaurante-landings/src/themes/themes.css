@@ -276,6 +276,225 @@
     --color-accent: var(--color-dos);
 
 }
+/*Theme_Sushi Costanera Fernando*/
+.theme_7 {
+    /* Identidad visual */
+    --theme-7-bg:#090b0d;
+    --theme-7-surface:#111417;
+    --theme-7-card:#171a1d;
+    --theme-7-primary:#ff8a4c;
+    --theme-7-primary-soft:#ffb078;
+    --theme-7-whatsapp:#25d366;
+    --theme-7-whatsapp-hover:#1fba59;
+    --theme-7-on-whatsapp:#ffffff;
+    --theme-7-text:#ffffff;
+    --theme-7-muted:#b8b8b8;
+    --theme-7-on-primary:#17100c;
+    --theme-7-footer-bg:#050607;
+    --theme-7-border:rgba(255, 255, 255, 0.08);
+    --theme-7-border-strong:rgba(255, 138, 76, 0.42);
+
+    /* Superficies translúcidas y estados */
+    --theme-7-surface-translucent:rgba(17, 20, 23, 0.94);
+    --theme-7-header-bg:rgba(9, 11, 13, 0.76);
+    --theme-7-header-bg-mobile:rgba(9, 11, 13, 0.9);
+    --theme-7-social-bg:rgba(255, 255, 255, 0.06);
+    --theme-7-glass-bg:rgba(9, 11, 13, 0.72);
+    --theme-7-control-bg:rgba(9, 11, 13, 0.86);
+    --theme-7-hover-bg:rgba(255, 138, 76, 0.12);
+    --theme-7-selected-bg:rgba(255, 138, 76, 0.1);
+    --theme-7-focus-ring:rgba(255, 138, 76, 0.16);
+    --theme-7-card-hover-border:rgba(255, 138, 76, 0.28);
+    --theme-7-modal-backdrop:rgba(0, 0, 0, 0.8);
+    --theme-7-reservation-action-bg:rgba(9, 11, 13, 0.74);
+
+    /* Overlays */
+    --theme-7-hero-overlay:
+        linear-gradient(90deg, rgba(9, 11, 13, 0.94) 0%, rgba(9, 11, 13, 0.76) 40%, rgba(9, 11, 13, 0.22) 72%, rgba(9, 11, 13, 0.38) 100%),
+        linear-gradient(180deg, rgba(9, 11, 13, 0.2) 45%, rgba(9, 11, 13, 0.96) 100%);
+    --theme-7-hero-overlay-mobile:
+        linear-gradient(180deg, rgba(9, 11, 13, 0.18) 0%, rgba(9, 11, 13, 0.56) 42%, rgba(9, 11, 13, 0.98) 78%),
+        linear-gradient(90deg, rgba(9, 11, 13, 0.36), rgba(9, 11, 13, 0.16));
+    --theme-7-reservation-overlay:linear-gradient(180deg, rgba(9, 11, 13, 0.24), rgba(9, 11, 13, 0.92));
+
+    /* Sombras */
+    --theme-7-shadow:0 18px 48px rgba(0, 0, 0, 0.28);
+    --theme-7-header-shadow:0 8px 30px rgba(0, 0, 0, 0.2);
+    --theme-7-cart-shadow:0 10px 28px rgba(0, 0, 0, 0.34);
+    --theme-7-logo-shadow:drop-shadow(0 8px 22px rgba(0, 0, 0, 0.34));
+    --theme-7-title-shadow:0 5px 28px rgba(0, 0, 0, 0.44);
+    --theme-7-card-hover-shadow:0 14px 34px rgba(0, 0, 0, 0.24);
+    --theme-7-modal-shadow:0 28px 90px rgba(0, 0, 0, 0.58);
+    --theme-7-card-shadow:none;
+
+    /* Radios */
+    --theme-7-radius-none:0;
+    --theme-7-radius-add:9px;
+    --theme-7-radius-button:10px;
+    --theme-7-radius-small:14px;
+    --theme-7-radius-feature:16px;
+    --theme-7-radius-card:18px;
+    --theme-7-radius-panel:24px;
+    --theme-7-radius-pill:999px;
+
+    /* Tipografía */
+    --theme-7-font-family:Inter, "Segoe UI", Arial, sans-serif;
+    --theme-7-hero-title-size:clamp(3rem, 6.2vw, 6.4rem);
+    --theme-7-hero-title-size-mobile:clamp(2rem, 9.5vw, 3.2rem);
+    --theme-7-hero-title-size-small:clamp(1.9rem, 9.5vw, 2.7rem);
+    --theme-7-hero-title-spacing:-0.055em;
+    --theme-7-hero-copy-color:#e2e2e2;
+    --theme-7-hero-copy-color-mobile:#e5e5e5;
+    --theme-7-hero-copy-size:clamp(1rem, 1.35vw, 1.22rem);
+    --theme-7-menu-title-size:clamp(2rem, 3.4vw, 3.2rem);
+
+    /* Alias históricos usados por el layout compartido */
+    --color-uno:var(--theme-7-text);
+    --color-dos:var(--theme-7-primary-soft);
+    --color-tres:var(--theme-7-primary);
+    --color-cuatro:var(--theme-7-card);
+    --color-cinco:var(--theme-7-bg);
+    --color-seis:var(--theme-7-surface);
+    --color-muted:var(--theme-7-muted);
+    --color-bg:var(--theme-7-bg);
+    --color-bg-primary:var(--theme-7-footer-bg);
+    --color-primary:var(--theme-7-primary);
+    --color-secondary:var(--theme-7-primary);
+    --color-accent:var(--theme-7-primary-soft);
+    --color-surface:var(--theme-7-surface);
+    --color-text-primary:var(--theme-7-text);
+    --color-text-secondary:var(--theme-7-muted);
+    --color-text-display:var(--theme-7-text);
+    --color-border:var(--theme-7-border);
+    --color-border-accent:var(--theme-7-border);
+    --color-surface-translucent:var(--theme-7-surface-translucent);
+
+    /* Tipografías compartidas */
+    --font-family-general:var(--theme-7-font-family);
+    --font-family-base:var(--theme-7-font-family);
+    --font-family-btns:var(--theme-7-font-family);
+    --font-family-card-producto-p:var(--theme-7-font-family);
+    --landing-font-body:var(--font-family-general);
+
+    /* Landing */
+    --bg-general:var(--theme-7-bg);
+    --text-color-general:var(--theme-7-text);
+    --landing-bg-main:var(--theme-7-bg);
+    --landing-bg-section:var(--theme-7-surface);
+    --landing-bg-card:var(--theme-7-card);
+    --landing-bg-menu:var(--theme-7-bg);
+    --landing-bg-hero-center:var(--theme-7-bg);
+    --landing-text-main:var(--theme-7-text);
+    --landing-text-muted:var(--theme-7-muted);
+    --landing-title-color:var(--theme-7-text);
+    --landing-border-color:var(--theme-7-border);
+    --landing-footer-bg:var(--theme-7-footer-bg);
+    --landing-footer-text-color:var(--theme-7-muted);
+
+    /* Header */
+    --bg-general-site-header:var(--theme-7-header-bg);
+    --color-border-bottom-header:var(--theme-7-border);
+    --color-text-header-social-span:var(--theme-7-text);
+    --bg-header-social:rgba(255, 255, 255, 0.07);
+    --color-text-header-social-a:var(--theme-7-text);
+    --color-text-hover-header:var(--theme-7-primary-soft);
+    --brand-name-text-color:var(--theme-7-text);
+    --brand-name-text-transform:none;
+    --brand-name-text-size:0.95rem;
+    --brand-tag-text-size:0.66rem;
+    --brand-tag-font-family:var(--font-family-general);
+    --font-family-header:var(--font-family-general);
+    --headear-social-a-font-family:var(--font-family-general);
+    --size-text-header:0.78rem;
+    --letter-spacing-header:0.06em;
+
+    /* Botones */
+    --btn-primary-color-bg:var(--theme-7-primary);
+    --btn-primary-color-text:var(--theme-7-on-primary);
+    --btn-primary-color-border:var(--theme-7-primary);
+    --btn-primary-color-box-shadow:rgba(0, 0, 0, 0.3);
+    --btn-secondary-color-bg:transparent;
+    --btn-secondary-color-text:var(--theme-7-text);
+    --btn-secondary-color-border:var(--theme-7-primary);
+    --btn-secondary-color-box-shadow:transparent;
+    --btn-background-carrito:var(--theme-7-primary);
+    --btn-borde-carrito:var(--theme-7-primary);
+    --btn-text-carrito:var(--theme-7-on-primary);
+
+    /* Categorías y menú */
+    --category-background:var(--theme-7-card);
+    --category-border:var(--theme-7-border);
+    --category-text:var(--theme-7-muted);
+    --category-active-background:var(--theme-7-primary);
+    --category-active-border:var(--theme-7-primary);
+    --menu-tab-color-bg:var(--theme-7-card);
+    --menu-tab-color-borde:var(--theme-7-border);
+    --menu-tab-color-text:var(--theme-7-muted);
+    --menu-tab-active-color-bg:var(--theme-7-primary);
+    --menu-tab-active-color-borde:var(--theme-7-primary);
+    --menu-tab-active-color-tex:var(--theme-7-on-primary);
+    --bg-color-menu-wrapper:var(--theme-7-bg);
+    --border-color-menu-wrapper:var(--theme-7-border);
+    --border-radius-menu-wrapper:var(--theme-7-radius-panel);
+    --box-shadow-menu-wrapper:var(--theme-7-card-shadow);
+    --color-text-title-menu:var(--theme-7-text);
+    --font-family-title-menu:var(--font-family-general);
+    --font-size-text-title-menu:clamp(2rem, 4vw, 3.4rem);
+    --letter-spacing-menu:0.04em;
+
+    /* Productos */
+    --product-card-background:var(--theme-7-card);
+    --product-card-border:var(--theme-7-border);
+    --product-card-text:var(--theme-7-text);
+    --product-card-price:var(--theme-7-primary);
+    --product-card-font-size-title:1.05rem;
+    --product-card-font-size-price:1.34rem;
+    --letter-spacing-product-card-h3:0;
+
+    /* Modal y carrito */
+    --product-modal-p-color-text:var(--theme-7-muted);
+    --product-modal-strong-color-text:var(--theme-7-primary);
+    --producto-modal-cart-modal-qty-color-text:var(--theme-7-primary-soft);
+    --product-modal-border-color:var(--theme-7-border);
+    --product-modal-font-family-p:var(--font-family-general);
+    --product-modal-h2-font-family:var(--font-family-general);
+    --bg-color-cart-trigger:var(--theme-7-primary);
+    --bg-color-strong-cart-trigger:var(--theme-7-on-primary);
+    --border-color-cart-trigger:var(--theme-7-primary);
+    --color-text-cart-trigger:var(--theme-7-on-primary);
+    --shadow-cart-trigger:var(--theme-7-cart-shadow);
+
+    /* Promos, galería, nosotros y reservas */
+    --color-text-promo-tag:var(--theme-7-text);
+    --color-text-promo-tag-strong:var(--theme-7-primary);
+    --color-svg-promo-tag:var(--theme-7-primary);
+    --font-family-promo-tag:var(--font-family-general);
+    --about-panel-color-border:var(--theme-7-border);
+    --about-title-text-color:var(--theme-7-text);
+    --about-title-text-font-family:var(--font-family-general);
+    --about-title-text-font-size:clamp(1.7rem, 3vw, 2.4rem);
+    --about-parrafo-text-font-family:var(--font-family-general);
+    --about-parrafo-text-color:var(--theme-7-muted);
+    --about-subtitle-text-color:var(--theme-7-primary);
+    --about-subtitle-text-font-size:0.8rem;
+    --about-parrafo-details-color:var(--theme-7-muted);
+    --about-parrafo-details-font-size:0.88rem;
+    --about-social-link-bg:var(--theme-7-primary);
+    --about-social-link-color:var(--theme-7-on-primary);
+    --galeria-title-text-color:var(--theme-7-text);
+    --galeria-title-text-font-family:var(--font-family-general);
+    --galeria-title-text-font-size:clamp(1.7rem, 3vw, 2.4rem);
+    --galeria-title-text-letter-spacing:0;
+    --reservation-card-color-borde:var(--theme-7-border);
+    --reservation-card-color-box-shadow:var(--theme-7-shadow);
+    --reservation-action-card-color-bg:var(--theme-7-glass-bg);
+    --reservation-action-card-color-borde:rgba(255, 138, 76, 0.45);
+    --reservation-action-card-color-text:var(--theme-7-text);
+    --reservation-action-card-color-box-shadow:none;
+    --action-card-i-color-bg:var(--theme-7-primary);
+    --action-card-i-color-text:var(--theme-7-on-primary);
+    --modal-reserva-color-text:var(--theme-7-text);
+}
 /*Theme_La Asesina mata tu hambre*/
 .theme_8 {
     /*COLORES*/
@@ -500,7 +719,7 @@
     --color-border-accent: rgba(255, 106, 0, 0.28);
 
 }
-
+/*theme_smash house*/
 .theme_9 {
     /*COLORES*/
     --color-uno:#ffff;
