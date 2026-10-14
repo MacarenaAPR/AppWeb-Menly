@@ -22,7 +22,7 @@ from core.debug_views import debug_time
 from menu.views import ProductosMasClickeadosView, menu_api
 #from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenObtainPairView
-from menu.views import menu_api,CustomLoginView, CookieTokenRefreshView, PasswordResetRequestView, ContactoView, ContactoPlanesAPIView, MiRestauranteView,ProductoListView,ProductoUpdateView, ProductoVariantesView, ProductoVarianteDetalleView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
+from menu.views import menu_api,CustomLoginView, CookieTokenRefreshView, PasswordResetRequestView, ContactoView, ContactoPlanesAPIView, MiRestauranteView,ProductoListView,ProductoUpdateView, ProductoVariantesView, ProductoVarianteDetalleView, ProductoGruposOpcionesView, ProductoGrupoOpcionesDetalleView, GrupoOpcionesOpcionesView, GrupoOpcionesOpcionDetalleView, LogoutView,ProductoCreateView, ActualizarDisponibilidadProductoView, EliminarProductoView, HistorialBitacoraView, HistorialPedidosView
 from menu.views import CrearReservaPublicaView, ReservasDashboardView,UsuariosView, CrearReservaManualView, ActualizarReservaView, ConfiguracionRestauranteView, RestauranteEstadoAperturaView, UploadLogoView, RestaurantePublicoDetalleView, CrearSolicitudEspecialPublicaView, CrearPedidoWhatsAppPublicoView, SeguimientoPedidoWhatsAppPublicoView, SolicitudesEspecialesDashboardView, SolicitudEspecialDetalleDashboardView
 from menu.views import NotificacionesDashboardView, NotificacionesContadorView, NotificacionDetalleView, NotificacionMarcarLeidaView
 from menu.views import PedidosWhatsAppDashboardView, PedidoWhatsAppDetalleDashboardView, PedidoWhatsAppEstadoDashboardView, PedidosEspecialesDashboardView, PedidoEspecialDetalleDashboardView, PedidoEspecialEstadoDashboardView, PedidosManualesDashboardView, PedidoManualDetalleDashboardView, PedidoManualEstadoDashboardView, CocinaActivacionDashboardView, CocinaActivarView, CocinaComandasView, CocinaEstadoView, CocinaComandaEstadoView, CocinaCerrarView, PedidosMetricasDashboardView, MetricasResumenView, ReporteMensualMetricasView, ReporteAnualMetricasView, ReportesMetricasView, ReporteMetricaDetalleView, ReporteMetricaGuardarView, DashboardUltimosPedidosView
@@ -124,6 +124,27 @@ urlpatterns = [
         "api/mi-restaurante/productos/<int:producto_id>/variantes/<int:variante_id>/",
         ProductoVarianteDetalleView.as_view(),
         name="producto-variante-detalle",
+    ),
+
+    path(
+        "api/mi-restaurante/productos/<int:producto_id>/grupos-opciones/",
+        ProductoGruposOpcionesView.as_view(),
+        name="producto-grupos-opciones",
+    ),
+    path(
+        "api/mi-restaurante/productos/<int:producto_id>/grupos-opciones/<int:grupo_id>/",
+        ProductoGrupoOpcionesDetalleView.as_view(),
+        name="producto-grupo-opciones-detalle",
+    ),
+    path(
+        "api/mi-restaurante/productos/<int:producto_id>/grupos-opciones/<int:grupo_id>/opciones/",
+        GrupoOpcionesOpcionesView.as_view(),
+        name="grupo-opciones-opciones",
+    ),
+    path(
+        "api/mi-restaurante/productos/<int:producto_id>/grupos-opciones/<int:grupo_id>/opciones/<int:opcion_id>/",
+        GrupoOpcionesOpcionDetalleView.as_view(),
+        name="grupo-opciones-opcion-detalle",
     ),
 
     #CLICKS PRODUCTOS

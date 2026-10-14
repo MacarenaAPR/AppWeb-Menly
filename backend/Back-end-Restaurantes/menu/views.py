@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
-from .serializers import CustomTokenObtainPairSerializer, ContactoPlanesSerializer, ReservaManualSerializer, ProductoCreateSerializer, ProductoVarianteSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer
+from .serializers import CustomTokenObtainPairSerializer, ContactoPlanesSerializer, ReservaManualSerializer, ProductoCreateSerializer, ProductoVarianteSerializer, GrupoOpcionesProductoSerializer, OpcionProductoSerializer, ReservaPublicaSerializer, ReservaDashboardSerializer, SolicitudEspecialPublicaSerializer, SolicitudEspecialDashboardSerializer, validar_viabilidad_grupo_opciones
 from .serializers import NotificacionSerializer, NotificacionDetalleSerializer
 from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer, PedidoWhatsAppEstadoUpdateSerializer, PedidoWhatsAppSeguimientoPublicoSerializer, PedidoEspecialSerializer, PedidoManualSerializer, PedidoManualSeguimientoPublicoSerializer
 from .serializers import ReporteMetricaSerializer
@@ -20,7 +20,7 @@ from rest_framework.exceptions import ValidationError as APIValidationError
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, ProductoVariante, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, PedidoEspecial, PedidoManual, ReporteMetrica, PushSubscription
+from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, ProductoVariante, GrupoOpcionesProducto, OpcionProducto, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, PedidoEspecial, PedidoManual, ReporteMetrica, PushSubscription
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from django.db.models import Count, F, Max, Q, Prefetch
 from django.utils.text import slugify
@@ -2942,41 +2942,72 @@ class HistorialPedidosView(APIView):
         fecha_desde = (request.query_params.get("fecha_desde") or "").strip()
         fecha_hasta = (request.query_params.get("fecha_hasta") or "").strip()
 
-        pedidos = PedidoWhatsApp.objects.filter(
+        pedidos_whatsapp = PedidoWhatsApp.objects.filter(
             restaurante=restaurante,
             fecha_creacion__date__lt=hoy,
-        ).order_by("-fecha_creacion", "-id")
+        )
+        pedidos_manuales = PedidoManual.objects.filter(
+            restaurante=restaurante,
+            fecha_creacion__date__lt=hoy,
+        ).prefetch_related("items")
 
         if busqueda:
-            filtros_busqueda = (
+            filtros_busqueda_whatsapp = (
+                Q(nombre_cliente__icontains=busqueda)
+                | Q(telefono_cliente__icontains=busqueda)
+            )
+            filtros_busqueda_manual = (
                 Q(nombre_cliente__icontains=busqueda)
                 | Q(telefono_cliente__icontains=busqueda)
             )
             if busqueda.isdigit():
-                filtros_busqueda |= Q(numero_pedido=int(busqueda))
-            pedidos = pedidos.filter(filtros_busqueda)
+                filtros_busqueda_whatsapp |= Q(numero_pedido=int(busqueda))
+                filtros_busqueda_manual |= Q(numero_pedido=int(busqueda))
+            pedidos_whatsapp = pedidos_whatsapp.filter(filtros_busqueda_whatsapp)
+            pedidos_manuales = pedidos_manuales.filter(filtros_busqueda_manual)
 
         if estado and estado != "todos":
-            pedidos = pedidos.filter(estado=estado)
+            pedidos_whatsapp = pedidos_whatsapp.filter(estado=estado)
+            estado_manual = "preparando" if estado == "en_preparacion" else estado
+            pedidos_manuales = pedidos_manuales.filter(estado=estado_manual)
 
         if fecha_desde:
             try:
-                pedidos = pedidos.filter(
-                    fecha_creacion__date__gte=datetime.strptime(fecha_desde, "%Y-%m-%d").date()
-                )
+                fecha = datetime.strptime(fecha_desde, "%Y-%m-%d").date()
+                pedidos_whatsapp = pedidos_whatsapp.filter(fecha_creacion__date__gte=fecha)
+                pedidos_manuales = pedidos_manuales.filter(fecha_creacion__date__gte=fecha)
             except ValueError:
                 pass
 
         if fecha_hasta:
             try:
-                pedidos = pedidos.filter(
-                    fecha_creacion__date__lte=datetime.strptime(fecha_hasta, "%Y-%m-%d").date()
-                )
+                fecha = datetime.strptime(fecha_hasta, "%Y-%m-%d").date()
+                pedidos_whatsapp = pedidos_whatsapp.filter(fecha_creacion__date__lte=fecha)
+                pedidos_manuales = pedidos_manuales.filter(fecha_creacion__date__lte=fecha)
             except ValueError:
                 pass
 
+        pedidos = sorted(
+            [
+                *(('whatsapp', pedido) for pedido in pedidos_whatsapp),
+                *(('manual', pedido) for pedido in pedidos_manuales),
+            ],
+            key=lambda item: (item[1].fecha_creacion, item[1].id),
+            reverse=True,
+        )
+
         def serialize_pedidos(items):
-            return PedidoWhatsAppDashboardSerializer(items, many=True).data
+            resultado = []
+            for tipo, pedido in items:
+                serializer_class = (
+                    PedidoWhatsAppDashboardSerializer
+                    if tipo == "whatsapp"
+                    else PedidoManualSerializer
+                )
+                data = dict(serializer_class(pedido, context={"request": request}).data)
+                data["tipo_origen"] = tipo
+                resultado.append(data)
+            return resultado
 
         return paginated_response(request, pedidos, serialize_pedidos, HistorialPagination)
 
@@ -2988,7 +3019,10 @@ class ProductoListView(TenantScopedQuerysetMixin, APIView):
     def get(self, request):
         restaurante = self.get_restaurante_actual()
 
-        productos = Producto.objects.select_related("categoria").prefetch_related("variantes").filter(
+        productos = Producto.objects.select_related("categoria").prefetch_related(
+            "variantes",
+            "grupos_opciones__opciones",
+        ).filter(
             restaurante=restaurante
         ).order_by("categoria__orden", "orden", "id")
 
@@ -3010,6 +3044,9 @@ class ProductoListView(TenantScopedQuerysetMixin, APIView):
                     "destacado": p.destacado,
                     "orden": p.orden,
                     "variantes": ProductoVarianteSerializer(p.variantes.all(), many=True).data,
+                    "grupos_opciones": GrupoOpcionesProductoSerializer(
+                        p.grupos_opciones.all(), many=True
+                    ).data,
                 }
                 for p in items
             ]
@@ -3202,6 +3239,164 @@ class ProductoVarianteDetalleView(APIView):
         variante = self.get_variante(request, producto_id, variante_id)
         restaurante = variante.producto.restaurante
         variante.delete()
+        invalidate_menu_cache(restaurante)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductoGruposOpcionesView(APIView):
+    permission_classes = [IsAuthenticated, CanManageProductos]
+
+    def get_producto(self, request, producto_id):
+        perfil = get_perfil_activo(request)
+        return get_object_for_restaurante_or_404(
+            Producto,
+            perfil.restaurante,
+            id=producto_id,
+        )
+
+    def get(self, request, producto_id):
+        producto = self.get_producto(request, producto_id)
+        grupos = producto.grupos_opciones.prefetch_related("opciones").all()
+        return Response(GrupoOpcionesProductoSerializer(grupos, many=True).data)
+
+    def post(self, request, producto_id):
+        producto = self.get_producto(request, producto_id)
+        serializer = GrupoOpcionesProductoSerializer(
+            data=request.data,
+            context={"producto": producto},
+        )
+        serializer.is_valid(raise_exception=True)
+        grupo = serializer.save(producto=producto)
+        invalidate_menu_cache(producto.restaurante)
+        return Response(
+            GrupoOpcionesProductoSerializer(grupo).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ProductoGrupoOpcionesDetalleView(APIView):
+    permission_classes = [IsAuthenticated, CanManageProductos]
+
+    def get_grupo(self, request, producto_id, grupo_id):
+        perfil = get_perfil_activo(request)
+        return get_object_or_404(
+            GrupoOpcionesProducto.objects.select_related("producto").prefetch_related("opciones"),
+            id=grupo_id,
+            producto_id=producto_id,
+            producto__restaurante=perfil.restaurante,
+        )
+
+    def get(self, request, producto_id, grupo_id):
+        grupo = self.get_grupo(request, producto_id, grupo_id)
+        return Response(GrupoOpcionesProductoSerializer(grupo).data)
+
+    @transaction.atomic
+    def patch(self, request, producto_id, grupo_id):
+        grupo = self.get_grupo(request, producto_id, grupo_id)
+        grupo = GrupoOpcionesProducto.objects.select_for_update().get(pk=grupo.pk)
+        serializer = GrupoOpcionesProductoSerializer(
+            grupo,
+            data=request.data,
+            partial=True,
+            context={"producto": grupo.producto},
+        )
+        serializer.is_valid(raise_exception=True)
+        grupo = serializer.save()
+        invalidate_menu_cache(grupo.producto.restaurante)
+        return Response(GrupoOpcionesProductoSerializer(grupo).data)
+
+    def delete(self, request, producto_id, grupo_id):
+        grupo = self.get_grupo(request, producto_id, grupo_id)
+        restaurante = grupo.producto.restaurante
+        grupo.delete()
+        invalidate_menu_cache(restaurante)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GrupoOpcionesOpcionesView(APIView):
+    permission_classes = [IsAuthenticated, CanManageProductos]
+
+    def get_grupo(self, request, producto_id, grupo_id):
+        perfil = get_perfil_activo(request)
+        return get_object_or_404(
+            GrupoOpcionesProducto.objects.select_related("producto"),
+            id=grupo_id,
+            producto_id=producto_id,
+            producto__restaurante=perfil.restaurante,
+        )
+
+    def get(self, request, producto_id, grupo_id):
+        grupo = self.get_grupo(request, producto_id, grupo_id)
+        return Response(OpcionProductoSerializer(grupo.opciones.all(), many=True).data)
+
+    def post(self, request, producto_id, grupo_id):
+        grupo = self.get_grupo(request, producto_id, grupo_id)
+        serializer = OpcionProductoSerializer(
+            data=request.data,
+            context={"grupo": grupo},
+        )
+        serializer.is_valid(raise_exception=True)
+        opcion = serializer.save(grupo=grupo)
+        invalidate_menu_cache(grupo.producto.restaurante)
+        return Response(
+            OpcionProductoSerializer(opcion).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class GrupoOpcionesOpcionDetalleView(APIView):
+    permission_classes = [IsAuthenticated, CanManageProductos]
+
+    def get_opcion(self, request, producto_id, grupo_id, opcion_id):
+        perfil = get_perfil_activo(request)
+        return get_object_or_404(
+            OpcionProducto.objects.select_related("grupo__producto"),
+            id=opcion_id,
+            grupo_id=grupo_id,
+            grupo__producto_id=producto_id,
+            grupo__producto__restaurante=perfil.restaurante,
+        )
+
+    def get(self, request, producto_id, grupo_id, opcion_id):
+        opcion = self.get_opcion(request, producto_id, grupo_id, opcion_id)
+        return Response(OpcionProductoSerializer(opcion).data)
+
+    @transaction.atomic
+    def patch(self, request, producto_id, grupo_id, opcion_id):
+        opcion = self.get_opcion(request, producto_id, grupo_id, opcion_id)
+        grupo = GrupoOpcionesProducto.objects.select_for_update().get(
+            pk=opcion.grupo_id
+        )
+        opcion.grupo = grupo
+        serializer = OpcionProductoSerializer(
+            opcion,
+            data=request.data,
+            partial=True,
+            context={"grupo": grupo},
+        )
+        serializer.is_valid(raise_exception=True)
+        opcion = serializer.save()
+        invalidate_menu_cache(opcion.grupo.producto.restaurante)
+        return Response(OpcionProductoSerializer(opcion).data)
+
+    @transaction.atomic
+    def delete(self, request, producto_id, grupo_id, opcion_id):
+        opcion = self.get_opcion(request, producto_id, grupo_id, opcion_id)
+        grupo = GrupoOpcionesProducto.objects.select_for_update().get(
+            pk=opcion.grupo_id
+        )
+        if opcion.disponible:
+            validar_viabilidad_grupo_opciones(
+                nombre=grupo.nombre,
+                minimo_selecciones=grupo.minimo_selecciones,
+                obligatorio=grupo.obligatorio,
+                opciones_disponibles=(
+                    grupo.opciones.filter(disponible=True).count() - 1
+                ),
+                accion="eliminar esta opcion",
+            )
+        restaurante = grupo.producto.restaurante
+        opcion.delete()
         invalidate_menu_cache(restaurante)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -3718,7 +3913,10 @@ class MiRestauranteView(APIView):
             ).order_by("orden", "id")
 
             data_categorias = []
-            todos_productos = Producto.objects.select_related("categoria").prefetch_related("variantes").filter(
+            todos_productos = Producto.objects.select_related("categoria").prefetch_related(
+                "variantes",
+                "grupos_opciones__opciones",
+            ).filter(
                 restaurante=restaurante
             )
             data_productos = [
@@ -3738,6 +3936,9 @@ class MiRestauranteView(APIView):
                     "destacado": p.destacado,
                     "orden": p.orden,
                     "variantes": ProductoVarianteSerializer(p.variantes.all(), many=True).data,
+                    "grupos_opciones": GrupoOpcionesProductoSerializer(
+                        p.grupos_opciones.all(), many=True
+                    ).data,
                 }
                 for p in todos_productos
             ]
@@ -3864,9 +4065,16 @@ def menu_api(request, slug):
         return JsonResponse(cached_data, safe=False)
 
     variantes_activas = ProductoVariante.objects.filter(activo=True).order_by("orden", "id")
+    opciones_disponibles = OpcionProducto.objects.filter(disponible=True).order_by("orden", "id")
+    grupos_opciones = GrupoOpcionesProducto.objects.prefetch_related(
+        Prefetch("opciones", queryset=opciones_disponibles)
+    ).order_by("orden", "id")
     productos_disponibles = Producto.objects.filter(
         disponible=True
-    ).prefetch_related(Prefetch("variantes", queryset=variantes_activas)).order_by("orden", "id")
+    ).prefetch_related(
+        Prefetch("variantes", queryset=variantes_activas),
+        Prefetch("grupos_opciones", queryset=grupos_opciones),
+    ).order_by("orden", "id")
 
     categorias = Categoria.objects.filter(
         restaurante=restaurante,
@@ -3892,6 +4100,11 @@ def menu_api(request, slug):
                     "imagen": p.imagen.url if p.imagen else None,
                     "destacado": p.destacado,
                     "variantes": ProductoVarianteSerializer(p.variantes.all(), many=True).data,
+                    "grupos_opciones": GrupoOpcionesProductoSerializer(
+                        p.grupos_opciones.all(),
+                        many=True,
+                        context={"solo_opciones_disponibles": True},
+                    ).data,
                 }
                 for p in categoria.productos.all()
             ]

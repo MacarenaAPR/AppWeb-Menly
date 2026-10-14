@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { cocinaFetch, readJsonResponse } from "../api";
 import { getKdsPollingConfig } from "../session/kdsAvailability";
 import pedidoCocinaSound from "../assets/sound/Pedido-Cocina.mp3";
+import PedidoProductoOpciones from "../componentes/PedidoProductoOpciones";
 import "../styles/Cocina.css";
 
 const estadoLabels = {
@@ -69,6 +70,7 @@ function ComandaCard({ comanda, onCambiarEstado, actualizando }) {
         {(comanda.items || []).map((item, index) => (
           <div key={`${item.nombre}-${index}`} className="cocina-item">
             <span>{item.cantidad}x {item.nombre}</span>
+            <PedidoProductoOpciones snapshot={item.opciones} mostrarPrecios={false} compacta />
             {item.observaciones && <small>{item.observaciones}</small>}
           </div>
         ))}

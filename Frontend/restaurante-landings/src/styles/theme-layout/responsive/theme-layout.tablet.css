@@ -9,15 +9,16 @@
     grid-template-columns: 1fr;
   }
 
-
-  .product-modal {
-    overflow-y: auto;
-  }
-
   .product-modal-image,
   .product-modal-image img {
     min-height: 260px;
     max-height: 360px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .product-modal {
+    overflow: hidden;
   }
 }
 @media (max-width: 1020px) {

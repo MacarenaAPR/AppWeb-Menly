@@ -483,40 +483,40 @@
 }
 .theme_7 {
     /*COLORES*/
-    --color-uno:#1F6F78;
-    --color-dos:#E27D60;
-    --color-tres:#0E3B43;
-    --color-cuatro:#E8D9B5;
-    --color-cinco:#F7F4ED;
-    --color-muted:#b3b3b38e;
+    --color-uno:#075B52;
+    --color-dos:#D6B56D;
+    --color-tres:#073F3F;
+    --color-cuatro:#F7F1E5;
+    --color-cinco:#FFFDF8;
+    --color-muted:#6E6B65;
     /*font family*/
-    --font-family-general:"montserrat";
-    --font-family-base: "playfair display", "Arial Black", system-ui, sans-serif;
-    --font-family-btns:"Bebas Neue";
+    --font-family-general:"Gotu";
+    --font-family-base: "Italiana", "Arial Black", system-ui, sans-serif;
+    --font-family-btns:"Italiana";
     /*base*/
     /*BTN BUTTON PRIMARY reserva*/
-    --btn-primary-color-bg:var(--color-cuatro);
-    --btn-primary-color-text:var(--color-tres);
-    --btn-primary-color-border:var(--color-cuatro);
-    --btn-primary-color-box-shadow:#000000;
+    --btn-primary-color-bg:var(--color-uno);
+    --btn-primary-color-text:var(--color-cinco);
+    --btn-primary-color-border:var(--color-dos);
+    --btn-primary-color-box-shadow:rgba(7, 63, 63, 0.22);
     
     /*BTN BUTTON Secondary menu*/
     --btn-secondary-color-bg:var(--color-tres);
-    --btn-secondary-color-text:var(--color-cuatro);
-    --btn-secondary-color-border:var(--color-tres);
-    --btn-secondary-color-box-shadow:#000000;
+    --btn-secondary-color-text:var(--color-cinco);
+    --btn-secondary-color-border:var(--color-dos);
+    --btn-secondary-color-box-shadow:rgba(7, 63, 63, 0.18);
     
     /*Landings general*/
     --bg-general:var(--color-cinco);
     --text-color-general:var(--color-uno);
     
     /*site-header*/
-    --bg-general-site-header:var(--color-tres);
-    --color-border-bottom-header:var(--color-cuatro);
+    --bg-general-site-header:rgba(247, 241, 229, 0.94);
+    --color-border-bottom-header:rgba(214, 181, 109, 0.58);
     --color-text-header-social-span:var(--color-uno);
-    --bg-header-social:var(--color-cuatro);
+    --bg-header-social:var(--color-cinco);
     --color-text-header-social-a:var(--color-uno);
-    --color-text-hover-header:var(--color-cuatro);
+    --color-text-hover-header:#0B776B;
     --size-text-header: 0.8rem;
     --letter-spacing-header:0em;
     --font-family-header: var(--font-family-general);
@@ -524,13 +524,13 @@
     --brand-tag-font-family:var(--font-family-general);
     --brand-tag-text-size:0.5rem;
     --brand-name-text-size:0.8rem;
-    --brand-name-text-color:var(--color-cinco);
+    --brand-name-text-color:var(--color-uno);
     --brand-name-text-transform:uppercase;
     /*CART-trigger carrito header*/
-    --bg-color-strong-cart-trigger:var(--color-dos);
-    --bg-color-cart-trigger:var(--color-dos);
+    --bg-color-strong-cart-trigger:var(--color-uno);
+    --bg-color-cart-trigger:var(--color-uno);
     --border-color-cart-trigger:var(--color-dos);
-    --color-text-cart-trigger:var(--color-cuatro);
+    --color-text-cart-trigger:var(--color-cinco);
     --shadow-cart-trigger:0 10px 24px rgba(0, 0, 0, 0.7);
     
     /*HERO*/
@@ -578,7 +578,7 @@
 
     /*destacados y promos*/
     --color-svg-promo-tag:var(--color-dos);
-    --color-text-promo-tag:var(--color-tres);
+    --color-text-promo-tag:var(--color-uno);
     --font-family-promo-tag:var(--font-family-general);
     --font-size-promo-tag:1rem;
     
@@ -588,10 +588,10 @@
     --commercial-badge-font-family:var(--font-family-btns);
     
     /* PRODUCTOS */
-    --product-card-background: var(--color-cuatro);
-    --product-card-border: var(--color-cuatro);
+    --product-card-background: var(--color-cinco);
+    --product-card-border: rgba(214, 181, 109, 0.42);
     --product-card-text: var(--color-uno);
-    --product-card-price: var(--color-dos);
+    --product-card-price: #0B776B;
     --product-card-font-size-title:1rem;
     --product-card-font-size-price:1.3rem;
 
@@ -599,7 +599,7 @@
     --product-modal-p-color-text:var(--color-uno);
     --producto-modal-cart-modal-qty-color-text:var(--color-dos);
     /*btn agregar al carro*/
-    --btn-background-carrito: var(--color-dos);
+    --btn-background-carrito: var(--color-uno);
     --btn-borde-carrito: var(--color-dos);
     --btn-text-carrito:var(--color-cinco);
 
@@ -652,10 +652,8 @@
      /*RESERVACION Y SOLICITUDES ESPECIALES*/
     --reservation-card-color-bg: linear-gradient(
                                                 180deg,
-                                                #000000 0%,
-                                                #080808 40%,
-                                                #666666 85%,
-                                                #666666 10%
+                                                var(--color-cinco) 0%,
+                                                var(--color-cuatro) 100%
                                             );
     --reservation-card-color-text:var(--color-uno);
     --reservation-card-color-box-shadow:0 2px 4px 0 var(--color-muted);
@@ -681,9 +679,9 @@
     --color-secondary: var(--color-tres);
     --color-border: var(--color-cuatro);
     --color-text-display: var(--color-cinco);
-    --color-surface-translucent: rgba(73, 73, 73, 0.9);
-    --color-border-accent: rgba(27, 27, 27, 0.22);
-    --color-accent: var(--color-cinco);
+    --color-surface-translucent: rgba(247, 241, 229, 0.94);
+    --color-border-accent: rgba(214, 181, 109, 0.34);
+    --color-accent: #0B776B;
 
 }
 

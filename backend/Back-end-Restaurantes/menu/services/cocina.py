@@ -132,6 +132,7 @@ def _items_whatsapp(pedido):
             ),
             "cantidad": item.get("cantidad", 0),
             "observaciones": item.get("observaciones", ""),
+            "opciones": _normalizar_opciones_snapshot(item.get("grupos_opciones")),
         }
         for item in (pedido.productos_snapshot or [])
     ]
@@ -146,8 +147,24 @@ def _items_manual(pedido):
             ),
             "cantidad": item.cantidad,
             "observaciones": item.observaciones,
+            "opciones": _normalizar_opciones_snapshot(item.opciones_snapshot),
         }
         for item in pedido.items.all()
+    ]
+
+
+def _normalizar_opciones_snapshot(grupos):
+    return [
+        {
+            "grupo_nombre": grupo.get("grupo_nombre") or grupo.get("nombre") or "Opciones",
+            "opciones": [
+                {"nombre": opcion.get("nombre") or "Opcion"}
+                for opcion in (grupo.get("opciones") or [])
+                if isinstance(opcion, dict)
+            ],
+        }
+        for grupo in (grupos or [])
+        if isinstance(grupo, dict) and grupo.get("opciones")
     ]
 
 

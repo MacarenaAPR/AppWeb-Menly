@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import MainMenu from "../componentes/Main-menu";
+import PedidoProductoOpciones from "../componentes/PedidoProductoOpciones";
 import "../styles/Historial.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { authFetch } from "../api";
@@ -7,11 +8,13 @@ import { tieneSesionAdmin } from "../session/adminSession";
 
 const DESKTOP_PAGE_SIZE = 20;
 const MOBILE_PAGE_SIZE = 5;
-const ESTADOS_PEDIDO = ["pendiente", "confirmado", "en_preparacion", "listo", "entregado", "cancelado", "completado"];
+const ESTADOS_PEDIDO = ["pendiente", "confirmado", "en_preparacion", "listo", "en_reparto", "entregado", "cancelado", "completado"];
 const estadoPedidoLabels = {
   pendiente: "Pendiente",
   confirmado: "Confirmado",
   en_preparacion: "En preparación",
+  preparando: "Preparando",
+  en_reparto: "En reparto",
   listo: "Listo",
   entregado: "Entregado",
   cancelado: "Cancelado",
@@ -27,6 +30,10 @@ const formatearMoneda = (valor) =>
 
 const totalProductosPedido = (items = []) =>
   items.reduce((total, item) => total + Number(item?.cantidad || 0), 0);
+
+const obtenerItemsPedido = (pedido) => (
+  pedido?.tipo_origen === "manual" ? (pedido.items || []) : (pedido?.productos_snapshot || [])
+);
 
 export default function Historial() {
   const [panelActivo, setPanelActivo] = useState("movimientos");
@@ -405,7 +412,7 @@ export default function Historial() {
             ) : panelActivo === "pedidos" && pedidos.length > 0 ? (
               <div className="historial-list historial-pedidos-list">
                 {pedidos.map((pedido) => (
-                  <div key={pedido.id} className="historial-row historial-pedido-row">
+                  <div key={`${pedido.tipo_origen || "whatsapp"}-${pedido.id}`} className="historial-row historial-pedido-row">
                     <div className="historial-col">
                       <strong>N° pedido:</strong>
                       <p>#{pedido.numero_pedido}</p>
@@ -473,7 +480,7 @@ export default function Historial() {
               <div className="historial-modal" onClick={(event) => event.stopPropagation()}>
                 <header>
                   <div>
-                    <p>Pedido WhatsApp</p>
+                    <p>{pedidoDetalle.tipo_origen === "manual" ? "Pedido Menly" : "Pedido WhatsApp"}</p>
                     <h2>#{pedidoDetalle.numero_pedido}</h2>
                   </div>
                   <button type="button" onClick={() => setPedidoDetalle(null)}>
@@ -486,22 +493,26 @@ export default function Historial() {
                   <p><strong>Teléfono:</strong> {pedidoDetalle.telefono_cliente}</p>
                   <p><strong>Fecha:</strong> {new Date(pedidoDetalle.fecha_creacion).toLocaleString("es-CL")}</p>
                   <p><strong>Entrega:</strong> {pedidoDetalle.tipo_entrega_display || pedidoDetalle.tipo_entrega}</p>
-                  {pedidoDetalle.direccion_entrega && (
-                    <p><strong>Dirección:</strong> {pedidoDetalle.direccion_entrega}</p>
+                  {(pedidoDetalle.direccion_entrega || pedidoDetalle.direccion) && (
+                    <p><strong>Dirección:</strong> {pedidoDetalle.direccion_entrega || pedidoDetalle.direccion}</p>
                   )}
                   <p><strong>Estado:</strong> {estadoPedidoLabels[pedidoDetalle.estado] || pedidoDetalle.estado}</p>
                   <p><strong>Total:</strong> {formatearMoneda(pedidoDetalle.total)}</p>
-                  <p><strong>Productos:</strong> {totalProductosPedido(pedidoDetalle.productos_snapshot)} productos</p>
+                  <p><strong>Productos:</strong> {totalProductosPedido(obtenerItemsPedido(pedidoDetalle))} productos</p>
                   {pedidoDetalle.whatsapp_destino && (
                     <p><strong>WhatsApp destino:</strong> {pedidoDetalle.whatsapp_destino}</p>
                   )}
                 </div>
 
                 <div className="historial-modal-items">
-                  {(pedidoDetalle.productos_snapshot || []).map((item, index) => (
-                    <div key={`${item.nombre}-${index}`}>
-                      <strong>{item.cantidad} x {item.nombre}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}</strong>
-                      <span>{formatearMoneda(item.subtotal ?? (Number(item.precio_unitario || 0) * Number(item.cantidad || 0)))}</span>
+                  {obtenerItemsPedido(pedidoDetalle).map((item, index) => (
+                    <div key={`${item.nombre || item.nombre_producto}-${index}`}>
+                      <section>
+                        <strong>{item.cantidad} x {item.nombre || item.nombre_producto}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}</strong>
+                        <PedidoProductoOpciones snapshot={item} compacta />
+                        <small>Precio unitario: {formatearMoneda(item.precio_unitario)}</small>
+                      </section>
+                      <span>Subtotal: {formatearMoneda(item.subtotal ?? (Number(item.precio_unitario || 0) * Number(item.cantidad || 0)))}</span>
                     </div>
                   ))}
                 </div>

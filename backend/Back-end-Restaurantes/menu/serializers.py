@@ -2,9 +2,14 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from .models import UsuarioRestaurante,ImagenRestaurante, HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from rest_framework import serializers
-from .models import Producto, ProductoVariante, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica, PushSubscription
+from .models import Producto, ProductoVariante, GrupoOpcionesProducto, OpcionProducto, Categoria, Reserva, Restaurante, Plan, Icono, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoEspecial, PedidoManual, PedidoManualItem, ReporteMetrica, PushSubscription
 from .utils import crear_notificacion_pedido_especial
 from .services.pedidos_whatsapp import (
+    MAX_CANTIDAD_PEDIDO_MANUAL,
+    MAX_CANTIDAD_PEDIDO_WHATSAPP,
+    ProductosPedidoValidationError,
+    agrupar_cantidades_por_configuracion,
+    clave_configuracion_producto,
     crear_pedido_whatsapp,
     generar_mensaje_legacy,
     generar_mensaje_whatsapp,
@@ -615,7 +620,15 @@ class SolicitudEspecialPublicaSerializer(serializers.ModelSerializer):
 class PedidoWhatsAppProductoInputSerializer(serializers.Serializer):
     producto_id = serializers.IntegerField(min_value=1)
     variante_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    cantidad = serializers.IntegerField(min_value=1, max_value=99)
+    cantidad = serializers.IntegerField(
+        min_value=1,
+        max_value=MAX_CANTIDAD_PEDIDO_WHATSAPP,
+    )
+    opciones = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        default=list,
+    )
 
 
 class PedidoWhatsAppCreateSerializer(serializers.Serializer):
@@ -682,10 +695,15 @@ class PedidoWhatsAppCreateSerializer(serializers.Serializer):
                 "productos": "Agrega al menos un producto al pedido."
             })
 
-        snapshot, total = normalizar_productos_pedido(restaurante, productos_solicitados)
-        if snapshot is None:
+        try:
+            snapshot, total = normalizar_productos_pedido(
+                restaurante,
+                productos_solicitados,
+                max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_WHATSAPP,
+            )
+        except ProductosPedidoValidationError as exc:
             raise serializers.ValidationError({
-                "productos": "Uno o más productos no pertenecen a este restaurante o no están disponibles."
+                "productos": str(exc)
             })
 
         data["productos_snapshot"] = snapshot
@@ -806,10 +824,15 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
         if not productos_solicitados:
             raise serializers.ValidationError({"productos": "Agrega al menos un producto."})
 
-        snapshot, total = normalizar_productos_pedido(restaurante, productos_solicitados)
-        if snapshot is None:
+        try:
+            snapshot, total = normalizar_productos_pedido(
+                restaurante,
+                productos_solicitados,
+                max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_WHATSAPP,
+            )
+        except ProductosPedidoValidationError as exc:
             raise serializers.ValidationError({
-                "productos": "Uno o mas productos, variantes o disponibilidades no son validos."
+                "productos": str(exc)
             })
 
         data["productos_snapshot"] = snapshot
@@ -873,6 +896,7 @@ class PedidoWhatsAppSeguimientoPublicoSerializer(serializers.ModelSerializer):
                 "cantidad": item.get("cantidad", 0),
                 "precio_unitario": item.get("precio_unitario", 0),
                 "subtotal": item.get("subtotal", 0),
+                "grupos_opciones": item.get("grupos_opciones", []),
             }
             for item in pedido.productos_snapshot or []
         ]
@@ -1046,8 +1070,16 @@ class PedidoEspecialSerializer(serializers.ModelSerializer):
 class PedidoManualItemInputSerializer(serializers.Serializer):
     producto_id = serializers.IntegerField(min_value=1)
     variante_id = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    cantidad = serializers.IntegerField(min_value=1, max_value=999)
+    cantidad = serializers.IntegerField(
+        min_value=1,
+        max_value=MAX_CANTIDAD_PEDIDO_MANUAL,
+    )
     observaciones = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True)
+    opciones = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        default=list,
+    )
 
 
 class PedidoManualItemSerializer(serializers.ModelSerializer):
@@ -1066,6 +1098,7 @@ class PedidoManualItemSerializer(serializers.ModelSerializer):
             "cantidad",
             "subtotal",
             "observaciones",
+            "opciones_snapshot",
         ]
         read_only_fields = fields
 
@@ -1183,10 +1216,74 @@ class PedidoManualSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"items": "Agrega al menos un producto al pedido."})
 
         restaurante = self.context["restaurante"]
-        snapshot, total = normalizar_productos_pedido(restaurante, items)
-        if snapshot is None:
+        try:
+            agrupar_cantidades_por_configuracion(
+                items,
+                max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_MANUAL,
+            )
+        except ProductosPedidoValidationError as exc:
+            raise serializers.ValidationError({"items": str(exc)}) from exc
+
+        items_catalogo = list(items)
+        items_historicos = []
+        if self.instance:
+            existentes = {
+                clave_configuracion_producto(
+                    item.producto_id,
+                    item.variante_id,
+                    [
+                        opcion.get("opcion_id")
+                        for grupo in (item.opciones_snapshot or [])
+                        for opcion in (grupo.get("opciones") or [])
+                        if opcion.get("opcion_id")
+                    ],
+                ): item
+                for item in self.instance.items.select_related("producto", "variante")
+                if item.producto_id
+            }
+            items_catalogo = []
+            for item in items:
+                clave = clave_configuracion_producto(
+                    item["producto_id"], item.get("variante_id"), item.get("opciones") or []
+                )
+                existente = existentes.get(clave)
+                try:
+                    normalizar_productos_pedido(
+                        restaurante,
+                        [item],
+                        max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_MANUAL,
+                    )
+                except ProductosPedidoValidationError as exc:
+                    if not existente:
+                        raise serializers.ValidationError({"items": str(exc)}) from exc
+                    cantidad = item["cantidad"]
+                    items_historicos.append({
+                        "producto": existente.producto,
+                        "variante": existente.variante,
+                        "nombre_producto": existente.nombre_producto,
+                        "variante_nombre": existente.variante_nombre,
+                        "precio_unitario": existente.precio_unitario,
+                        "cantidad": cantidad,
+                        "subtotal": existente.precio_unitario * cantidad,
+                        "observaciones": item.get("observaciones", ""),
+                        "opciones_snapshot": existente.opciones_snapshot or [],
+                    })
+                else:
+                    items_catalogo.append(item)
+
+        try:
+            snapshot, total = (
+                normalizar_productos_pedido(
+                    restaurante,
+                    items_catalogo,
+                    max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_MANUAL,
+                )
+                if items_catalogo
+                else ([], 0)
+            )
+        except ProductosPedidoValidationError as exc:
             raise serializers.ValidationError({
-                "items": "Selecciona una variante activa y valida para cada producto que la requiera."
+                "items": str(exc)
             })
 
         producto_ids = {item["producto_id"] for item in snapshot}
@@ -1195,13 +1292,22 @@ class PedidoManualSerializer(serializers.ModelSerializer):
             id__in=producto_ids,
         ).in_bulk()
         observaciones = {
-            (item["producto_id"], item.get("variante_id")): item.get("observaciones", "")
+            clave_configuracion_producto(
+                item["producto_id"],
+                item.get("variante_id"),
+                item.get("opciones") or [],
+            ): item.get("observaciones", "")
             for item in items
         }
-        items_normalizados = []
+        items_normalizados = list(items_historicos)
         for item in snapshot:
             producto_id = item["producto_id"]
             variante_id = item.get("variante_id")
+            opciones_ids = [
+                opcion["opcion_id"]
+                for grupo in item.get("grupos_opciones", [])
+                for opcion in grupo.get("opciones", [])
+            ]
             items_normalizados.append({
                 "producto": productos[producto_id],
                 "variante_id": variante_id,
@@ -1210,8 +1316,18 @@ class PedidoManualSerializer(serializers.ModelSerializer):
                 "precio_unitario": item["precio_unitario"],
                 "cantidad": item["cantidad"],
                 "subtotal": item["subtotal"],
-                "observaciones": observaciones.get((producto_id, variante_id), ""),
+                "observaciones": observaciones.get(
+                    clave_configuracion_producto(
+                        producto_id,
+                        variante_id,
+                        opciones_ids,
+                    ),
+                    "",
+                ),
+                "opciones_snapshot": item.get("grupos_opciones", []),
             })
+
+        total += sum(item["subtotal"] for item in items_historicos)
 
         data["items_normalizados"] = items_normalizados
         data["subtotal"] = total
@@ -1285,7 +1401,9 @@ class PedidoManualSeguimientoPublicoSerializer(serializers.ModelSerializer):
                 "nombre": item.nombre_producto,
                 "variante_nombre": item.variante_nombre,
                 "cantidad": item.cantidad,
+                "precio_unitario": int(item.precio_unitario),
                 "subtotal": int(item.subtotal),
+                "opciones_snapshot": item.opciones_snapshot or [],
             }
             for item in pedido.items.all()
         ]
@@ -1495,6 +1613,177 @@ class ReporteMetricaSerializer(serializers.ModelSerializer):
         return obj.generado_por.get_full_name() or obj.generado_por.username
 
 
+def validar_viabilidad_grupo_opciones(
+    *,
+    nombre,
+    minimo_selecciones,
+    obligatorio,
+    opciones_disponibles,
+    accion,
+):
+    minimo_efectivo = max(
+        int(minimo_selecciones or 0),
+        1 if obligatorio else 0,
+    )
+    if minimo_efectivo and opciones_disponibles < minimo_efectivo:
+        opciones_texto = (
+            "opcion disponible"
+            if minimo_efectivo == 1
+            else "opciones disponibles"
+        )
+        raise serializers.ValidationError({
+            "detail": (
+                f"No puedes {accion} porque el grupo {nombre} requiere al menos "
+                f"{minimo_efectivo} {opciones_texto}."
+            )
+        })
+
+
+class OpcionProductoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OpcionProducto
+        fields = [
+            "id",
+            "nombre",
+            "precio_adicional",
+            "disponible",
+            "orden",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_precio_adicional(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El precio adicional no puede ser negativo.")
+        return value
+
+    def validate_nombre(self, value):
+        nombre = value.strip()
+        if not nombre:
+            raise serializers.ValidationError("El nombre es obligatorio.")
+
+        grupo = self.context.get("grupo") or getattr(self.instance, "grupo", None)
+        if grupo:
+            duplicada = OpcionProducto.objects.filter(
+                grupo=grupo,
+                nombre__iexact=nombre,
+            )
+            if self.instance:
+                duplicada = duplicada.exclude(pk=self.instance.pk)
+            if duplicada.exists():
+                raise serializers.ValidationError(
+                    "Ya existe una opcion con este nombre en el grupo."
+                )
+        return nombre
+
+    def validate(self, data):
+        grupo = self.context.get("grupo") or getattr(self.instance, "grupo", None)
+        if (
+            self.instance
+            and grupo
+            and self.instance.disponible
+            and data.get("disponible", self.instance.disponible) is False
+        ):
+            disponibles_restantes = (
+                grupo.opciones.filter(disponible=True).count() - 1
+            )
+            validar_viabilidad_grupo_opciones(
+                nombre=grupo.nombre,
+                minimo_selecciones=grupo.minimo_selecciones,
+                obligatorio=grupo.obligatorio,
+                opciones_disponibles=disponibles_restantes,
+                accion="desactivar esta opcion",
+            )
+        return data
+
+
+class GrupoOpcionesProductoSerializer(serializers.ModelSerializer):
+    opciones = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GrupoOpcionesProducto
+        fields = [
+            "id",
+            "nombre",
+            "obligatorio",
+            "minimo_selecciones",
+            "maximo_selecciones",
+            "orden",
+            "opciones",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "opciones", "created_at", "updated_at"]
+
+    def get_opciones(self, grupo):
+        opciones = grupo.opciones.all()
+        if self.context.get("solo_opciones_disponibles"):
+            opciones = [opcion for opcion in opciones if opcion.disponible]
+        return OpcionProductoSerializer(opciones, many=True).data
+
+    def validate_nombre(self, value):
+        nombre = value.strip()
+        if not nombre:
+            raise serializers.ValidationError("El nombre es obligatorio.")
+
+        producto = self.context.get("producto") or getattr(self.instance, "producto", None)
+        if producto:
+            duplicado = GrupoOpcionesProducto.objects.filter(
+                producto=producto,
+                nombre__iexact=nombre,
+            )
+            if self.instance:
+                duplicado = duplicado.exclude(pk=self.instance.pk)
+            if duplicado.exists():
+                raise serializers.ValidationError(
+                    "Ya existe un grupo de opciones con este nombre."
+                )
+        return nombre
+
+    def validate(self, data):
+        obligatorio = data.get(
+            "obligatorio",
+            getattr(self.instance, "obligatorio", False),
+        )
+        minimo = data.get(
+            "minimo_selecciones",
+            getattr(self.instance, "minimo_selecciones", 0),
+        )
+        maximo = data.get(
+            "maximo_selecciones",
+            getattr(self.instance, "maximo_selecciones", None),
+        )
+
+        if obligatorio and minimo < 1:
+            raise serializers.ValidationError({
+                "minimo_selecciones": (
+                    "Un grupo obligatorio debe requerir al menos una seleccion."
+                )
+            })
+        if maximo is not None and maximo < minimo:
+            raise serializers.ValidationError({
+                "maximo_selecciones": (
+                    "El maximo de selecciones no puede ser menor que el minimo."
+                )
+            })
+
+        if self.instance and any(
+            campo in data
+            for campo in ["minimo_selecciones", "obligatorio"]
+        ):
+            validar_viabilidad_grupo_opciones(
+                nombre=data.get("nombre", self.instance.nombre),
+                minimo_selecciones=minimo,
+                obligatorio=obligatorio,
+                opciones_disponibles=self.instance.opciones.filter(
+                    disponible=True
+                ).count(),
+                accion="modificar este grupo",
+            )
+        return data
+
+
 class ProductoVarianteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductoVariante
@@ -1528,6 +1817,7 @@ class ProductoVarianteSerializer(serializers.ModelSerializer):
 
 class ProductoCreateSerializer(serializers.ModelSerializer):
     variantes = ProductoVarianteSerializer(many=True, read_only=True)
+    grupos_opciones = GrupoOpcionesProductoSerializer(many=True, read_only=True)
     categoria = serializers.PrimaryKeyRelatedField(
         queryset=Categoria.objects.all()
     )
@@ -1547,6 +1837,7 @@ class ProductoCreateSerializer(serializers.ModelSerializer):
             "orden",
             "fecha_creacion",
             "variantes",
+            "grupos_opciones",
         ]
 
     def validate_categoria(self, categoria):

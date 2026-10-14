@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { apiFetch } from "../Services/api";
+import PedidoOpcionesSnapshot from "../components/PedidoOpcionesSnapshot";
 import "../styles/seguimiento-pedido.css";
 
 const TRACKING_REFRESH_MS = 20000;
@@ -163,7 +164,11 @@ export default function SeguimientoPedidoPage() {
           <h2>Productos</h2>
           {(pedido.items || []).map((item, index) => (
             <div className="tracking-item" key={`${item.nombre}-${index}`}>
-              <span>{item.cantidad} x {item.nombre}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}</span>
+              <span>
+                {item.cantidad} x {item.nombre}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}
+                <PedidoOpcionesSnapshot item={item} />
+                <small>Precio unitario: {formatearMoneda(item.precio_unitario)}</small>
+              </span>
               <strong>{formatearMoneda(item.subtotal)}</strong>
             </div>
           ))}

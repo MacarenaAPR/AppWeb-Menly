@@ -251,6 +251,109 @@ class ProductoVariante(models.Model):
     def __str__(self):
         return f"{self.producto.nombre} - {self.nombre}"
 
+
+class GrupoOpcionesProducto(models.Model):
+    producto = models.ForeignKey(
+        Producto,
+        on_delete=models.CASCADE,
+        related_name="grupos_opciones",
+    )
+    nombre = models.CharField(max_length=100)
+    obligatorio = models.BooleanField(default=False)
+    minimo_selecciones = models.PositiveIntegerField(default=0)
+    maximo_selecciones = models.PositiveIntegerField(null=True, blank=True)
+    orden = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["orden", "id"]
+        indexes = [
+            models.Index(fields=["producto", "orden"], name="grpopc_prod_orden_idx"),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(minimo_selecciones__gte=0),
+                name="grpopc_min_no_negativo",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(maximo_selecciones__isnull=True)
+                    | models.Q(maximo_selecciones__gte=models.F("minimo_selecciones"))
+                ),
+                name="grpopc_max_gte_min",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(obligatorio=False) | models.Q(minimo_selecciones__gte=1),
+                name="grpopc_oblig_min_uno",
+            ),
+            models.UniqueConstraint(
+                fields=["producto", "nombre"],
+                name="unique_grupo_opcion_por_producto",
+            ),
+        ]
+
+    def clean(self):
+        errors = {}
+        if self.obligatorio and self.minimo_selecciones < 1:
+            errors["minimo_selecciones"] = (
+                "Un grupo obligatorio debe requerir al menos una seleccion."
+            )
+        if (
+            self.maximo_selecciones is not None
+            and self.maximo_selecciones < self.minimo_selecciones
+        ):
+            errors["maximo_selecciones"] = (
+                "El maximo de selecciones no puede ser menor que el minimo."
+            )
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.producto.nombre} - {self.nombre}"
+
+
+class OpcionProducto(models.Model):
+    grupo = models.ForeignKey(
+        GrupoOpcionesProducto,
+        on_delete=models.CASCADE,
+        related_name="opciones",
+    )
+    nombre = models.CharField(max_length=100)
+    precio_adicional = models.DecimalField(max_digits=8, decimal_places=0, default=0)
+    disponible = models.BooleanField(default=True)
+    orden = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["orden", "id"]
+        indexes = [
+            models.Index(
+                fields=["grupo", "disponible", "orden"],
+                name="opprod_grup_disp_ord_idx",
+            ),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(precio_adicional__gte=0),
+                name="opprod_precio_no_negativo",
+            ),
+            models.UniqueConstraint(
+                fields=["grupo", "nombre"],
+                name="unique_opcion_por_grupo",
+            ),
+        ]
+
+    def clean(self):
+        if self.precio_adicional < 0:
+            raise ValidationError({
+                "precio_adicional": "El precio adicional no puede ser negativo."
+            })
+
+    def __str__(self):
+        return f"{self.grupo.producto.nombre} - {self.grupo.nombre}: {self.nombre}"
+
 class UsuarioRestaurante(models.Model):
 
     user = models.OneToOneField(
@@ -868,6 +971,7 @@ class PedidoManualItem(models.Model):
     cantidad = models.PositiveIntegerField()
     subtotal = models.DecimalField(max_digits=10, decimal_places=0)
     observaciones = models.TextField(blank=True)
+    opciones_snapshot = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ["id"]

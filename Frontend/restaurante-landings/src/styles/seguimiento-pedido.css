@@ -141,6 +141,25 @@
   min-width: 0;
 }
 
+.tracking-item span > small {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+}
+
+.tracking-item-options {
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
+}
+
+.tracking-item-options p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
 .tracking-note {
   margin: 20px 0 0;
   padding: 12px;

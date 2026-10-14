@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import MainMenu from "./Main-menu";
 import "../styles/AddProductos.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import { authFetch } from "../api";
 import ProductoVariantesEditor from "./ProductoVariantesEditor";
+import ProductoOpcionesEditor from "./ProductoOpcionesEditor";
 
 
 export default function EditProductos() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { slug, id } = useParams();
   const [productos, setProductos] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingDatos, setLoadingDatos] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(location.state?.personalizacionError || "");
   const [variantes, setVariantes] = useState([]);
   const [variantesIniciales, setVariantesIniciales] = useState([]);
   const [form, setForm] = useState({
@@ -350,6 +352,8 @@ export default function EditProductos() {
                 </div>
 
                 <ProductoVariantesEditor variantes={variantes} onChange={setVariantes} />
+
+                <ProductoOpcionesEditor productoId={Number(id)} />
 
                 <div className="form mt-4" >
                   <p className="info-header">

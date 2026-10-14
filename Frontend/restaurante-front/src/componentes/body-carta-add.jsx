@@ -4,8 +4,10 @@ import MainMenu from "./Main-menu";
 import "../styles/AddProductos.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import { authFetch } from "../api";
+import { authFetch, readJsonResponse } from "../api";
 import ProductoVariantesEditor from "./ProductoVariantesEditor";
+import ProductoOpcionesEditor from "./ProductoOpcionesEditor";
+import { crearPersonalizacionProducto } from "../api/productoOpciones";
 
 export default function AddProductos() {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ export default function AddProductos() {
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [error, setError] = useState("");
   const [variantes, setVariantes] = useState([]);
+  const [gruposOpciones, setGruposOpciones] = useState([]);
 
   const [form, setForm] = useState({
     restaurante: "",
@@ -89,13 +92,14 @@ export default function AddProductos() {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error("No se pudo guardar el producto");
-      }
-
-      const producto = await response.json();
+      const producto = await readJsonResponse(
+        response,
+        "/mi-restaurante/productos/agregar/",
+        "No se pudo guardar el producto",
+      );
       for (const variante of variantes) {
-        const varianteResponse = await authFetch(`/mi-restaurante/productos/${producto.id}/variantes/`, {
+        const varianteEndpoint = `/mi-restaurante/productos/${producto.id}/variantes/`;
+        const varianteResponse = await authFetch(varianteEndpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -105,12 +109,26 @@ export default function AddProductos() {
             orden: Number(variante.orden) || 0,
           }),
         });
-        if (!varianteResponse.ok) throw new Error("No se pudo guardar una variante");
+        await readJsonResponse(varianteResponse, varianteEndpoint, "No se pudo guardar una variante");
+      }
+
+      try {
+        await crearPersonalizacionProducto(producto.id, gruposOpciones);
+      } catch (personalizacionError) {
+        navigate(`/carta-productos/${slug}/editar/${producto.id}`, {
+          replace: true,
+          state: {
+            personalizacionError:
+              `El producto fue creado, pero no se pudo completar su personalización: ${personalizacionError.message} ` +
+              "Los datos guardados se conservaron. Revisa los grupos y vuelve a intentarlo.",
+          },
+        });
+        return;
       }
 
       navigate(`/carta-productos/${slug}`);
-    } catch {
-      setError("Error al guardar el producto");
+    } catch (requestError) {
+      setError(requestError.message || "Error al guardar el producto");
     } finally {
       setLoading(false);
     }
@@ -282,6 +300,8 @@ export default function AddProductos() {
                 </div>
 
                 <ProductoVariantesEditor variantes={variantes} onChange={setVariantes} />
+
+                <ProductoOpcionesEditor grupos={gruposOpciones} onChange={setGruposOpciones} />
 
                 <div className="form mt-4" >
                   <p className="info-header">

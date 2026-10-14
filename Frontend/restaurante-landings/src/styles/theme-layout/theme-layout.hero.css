@@ -218,6 +218,7 @@
   width: clamp(96px, 8vw, 148px);
   height: clamp(82px, 7vw, 132px);
   object-fit: contain;
+  object-position: center;
   filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.7));
 }
 

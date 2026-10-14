@@ -182,7 +182,8 @@
 .logo-box img {
   width: 160px;
   height: 160px;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   border-radius: 12px;
   border: 1px solid #243541;
   background: #071016;

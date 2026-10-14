@@ -90,6 +90,25 @@
 .cart-item h3 {
   font-size: 1rem
 }
+.cart-item-detail {
+  display: grid;
+  min-width: 0;
+  gap: 4px
+}
+.cart-item .cart-item-customization {
+  color: var(--color-text-secondary);
+  font-size: .8rem;
+  line-height: 1.4
+}
+.cart-item .cart-item-customization strong {
+  color: var(--color-text-primary);
+  font-size: inherit
+}
+.cart-item .cart-item-unit-price {
+  margin-top: 3px;
+  color: var(--color-text-primary);
+  font-weight: 800
+}
 .cart-item p {
   color: var(--color-text-secondary);
   font-size: 0.86rem

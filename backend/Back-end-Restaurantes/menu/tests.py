@@ -13,14 +13,21 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from django.db import close_old_connections
 
-from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, HistorialEstadoPedidoWhatsApp, HistorialEstadoPedidoManual, HistorialEstadoPedidoEspecial, PedidoEspecial, PedidoManual, RestaurantePedidoSecuencia, ActivacionCocina, SesionCocina, Plan
+from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, GrupoOpcionesProducto, OpcionProducto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, HistorialEstadoPedidoWhatsApp, HistorialEstadoPedidoManual, HistorialEstadoPedidoEspecial, PedidoEspecial, PedidoManual, PedidoManualItem, RestaurantePedidoSecuencia, ActivacionCocina, SesionCocina, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
 from .cache_utils import menu_cache_key
 from .utils import get_slug_from_host, validar_horario_reserva
 from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
 from .services.estados_pedidos import TransicionEstadoInvalida, cambiar_estado_pedido
 from .services.cocina import obtener_comandas_activas
-from .services.pedidos_whatsapp import generar_mensaje_whatsapp
+from .services.pedidos_whatsapp import (
+    MAX_CANTIDAD_PEDIDO_MANUAL,
+    MAX_CANTIDAD_PEDIDO_WHATSAPP,
+    ProductosPedidoValidationError,
+    calcular_hash_pedido_publico,
+    generar_mensaje_whatsapp,
+    normalizar_productos_pedido,
+)
 from .services.metricas.pedidos import pedidos_manuales_activos, pedidos_manuales_finalizados
 from .serializers import PedidoWhatsAppDashboardSerializer
 from django.core.cache import cache
@@ -3652,9 +3659,14 @@ class SeguridadCriticaTests(BaseTestCase):
                 {
                     "producto_id": self.producto.id,
                     "nombre": "Coca Cola",
+                    "variante_id": None,
+                    "variante_nombre": "",
+                    "precio_base": 1500,
+                    "opciones_total": 0,
                     "precio_unitario": 1500,
                     "cantidad": 2,
                     "subtotal": 3000,
+                    "grupos_opciones": [],
                 }
             ],
         )
@@ -5713,4 +5725,1088 @@ class MetodosPagoPedidosTests(BaseTestCase):
         self.assertIn("al menos un metodo", response.data["error"])
 
 
-# Create your tests here.
+class ProductoOpcionesBackendTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.dueno)
+        self.grupos_url = (
+            f"/api/mi-restaurante/productos/{self.producto.id}/grupos-opciones/"
+        )
+
+    def crear_grupo(self, **overrides):
+        payload = {
+            "nombre": "Proteina",
+            "obligatorio": True,
+            "minimo_selecciones": 1,
+            "maximo_selecciones": 2,
+            "orden": 1,
+        }
+        payload.update(overrides)
+        return self.client.post(self.grupos_url, payload, format="json")
+
+    def crear_opcion_api(self, grupo_id, nombre, disponible=True):
+        return self.client.post(
+            f"{self.grupos_url}{grupo_id}/opciones/",
+            {
+                "nombre": nombre,
+                "precio_adicional": 0,
+                "disponible": disponible,
+                "orden": 0,
+            },
+            format="json",
+        )
+
+    def test_crud_grupos_y_opciones_con_validaciones(self):
+        grupo_response = self.crear_grupo(
+            obligatorio=False,
+            minimo_selecciones=0,
+        )
+        self.assertEqual(grupo_response.status_code, status.HTTP_201_CREATED)
+        grupo_id = grupo_response.data["id"]
+
+        opciones_url = f"{self.grupos_url}{grupo_id}/opciones/"
+        opcion_response = self.client.post(
+            opciones_url,
+            {
+                "nombre": "Pollo",
+                "precio_adicional": 1500,
+                "disponible": True,
+                "orden": 1,
+            },
+            format="json",
+        )
+        self.assertEqual(opcion_response.status_code, status.HTTP_201_CREATED)
+        opcion_id = opcion_response.data["id"]
+
+        negativa = self.client.post(
+            opciones_url,
+            {"nombre": "Invalida", "precio_adicional": -1},
+            format="json",
+        )
+        self.assertEqual(negativa.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("precio_adicional", negativa.data)
+
+        desactivar = self.client.patch(
+            f"{opciones_url}{opcion_id}/",
+            {"disponible": False},
+            format="json",
+        )
+        self.assertEqual(desactivar.status_code, status.HTTP_200_OK)
+        self.assertFalse(desactivar.data["disponible"])
+
+        detalle_grupo = self.client.get(f"{self.grupos_url}{grupo_id}/")
+        self.assertEqual(detalle_grupo.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(detalle_grupo.data["opciones"]), 1)
+
+        eliminar_opcion = self.client.delete(f"{opciones_url}{opcion_id}/")
+        self.assertEqual(eliminar_opcion.status_code, status.HTTP_204_NO_CONTENT)
+        eliminar_grupo = self.client.delete(f"{self.grupos_url}{grupo_id}/")
+        self.assertEqual(eliminar_grupo.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_desactivar_opcion_permitido_si_quedan_suficientes_disponibles(self):
+        grupo = self.crear_grupo(minimo_selecciones=2, maximo_selecciones=3)
+        grupo_id = grupo.data["id"]
+        opciones = [
+            self.crear_opcion_api(grupo_id, nombre).data
+            for nombre in ["Carne", "Pollo", "Camaron"]
+        ]
+
+        response = self.client.patch(
+            f"{self.grupos_url}{grupo_id}/opciones/{opciones[-1]['id']}/",
+            {"disponible": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["disponible"])
+
+    def test_desactivar_opcion_rechazado_si_deja_grupo_inviable(self):
+        grupo = self.crear_grupo(minimo_selecciones=2, maximo_selecciones=2)
+        grupo_id = grupo.data["id"]
+        self.crear_opcion_api(grupo_id, "Carne")
+        pollo = self.crear_opcion_api(grupo_id, "Pollo").data
+
+        response = self.client.patch(
+            f"{self.grupos_url}{grupo_id}/opciones/{pollo['id']}/",
+            {"disponible": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            str(response.data["detail"][0]),
+            "No puedes desactivar esta opcion porque el grupo Proteina requiere "
+            "al menos 2 opciones disponibles.",
+        )
+        self.assertTrue(OpcionProducto.objects.get(pk=pollo["id"]).disponible)
+
+    def test_eliminar_opcion_rechazado_si_deja_grupo_inviable(self):
+        grupo = self.crear_grupo(minimo_selecciones=2, maximo_selecciones=2)
+        grupo_id = grupo.data["id"]
+        self.crear_opcion_api(grupo_id, "Carne")
+        pollo = self.crear_opcion_api(grupo_id, "Pollo").data
+
+        response = self.client.delete(
+            f"{self.grupos_url}{grupo_id}/opciones/{pollo['id']}/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(
+            "requiere al menos 2 opciones disponibles",
+            str(response.data["detail"]),
+        )
+        self.assertTrue(OpcionProducto.objects.filter(pk=pollo["id"]).exists())
+
+    def test_reducir_minimo_permite_desactivar_opcion(self):
+        grupo = self.crear_grupo(minimo_selecciones=2, maximo_selecciones=2)
+        grupo_id = grupo.data["id"]
+        self.crear_opcion_api(grupo_id, "Carne")
+        pollo = self.crear_opcion_api(grupo_id, "Pollo").data
+
+        reducir = self.client.patch(
+            f"{self.grupos_url}{grupo_id}/",
+            {"minimo_selecciones": 1},
+            format="json",
+        )
+        desactivar = self.client.patch(
+            f"{self.grupos_url}{grupo_id}/opciones/{pollo['id']}/",
+            {"disponible": False},
+            format="json",
+        )
+
+        self.assertEqual(reducir.status_code, status.HTTP_200_OK)
+        self.assertEqual(desactivar.status_code, status.HTTP_200_OK)
+
+    def test_grupo_opcional_sin_minimo_permite_desactivar_y_eliminar(self):
+        grupo = self.crear_grupo(
+            obligatorio=False,
+            minimo_selecciones=0,
+            maximo_selecciones=1,
+        )
+        grupo_id = grupo.data["id"]
+        opcion = self.crear_opcion_api(grupo_id, "Sin cebolla").data
+        opcion_url = f"{self.grupos_url}{grupo_id}/opciones/{opcion['id']}/"
+
+        desactivar = self.client.patch(
+            opcion_url,
+            {"disponible": False},
+            format="json",
+        )
+        eliminar = self.client.delete(opcion_url)
+
+        self.assertEqual(desactivar.status_code, status.HTTP_200_OK)
+        self.assertEqual(eliminar.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_no_permite_aumentar_minimo_sobre_opciones_disponibles(self):
+        grupo = self.crear_grupo(minimo_selecciones=1, maximo_selecciones=3)
+        grupo_id = grupo.data["id"]
+        self.crear_opcion_api(grupo_id, "Carne")
+
+        response = self.client.patch(
+            f"{self.grupos_url}{grupo_id}/",
+            {"minimo_selecciones": 2},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(
+            "requiere al menos 2 opciones disponibles",
+            str(response.data["detail"][0]),
+        )
+
+    def test_no_permite_hacer_obligatorio_un_grupo_vacio(self):
+        grupo = self.crear_grupo(
+            obligatorio=False,
+            minimo_selecciones=0,
+            maximo_selecciones=1,
+        )
+
+        response = self.client.patch(
+            f"{self.grupos_url}{grupo.data['id']}/",
+            {"obligatorio": True, "minimo_selecciones": 1},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(
+            "requiere al menos 1 opcion disponible",
+            str(response.data["detail"][0]),
+        )
+
+    def test_creacion_progresiva_de_grupo_y_opciones_sigue_permitida(self):
+        grupo = self.crear_grupo(minimo_selecciones=2, maximo_selecciones=2)
+        self.assertEqual(grupo.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(grupo.data["opciones"], [])
+
+        primera = self.crear_opcion_api(grupo.data["id"], "Carne")
+        segunda = self.crear_opcion_api(grupo.data["id"], "Pollo")
+
+        self.assertEqual(primera.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(segunda.status_code, status.HTTP_201_CREATED)
+
+    def test_valida_obligatorio_minimo_maximo_y_nombres_duplicados(self):
+        obligatorio_sin_minimo = self.crear_grupo(minimo_selecciones=0)
+        self.assertEqual(obligatorio_sin_minimo.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("minimo_selecciones", obligatorio_sin_minimo.data)
+
+        maximo_menor = self.crear_grupo(
+            nombre="Rellenos",
+            minimo_selecciones=2,
+            maximo_selecciones=1,
+        )
+        self.assertEqual(maximo_menor.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("maximo_selecciones", maximo_menor.data)
+
+        creado = self.crear_grupo()
+        self.assertEqual(creado.status_code, status.HTTP_201_CREATED)
+        duplicado = self.crear_grupo(nombre="proteina")
+        self.assertEqual(duplicado.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("nombre", duplicado.data)
+
+    def test_crud_aisla_restaurante_producto_grupo_y_opcion(self):
+        grupo = GrupoOpcionesProducto.objects.create(
+            producto=self.producto,
+            nombre="Extras",
+            obligatorio=False,
+            minimo_selecciones=0,
+            maximo_selecciones=None,
+        )
+        opcion = OpcionProducto.objects.create(
+            grupo=grupo,
+            nombre="Queso",
+            precio_adicional=1000,
+        )
+        producto_otro = Producto.objects.create(
+            restaurante=self.otro_restaurante,
+            categoria=self.categoria_otro_restaurante,
+            nombre="Producto externo",
+            precio=5000,
+            orden=1,
+        )
+
+        usuario_otro = User.objects.create_user(
+            username="opciones-otro@test.com",
+            password="test",
+        )
+        UsuarioRestaurante.objects.create(
+            user=usuario_otro,
+            restaurante=self.otro_restaurante,
+            rol="dueno",
+            activo=True,
+        )
+        self.client.force_authenticate(user=usuario_otro)
+
+        grupo_ajeno = self.client.patch(
+            f"{self.grupos_url}{grupo.id}/",
+            {"nombre": "Alterado"},
+            format="json",
+        )
+        self.assertEqual(grupo_ajeno.status_code, status.HTTP_404_NOT_FOUND)
+
+        opcion_producto_incorrecto = self.client.patch(
+            (
+                f"/api/mi-restaurante/productos/{producto_otro.id}/grupos-opciones/"
+                f"{grupo.id}/opciones/{opcion.id}/"
+            ),
+            {"precio_adicional": 1},
+            format="json",
+        )
+        self.assertEqual(
+            opcion_producto_incorrecto.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        opcion.refresh_from_db()
+        self.assertEqual(int(opcion.precio_adicional), 1000)
+
+    def test_menu_publico_filtra_opciones_no_disponibles_y_producto_antiguo_usa_lista_vacia(self):
+        grupo = GrupoOpcionesProducto.objects.create(
+            producto=self.producto,
+            nombre="Extras",
+            minimo_selecciones=0,
+            maximo_selecciones=2,
+        )
+        OpcionProducto.objects.create(
+            grupo=grupo,
+            nombre="Queso",
+            precio_adicional=1000,
+            disponible=True,
+        )
+        OpcionProducto.objects.create(
+            grupo=grupo,
+            nombre="Agotada",
+            precio_adicional=2000,
+            disponible=False,
+        )
+        producto_antiguo = Producto.objects.create(
+            restaurante=self.restaurante,
+            categoria=self.categoria,
+            nombre="Producto antiguo",
+            precio=2000,
+            orden=2,
+        )
+
+        response = self.client.get(f"/api/menu/{self.restaurante.slug}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        productos = response.json()["categorias"][0]["productos"]
+        producto_json = next(item for item in productos if item["id"] == self.producto.id)
+        antiguo_json = next(item for item in productos if item["id"] == producto_antiguo.id)
+
+        self.assertEqual(len(producto_json["grupos_opciones"]), 1)
+        self.assertEqual(
+            [item["nombre"] for item in producto_json["grupos_opciones"][0]["opciones"]],
+            ["Queso"],
+        )
+        self.assertEqual(antiguo_json["grupos_opciones"], [])
+
+        privado = self.client.get("/api/mi-restaurante/")
+        privado_producto = next(
+            item for item in privado.data["productos"] if item["id"] == self.producto.id
+        )
+        self.assertEqual(len(privado_producto["grupos_opciones"][0]["opciones"]), 2)
+
+    def test_cambios_de_grupos_y_opciones_invalidan_cache_menu(self):
+        cache.set(menu_cache_key(self.restaurante.slug), {"cached": True}, 300)
+        grupo = GrupoOpcionesProducto.objects.create(
+            producto=self.producto,
+            nombre="Salsas",
+        )
+        self.assertIsNone(cache.get(menu_cache_key(self.restaurante.slug)))
+
+        cache.set(menu_cache_key(self.restaurante.slug), {"cached": True}, 300)
+        opcion = OpcionProducto.objects.create(
+            grupo=grupo,
+            nombre="Mostaza",
+            precio_adicional=0,
+        )
+        self.assertIsNone(cache.get(menu_cache_key(self.restaurante.slug)))
+
+        cache.set(menu_cache_key(self.restaurante.slug), {"cached": True}, 300)
+        opcion.disponible = False
+        opcion.save(update_fields=["disponible"])
+        self.assertIsNone(cache.get(menu_cache_key(self.restaurante.slug)))
+
+        cache.set(menu_cache_key(self.restaurante.slug), {"cached": True}, 300)
+        opcion.delete()
+        self.assertIsNone(cache.get(menu_cache_key(self.restaurante.slug)))
+
+    def test_pedido_manual_item_existente_usa_snapshot_vacio_por_defecto(self):
+        pedido = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=999,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+        )
+        item = PedidoManualItem.objects.create(
+            pedido=pedido,
+            producto=self.producto,
+            nombre_producto=self.producto.nombre,
+            precio_unitario=1500,
+            cantidad=1,
+            subtotal=1500,
+        )
+        self.assertEqual(item.opciones_snapshot, [])
+
+
+class PersonalizacionPedidosBackendTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.whatsapp = "56999999999"
+        self.restaurante.pedidos_pos = True
+        self.restaurante.save(update_fields=[
+            "carrito_whatsapp_activo",
+            "whatsapp",
+            "pedidos_pos",
+        ])
+
+    def crear_grupo(
+        self,
+        producto=None,
+        nombre="Proteinas",
+        obligatorio=True,
+        minimo=1,
+        maximo=2,
+        orden=1,
+    ):
+        return GrupoOpcionesProducto.objects.create(
+            producto=producto or self.producto,
+            nombre=nombre,
+            obligatorio=obligatorio,
+            minimo_selecciones=minimo,
+            maximo_selecciones=maximo,
+            orden=orden,
+        )
+
+    def crear_opcion(
+        self,
+        grupo,
+        nombre,
+        precio=0,
+        disponible=True,
+        orden=0,
+    ):
+        return OpcionProducto.objects.create(
+            grupo=grupo,
+            nombre=nombre,
+            precio_adicional=precio,
+            disponible=disponible,
+            orden=orden,
+        )
+
+    def linea(self, producto=None, opciones=None, variante=None, cantidad=1):
+        return {
+            "producto_id": (producto or self.producto).id,
+            "variante_id": variante.id if variante else None,
+            "cantidad": cantidad,
+            "opciones": opciones or [],
+        }
+
+    def payload_whatsapp(self, lineas):
+        return {
+            "nombre_cliente": "Cliente",
+            "telefono_cliente": "912345678",
+            "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            "productos": lineas,
+        }
+
+    def crear_pedido_whatsapp(self, lineas, headers=None):
+        return self.client.post(
+            f"/api/pedidos-whatsapp/{self.restaurante.slug}/",
+            self.payload_whatsapp(lineas),
+            format="json",
+            **(headers or {}),
+        )
+
+    def test_producto_sin_opciones_mantiene_compatibilidad(self):
+        snapshot, total = normalizar_productos_pedido(
+            self.restaurante,
+            [self.linea(cantidad=2)],
+        )
+        self.assertEqual(total, 3000)
+        self.assertEqual(snapshot[0]["grupos_opciones"], [])
+        self.assertEqual(snapshot[0]["precio_base"], 1500)
+        self.assertEqual(snapshot[0]["opciones_total"], 0)
+
+    def test_grupo_obligatorio_rechaza_falta_de_seleccion(self):
+        self.crear_grupo()
+        with self.assertRaisesMessage(
+            ProductosPedidoValidationError,
+            "Debes seleccionar al menos 1 opcion(es) de Proteinas.",
+        ):
+            normalizar_productos_pedido(self.restaurante, [self.linea()])
+
+    def test_minimo_valido(self):
+        grupo = self.crear_grupo(minimo=2, maximo=3)
+        pollo = self.crear_opcion(grupo, "Pollo")
+        carne = self.crear_opcion(grupo, "Carne")
+        snapshot, _ = normalizar_productos_pedido(
+            self.restaurante,
+            [self.linea(opciones=[pollo.id, carne.id])],
+        )
+        self.assertEqual(len(snapshot[0]["grupos_opciones"][0]["opciones"]), 2)
+
+    def test_maximo_valido(self):
+        grupo = self.crear_grupo(maximo=2)
+        pollo = self.crear_opcion(grupo, "Pollo")
+        carne = self.crear_opcion(grupo, "Carne")
+        snapshot, _ = normalizar_productos_pedido(
+            self.restaurante,
+            [self.linea(opciones=[pollo.id, carne.id])],
+        )
+        self.assertEqual(len(snapshot), 1)
+
+    def test_exceso_del_maximo_es_rechazado(self):
+        grupo = self.crear_grupo(maximo=2)
+        opciones = [
+            self.crear_opcion(grupo, "Pollo"),
+            self.crear_opcion(grupo, "Carne"),
+            self.crear_opcion(grupo, "Camaron"),
+        ]
+        with self.assertRaisesMessage(
+            ProductosPedidoValidationError,
+            "Puedes seleccionar como maximo 2 opcion(es) de Proteinas.",
+        ):
+            normalizar_productos_pedido(
+                self.restaurante,
+                [self.linea(opciones=[opcion.id for opcion in opciones])],
+            )
+
+    def test_grupo_opcional_puede_quedar_vacio(self):
+        self.crear_grupo(
+            nombre="Salsas",
+            obligatorio=False,
+            minimo=0,
+            maximo=3,
+        )
+        snapshot, total = normalizar_productos_pedido(
+            self.restaurante,
+            [self.linea()],
+        )
+        self.assertEqual(total, 1500)
+        self.assertEqual(snapshot[0]["grupos_opciones"], [])
+
+    def test_opcion_con_precio_adicional(self):
+        grupo = self.crear_grupo()
+        queso = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        snapshot, total = normalizar_productos_pedido(
+            self.restaurante,
+            [self.linea(opciones=[queso.id])],
+        )
+        self.assertEqual(snapshot[0]["opciones_total"], 1500)
+        self.assertEqual(snapshot[0]["precio_unitario"], 3000)
+        self.assertEqual(total, 3000)
+
+    def test_varias_opciones_suman_sus_precios(self):
+        grupo = self.crear_grupo()
+        queso = self.crear_opcion(grupo, "Queso", precio=1500)
+        camaron = self.crear_opcion(grupo, "Camaron", precio=2000)
+        snapshot, total = normalizar_productos_pedido(
+            self.restaurante,
+            [self.linea(opciones=[queso.id, camaron.id], cantidad=2)],
+        )
+        self.assertEqual(snapshot[0]["opciones_total"], 3500)
+        self.assertEqual(snapshot[0]["precio_unitario"], 5000)
+        self.assertEqual(total, 10000)
+
+    def test_producto_con_variante_y_opciones_respeta_precio_variante(self):
+        variante = ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="XL",
+            precio=9990,
+        )
+        grupo = self.crear_grupo()
+        queso = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        snapshot, total = normalizar_productos_pedido(
+            self.restaurante,
+            [self.linea(variante=variante, opciones=[queso.id])],
+        )
+        self.assertEqual(snapshot[0]["precio_base"], 9990)
+        self.assertEqual(snapshot[0]["precio_unitario"], 11490)
+        self.assertEqual(total, 11490)
+
+    def test_opcion_desactivada_es_rechazada(self):
+        grupo = self.crear_grupo()
+        opcion = self.crear_opcion(grupo, "Agotada", disponible=False)
+        with self.assertRaisesMessage(
+            ProductosPedidoValidationError,
+            "La opcion Agotada no esta disponible.",
+        ):
+            normalizar_productos_pedido(
+                self.restaurante,
+                [self.linea(opciones=[opcion.id])],
+            )
+
+    def test_opcion_de_otro_producto_es_rechazada(self):
+        otro_producto = Producto.objects.create(
+            restaurante=self.restaurante,
+            categoria=self.categoria,
+            nombre="Otro producto",
+            precio=2000,
+            orden=2,
+        )
+        otro_grupo = self.crear_grupo(producto=otro_producto)
+        opcion = self.crear_opcion(otro_grupo, "Ajena")
+        with self.assertRaisesMessage(
+            ProductosPedidoValidationError,
+            "La opcion seleccionada no pertenece a este producto.",
+        ):
+            normalizar_productos_pedido(
+                self.restaurante,
+                [self.linea(opciones=[opcion.id])],
+            )
+
+    def test_opcion_de_otro_restaurante_es_rechazada(self):
+        producto_externo = Producto.objects.create(
+            restaurante=self.otro_restaurante,
+            categoria=self.categoria_otro_restaurante,
+            nombre="Externo",
+            precio=2000,
+            orden=1,
+        )
+        grupo_externo = self.crear_grupo(producto=producto_externo)
+        opcion = self.crear_opcion(grupo_externo, "Externa")
+        with self.assertRaisesMessage(
+            ProductosPedidoValidationError,
+            "La opcion seleccionada no pertenece a este producto.",
+        ):
+            normalizar_productos_pedido(
+                self.restaurante,
+                [self.linea(opciones=[opcion.id])],
+            )
+
+    def test_ids_de_opciones_duplicados_son_rechazados(self):
+        grupo = self.crear_grupo()
+        opcion = self.crear_opcion(grupo, "Pollo")
+        with self.assertRaisesMessage(
+            ProductosPedidoValidationError,
+            "No puedes seleccionar la misma opcion mas de una vez.",
+        ):
+            normalizar_productos_pedido(
+                self.restaurante,
+                [self.linea(opciones=[opcion.id, opcion.id])],
+            )
+
+    def test_configuraciones_diferentes_no_se_fusionan(self):
+        grupo = self.crear_grupo(maximo=1)
+        pollo = self.crear_opcion(grupo, "Pollo")
+        carne = self.crear_opcion(grupo, "Carne")
+        snapshot, _ = normalizar_productos_pedido(
+            self.restaurante,
+            [
+                self.linea(opciones=[pollo.id]),
+                self.linea(opciones=[carne.id]),
+            ],
+        )
+        self.assertEqual(len(snapshot), 2)
+
+    def test_misma_configuracion_en_otro_orden_se_fusiona(self):
+        grupo = self.crear_grupo(maximo=2)
+        pollo = self.crear_opcion(grupo, "Pollo")
+        carne = self.crear_opcion(grupo, "Carne")
+        snapshot, _ = normalizar_productos_pedido(
+            self.restaurante,
+            [
+                self.linea(opciones=[pollo.id, carne.id], cantidad=1),
+                self.linea(opciones=[carne.id, pollo.id], cantidad=2),
+            ],
+        )
+        self.assertEqual(len(snapshot), 1)
+        self.assertEqual(snapshot[0]["cantidad"], 3)
+
+    def test_cantidad_whatsapp_en_el_maximo_es_valida(self):
+        response = self.crear_pedido_whatsapp([
+            self.linea(cantidad=MAX_CANTIDAD_PEDIDO_WHATSAPP)
+        ])
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_lineas_identicas_dentro_del_maximo_se_fusionan(self):
+        response = self.crear_pedido_whatsapp([
+            self.linea(cantidad=40),
+            self.linea(cantidad=50),
+        ])
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoWhatsApp.objects.get(pk=response.data["pedido_id"])
+        self.assertEqual(len(pedido.productos_snapshot), 1)
+        self.assertEqual(pedido.productos_snapshot[0]["cantidad"], 90)
+
+    def test_lineas_identicas_sobre_maximo_whatsapp_son_rechazadas(self):
+        response = self.crear_pedido_whatsapp([
+            self.linea(cantidad=50),
+            self.linea(cantidad=50),
+        ])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(
+            "no puede superar 99",
+            str(response.data["productos"][0]),
+        )
+
+    def test_opciones_en_distinto_orden_tambien_suman_antes_del_limite(self):
+        grupo = self.crear_grupo(minimo=2, maximo=2)
+        pollo = self.crear_opcion(grupo, "Pollo")
+        carne = self.crear_opcion(grupo, "Carne")
+
+        response = self.crear_pedido_whatsapp([
+            self.linea(opciones=[pollo.id, carne.id], cantidad=50),
+            self.linea(opciones=[carne.id, pollo.id], cantidad=50),
+        ])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("no puede superar 99", str(response.data["productos"][0]))
+
+    def test_configuraciones_diferentes_tienen_limites_independientes(self):
+        grupo = self.crear_grupo(maximo=1)
+        pollo = self.crear_opcion(grupo, "Pollo")
+        carne = self.crear_opcion(grupo, "Carne")
+
+        snapshot, _ = normalizar_productos_pedido(
+            self.restaurante,
+            [
+                self.linea(opciones=[pollo.id], cantidad=99),
+                self.linea(opciones=[carne.id], cantidad=99),
+            ],
+        )
+
+        self.assertEqual(len(snapshot), 2)
+        self.assertEqual([item["cantidad"] for item in snapshot], [99, 99])
+
+    def test_variantes_diferentes_tienen_limites_independientes(self):
+        normal = ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="Normal",
+            precio=1500,
+        )
+        xl = ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="XL",
+            precio=2500,
+        )
+
+        snapshot, _ = normalizar_productos_pedido(
+            self.restaurante,
+            [
+                self.linea(variante=normal, cantidad=99),
+                self.linea(variante=xl, cantidad=99),
+            ],
+        )
+
+        self.assertEqual(len(snapshot), 2)
+
+    def test_productos_diferentes_tienen_limites_independientes(self):
+        otro_producto = Producto.objects.create(
+            restaurante=self.restaurante,
+            categoria=self.categoria,
+            nombre="Segundo producto",
+            precio=2000,
+            orden=2,
+        )
+
+        snapshot, _ = normalizar_productos_pedido(
+            self.restaurante,
+            [
+                self.linea(cantidad=99),
+                self.linea(producto=otro_producto, cantidad=99),
+            ],
+        )
+
+        self.assertEqual(len(snapshot), 2)
+
+    def test_pedido_normal_del_frontend_sigue_funcionando(self):
+        response = self.crear_pedido_whatsapp([self.linea(cantidad=1)])
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_pedido_manual_rechaza_suma_sobre_su_maximo(self):
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [
+                    self.linea(cantidad=500),
+                    self.linea(cantidad=500),
+                ],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(
+            f"no puede superar {MAX_CANTIDAD_PEDIDO_MANUAL}",
+            str(response.data["items"]),
+        )
+
+    def test_pedido_manual_acepta_suma_en_su_maximo(self):
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [
+                    self.linea(cantidad=500),
+                    self.linea(cantidad=499),
+                ],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoManual.objects.get(pk=response.data["pedido"]["id"])
+        self.assertEqual(pedido.items.get().cantidad, MAX_CANTIDAD_PEDIDO_MANUAL)
+
+    def test_edicion_manual_historica_tambien_respeta_cantidad_acumulada(self):
+        grupo = self.crear_grupo(maximo=1)
+        queso = self.crear_opcion(grupo, "Queso")
+        self.client.force_authenticate(user=self.dueno)
+        crear = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [self.linea(opciones=[queso.id])],
+            },
+            format="json",
+        )
+        pedido_id = crear.data["pedido"]["id"]
+        queso_id = queso.id
+        queso.delete()
+
+        response = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {
+                "items": [
+                    self.linea(opciones=[queso_id], cantidad=500),
+                    self.linea(opciones=[queso_id], cantidad=500),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("no puede superar 999", str(response.data["items"]))
+
+    def test_snapshot_whatsapp_conserva_grupos_nombres_y_precios(self):
+        grupo = self.crear_grupo()
+        pollo = self.crear_opcion(grupo, "Pollo")
+        queso = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        response = self.crear_pedido_whatsapp(
+            [self.linea(opciones=[pollo.id, queso.id])]
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoWhatsApp.objects.get(id=response.data["pedido_id"])
+        item = pedido.productos_snapshot[0]
+        self.assertEqual(item["precio_base"], 1500)
+        self.assertEqual(item["opciones_total"], 1500)
+        self.assertEqual(item["grupos_opciones"][0]["grupo_nombre"], "Proteinas")
+        self.assertEqual(item["grupos_opciones"][0]["opciones"][1], {
+            "opcion_id": queso.id,
+            "nombre": "Queso extra",
+            "precio_adicional": 1500,
+        })
+
+    def test_pedido_manual_guarda_opciones_snapshot(self):
+        grupo = self.crear_grupo()
+        queso = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        self.client.force_authenticate(user=self.dueno)
+        response = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [self.linea(opciones=[queso.id])],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = PedidoManualItem.objects.get(pedido__restaurante=self.restaurante)
+        self.assertEqual(item.precio_unitario, 3000)
+        self.assertEqual(item.opciones_snapshot[0]["grupo_nombre"], "Proteinas")
+        self.assertEqual(
+            item.opciones_snapshot[0]["opciones"][0]["precio_adicional"],
+            1500,
+        )
+
+    def test_snapshot_historico_no_cambia_con_catalogo(self):
+        grupo = self.crear_grupo()
+        opcion = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        response = self.crear_pedido_whatsapp([self.linea(opciones=[opcion.id])])
+        pedido = PedidoWhatsApp.objects.get(id=response.data["pedido_id"])
+
+        opcion.nombre = "Queso premium"
+        opcion.precio_adicional = 3000
+        opcion.disponible = False
+        opcion.save()
+
+        pedido.refresh_from_db()
+        opcion_snapshot = pedido.productos_snapshot[0]["grupos_opciones"][0]["opciones"][0]
+        self.assertEqual(opcion_snapshot["nombre"], "Queso extra")
+        self.assertEqual(opcion_snapshot["precio_adicional"], 1500)
+
+    def test_pedido_antiguo_sin_grupos_sigue_generando_mensaje(self):
+        pedido = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente antiguo",
+            telefono_cliente="912345678",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{
+                "producto_id": self.producto.id,
+                "nombre": self.producto.nombre,
+                "precio_unitario": 1500,
+                "cantidad": 1,
+                "subtotal": 1500,
+            }],
+            total=1500,
+            mensaje_whatsapp_generado="",
+            whatsapp_destino=self.restaurante.whatsapp,
+        )
+        mensaje = generar_mensaje_whatsapp(pedido)
+        self.assertIn(f"1 x {self.producto.nombre} - $1500", mensaje)
+
+    def test_hash_idempotencia_canoniza_opciones_y_distingue_configuraciones(self):
+        base = self.payload_whatsapp([self.linea(opciones=[12, 13, 25])])
+        otro_orden = self.payload_whatsapp([self.linea(opciones=[25, 12, 13])])
+        diferente = self.payload_whatsapp([self.linea(opciones=[12, 13])])
+        self.assertEqual(
+            calcular_hash_pedido_publico(self.restaurante, base),
+            calcular_hash_pedido_publico(self.restaurante, otro_orden),
+        )
+        self.assertNotEqual(
+            calcular_hash_pedido_publico(self.restaurante, base),
+            calcular_hash_pedido_publico(self.restaurante, diferente),
+        )
+
+    def test_reutilizar_idempotency_key_con_configuracion_distinta_conflicta(self):
+        grupo = self.crear_grupo(maximo=1)
+        pollo = self.crear_opcion(grupo, "Pollo")
+        carne = self.crear_opcion(grupo, "Carne")
+        headers = {"HTTP_IDEMPOTENCY_KEY": "personalizacion-1"}
+        primera = self.crear_pedido_whatsapp(
+            [self.linea(opciones=[pollo.id])],
+            headers=headers,
+        )
+        segunda = self.crear_pedido_whatsapp(
+            [self.linea(opciones=[carne.id])],
+            headers=headers,
+        )
+        self.assertEqual(primera.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(segunda.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(segunda.data["error"], "idempotency_key_reused")
+
+    def test_mensaje_whatsapp_incluye_personalizacion_desde_snapshot(self):
+        grupo = self.crear_grupo(nombre="Extras", maximo=1)
+        queso = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        response = self.crear_pedido_whatsapp([self.linea(opciones=[queso.id])])
+        pedido = PedidoWhatsApp.objects.get(id=response.data["pedido_id"])
+        mensaje = pedido.mensaje_whatsapp_generado
+        self.assertIn(f"1x {self.producto.nombre}", mensaje)
+        self.assertIn("Extras: Queso extra (+$1.500)", mensaje)
+        self.assertIn("$3.000", mensaje)
+
+    def test_update_manual_reconstruye_personalizacion(self):
+        grupo = self.crear_grupo(maximo=1)
+        queso = self.crear_opcion(grupo, "Queso", precio=1000)
+        camaron = self.crear_opcion(grupo, "Camaron", precio=2000)
+        self.client.force_authenticate(user=self.dueno)
+        crear = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [self.linea(opciones=[queso.id])],
+            },
+            format="json",
+        )
+        pedido_id = crear.data["pedido"]["id"]
+        actualizar = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {"items": [self.linea(opciones=[camaron.id])]},
+            format="json",
+        )
+        self.assertEqual(actualizar.status_code, status.HTTP_200_OK)
+        item = PedidoManualItem.objects.get(pedido_id=pedido_id)
+        self.assertEqual(item.precio_unitario, 3500)
+        self.assertEqual(
+            item.opciones_snapshot[0]["opciones"][0]["nombre"],
+            "Camaron",
+        )
+
+    def test_update_manual_conserva_snapshot_si_opcion_fue_eliminada(self):
+        grupo = self.crear_grupo(maximo=1)
+        queso = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        self.client.force_authenticate(user=self.dueno)
+        crear = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [self.linea(opciones=[queso.id])],
+            },
+            format="json",
+        )
+        pedido_id = crear.data["pedido"]["id"]
+        queso_id = queso.id
+        queso.delete()
+
+        actualizar = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido_id}/",
+            {"items": [self.linea(opciones=[queso_id], cantidad=2)]},
+            format="json",
+        )
+
+        self.assertEqual(actualizar.status_code, status.HTTP_200_OK)
+        item = PedidoManualItem.objects.get(pedido_id=pedido_id)
+        self.assertEqual(item.cantidad, 2)
+        self.assertEqual(item.precio_unitario, 3000)
+        self.assertEqual(item.subtotal, 6000)
+        self.assertEqual(item.opciones_snapshot[0]["opciones"][0]["nombre"], "Queso extra")
+
+    def test_kds_normaliza_opciones_desde_ambos_tipos_de_snapshot(self):
+        snapshot_grupos = [{
+            "grupo_id": 10,
+            "grupo_nombre": "Extras",
+            "opciones": [{"opcion_id": 20, "nombre": "Queso extra", "precio_adicional": 1500}],
+        }]
+        whatsapp = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=91,
+            nombre_cliente="WhatsApp",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=[{"nombre": "Fajita", "cantidad": 1, "grupos_opciones": snapshot_grupos}],
+            total=3000,
+            estado=PedidoWhatsApp.ESTADO_EN_PREPARACION,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        manual = PedidoManual.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=92,
+            tipo_entrega=PedidoManual.TIPO_RETIRO,
+            subtotal=3000,
+            total=3000,
+            estado=PedidoManual.ESTADO_PREPARANDO,
+        )
+        manual.items.create(
+            producto=self.producto,
+            nombre_producto="Fajita",
+            precio_unitario=3000,
+            cantidad=1,
+            subtotal=3000,
+            opciones_snapshot=snapshot_grupos,
+        )
+
+        comandas = {item["id"]: item for item in obtener_comandas_activas(self.restaurante)}
+        esperado = [{"grupo_nombre": "Extras", "opciones": [{"nombre": "Queso extra"}]}]
+        self.assertEqual(comandas[f"whatsapp:{whatsapp.id}"]["items"][0]["opciones"], esperado)
+        self.assertEqual(comandas[f"menly:{manual.id}"]["items"][0]["opciones"], esperado)
+
+    def test_seguimiento_manual_expone_personalizacion_historica(self):
+        grupo = self.crear_grupo(nombre="Extras", maximo=1)
+        queso = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        self.client.force_authenticate(user=self.dueno)
+        crear = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [self.linea(opciones=[queso.id])],
+            },
+            format="json",
+        )
+        token = crear.data["pedido"]["tracking_token"]
+        self.client.force_authenticate(user=None)
+
+        response = self.client.get(f"/api/public/pedidos/seguimiento/{token}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["items"][0]["precio_unitario"], 3000)
+        self.assertEqual(
+            response.data["items"][0]["opciones_snapshot"][0]["opciones"][0]["nombre"],
+            "Queso extra",
+        )
+
+    def test_historial_incluye_pedido_manual_con_snapshot(self):
+        grupo = self.crear_grupo(nombre="Extras", maximo=1)
+        queso = self.crear_opcion(grupo, "Queso extra", precio=1500)
+        self.client.force_authenticate(user=self.dueno)
+        crear = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [self.linea(opciones=[queso.id])],
+            },
+            format="json",
+        )
+        pedido_id = crear.data["pedido"]["id"]
+        PedidoManual.objects.filter(id=pedido_id).update(
+            fecha_creacion=timezone.now() - timedelta(days=1)
+        )
+
+        response = self.client.get("/api/historial/pedidos/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        manual = next(
+            pedido for pedido in response.data["results"]
+            if pedido["tipo_origen"] == "manual" and pedido["id"] == pedido_id
+        )
+        self.assertEqual(
+            manual["items"][0]["opciones_snapshot"][0]["opciones"][0]["nombre"],
+            "Queso extra",
+        )

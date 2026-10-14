@@ -17,6 +17,7 @@ import {
   obtenerEstadosPedido,
   obtenerTipoPedidoDashboard,
 } from "../utils/pedidos";
+import PedidoProductoOpciones from "../componentes/PedidoProductoOpciones";
 import { FaMotorcycle } from "react-icons/fa6";
 import { AiOutlineShop } from "react-icons/ai";
 
@@ -938,6 +939,7 @@ export default function Dashboard() {
                                 <span>
                                   <strong>{nombre}</strong>
                                   {item.variante_nombre && <small>{item.variante_nombre}</small>}
+                                  <PedidoProductoOpciones snapshot={item} compacta />
                                 </span>
                                 <span>{cantidad} x {formatearMoneda(precio)}</span>
                                 <strong>{formatearMoneda(subtotal)}</strong>

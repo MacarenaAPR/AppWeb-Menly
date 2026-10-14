@@ -6,11 +6,26 @@ import SolicitudEspecialForm from "../components/SolicitudEspecialForm";
 import WhatsAppFloatingButton from "../components/WhatsAppFloatingButton";
 import { apiFetch, BASE_URL } from "../Services/api";
 import { getSlugFromHostname } from "../utils/getSlugFromHostname";
-import { getOptimizedImageUrl, resolveImageUrl } from "../utils/images";
+import {
+  getOptimizedFormImageUrl,
+  getOptimizedImageUrl,
+  getOptimizedLogoUrl,
+  resolveImageUrl,
+} from "../utils/images";
 import { GiFireBowl } from "react-icons/gi";
 import { TiShoppingCart } from "react-icons/ti";
 import { MdOutlineShoppingBag } from "react-icons/md";
 import RestaurantPageLoader from "../components/RestaurantPageLoader";
+import ProductoOpcionesSelector from "../components/ProductoOpcionesSelector";
+import {
+  calcularPrecioConfigurado,
+  calcularPrecioOpciones,
+  construirResumenOpciones,
+  crearClaveCarrito,
+  gruposPersonalizacion,
+  obtenerIdsOpciones,
+  validarPersonalizacion,
+} from "../utils/productCustomization";
 import {
   MAX_CANTIDAD_POR_PRODUCTO,
   MENSAJE_MAX_CANTIDAD_POR_PRODUCTO,
@@ -130,6 +145,33 @@ const generarClaveIdempotencia = () => {
   ].join("-");
 };
 
+const extraerMensajeApi = (valor) => {
+  if (!valor) return "";
+  if (typeof valor === "string") return valor;
+  if (Array.isArray(valor)) {
+    for (const item of valor) {
+      const mensaje = extraerMensajeApi(item);
+      if (mensaje) return mensaje;
+    }
+    return "";
+  }
+  if (typeof valor === "object") {
+    const camposPrioritarios = [
+      "message", "mensaje", "detail", "productos", "opciones", "carrito",
+      "metodo_pago_id", "non_field_errors", "error",
+    ];
+    for (const campo of camposPrioritarios) {
+      const mensaje = extraerMensajeApi(valor[campo]);
+      if (mensaje) return mensaje;
+    }
+    for (const contenido of Object.values(valor)) {
+      const mensaje = extraerMensajeApi(contenido);
+      if (mensaje) return mensaje;
+    }
+  }
+  return "";
+};
+
 export default function Home() {
   const { slug: routeSlug } = useParams();
   const hostnameSlug = getSlugFromHostname();
@@ -141,6 +183,7 @@ export default function Home() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState(null);
   const [selectedPromotionVariantId, setSelectedPromotionVariantId] = useState("");
+  const [selectedPromotionOptions, setSelectedPromotionOptions] = useState({});
   const [selectedGalleryImage, setSelectedGalleryImage] = useState(null);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
@@ -263,19 +306,17 @@ export default function Home() {
       producto?.foto_url ||
       producto?.foto;
 
-    const fallbackImage =
-      restaurante?.logo_url ||
-      (restaurante?.imgen_principal
-        ? resolveImageUrl(restaurante.imgen_principal, CLOUDINARY_BASE, "/favicon.svg")
-        : "/favicon.svg");
+    if (!image) {
+      if (restaurante?.logo_url) return logoOptimizado;
 
-    if (!image && !restaurante?.logo_url && restaurante?.imgen_principal) {
-      return fallbackImage;
+      return restaurante?.imgen_principal
+        ? resolveImageUrl(restaurante.imgen_principal, CLOUDINARY_BASE, "/favicon.svg")
+        : "/favicon.svg";
     }
 
     return getOptimizedImageUrl(image, {
       baseUrl: CLOUDINARY_BASE,
-      fallbackImage,
+      fallbackImage: "/favicon.svg",
       width: size.width || 800,
       height: size.height || 600,
     });
@@ -286,6 +327,7 @@ export default function Home() {
     setCantidadPromocion(1);
     const variantes = (producto.variantes || []).filter((variante) => variante.activo !== false);
     setSelectedPromotionVariantId(variantes.length === 1 ? String(variantes[0].id) : "");
+    setSelectedPromotionOptions({});
     setSelectedPromotion(producto);
   };
 
@@ -297,15 +339,25 @@ export default function Home() {
     }, 2600);
   };
 
-  const agregarAlCarrito = (producto, cantidad = 1, variante = null) => {
+  const agregarAlCarrito = (producto, cantidad = 1, variante = null, selecciones = {}) => {
     let maximoAlcanzado = false;
     const variantes = (producto.variantes || []).filter((item) => item.activo !== false);
     if (variantes.length > 0 && !variante) {
       mostrarToastCarrito("Selecciona una variante antes de agregar");
-      return;
+      return false;
     }
-    const lineId = `${producto.id}:${variante?.id ?? "base"}`;
-    const unitPrice = Number(variante?.precio ?? producto.precio);
+    const grupos = gruposPersonalizacion(producto);
+    const validacion = validarPersonalizacion(grupos, selecciones);
+    if (!validacion.valida) {
+      mostrarToastCarrito(Object.values(validacion.errores)[0]);
+      return false;
+    }
+    const opciones = obtenerIdsOpciones(grupos, selecciones);
+    const gruposOpciones = construirResumenOpciones(grupos, selecciones);
+    const precioBase = Number(variante?.precio ?? producto.precio);
+    const precioOpciones = calcularPrecioOpciones(grupos, selecciones);
+    const unitPrice = precioBase + precioOpciones;
+    const lineId = crearClaveCarrito(producto.id, variante?.id ?? null, opciones);
 
     setPedidoMensaje("");
     setPedidoError("");
@@ -338,6 +390,10 @@ export default function Home() {
           producto_id: producto.id,
           variantId: variante?.id ?? null,
           variantName: variante?.nombre || "",
+          opciones,
+          gruposOpciones,
+          precioBase,
+          precioOpciones,
           lineId,
           nombre: producto.nombre,
           unitPrice,
@@ -351,6 +407,7 @@ export default function Home() {
         ? MENSAJE_MAX_CANTIDAD_POR_PRODUCTO
         : "Producto agregado al carrito"
     );
+    return true;
   };
 
   const cambiarCantidadCarrito = (lineId, delta) => {
@@ -408,6 +465,7 @@ export default function Home() {
         producto_id: item.producto_id,
         variante_id: item.variantId,
         cantidad: item.cantidad,
+        opciones: item.opciones || [],
       })),
     };
 
@@ -497,15 +555,10 @@ export default function Home() {
         return;
       }
 
-      const apiMessage =
-        requestError?.payload?.error ||
-        requestError?.payload?.detail ||
-        requestError?.payload?.carrito ||
-        requestError?.payload?.metodo_pago_id?.[0] ||
-        requestError?.payload?.productos ||
-        requestError?.payload?.non_field_errors?.[0] ||
-        "No se pudo guardar el pedido. Intenta nuevamente.";
-      setPedidoError(Array.isArray(apiMessage) ? apiMessage[0] : apiMessage);
+      setPedidoError(
+        extraerMensajeApi(requestError?.payload) ||
+        "No se pudo guardar el pedido. Intenta nuevamente.",
+      );
     } finally {
       pedidoEnvioEnCursoRef.current = false;
       setPedidoEnviando(false);
@@ -675,32 +728,30 @@ export default function Home() {
     .filter((imagen) => Boolean(imagen?.url))
     .sort((a, b) => (a?.orden || 0) - (b?.orden || 0));
 
-  const logoOptimizado = getOptimizedImageUrl(restaurante?.logo_url, {
+  const logoOptimizado = getOptimizedLogoUrl(restaurante?.logo_url, {
     baseUrl: CLOUDINARY_BASE,
     fallbackImage: "",
-    width: 160,
-    height: 160,
+    width: 800,
   });
-  const logoOriginal = resolveImageUrl(restaurante?.logo_url, CLOUDINARY_BASE, "");
   const imagenPrincipalOriginal = resolveImageUrl(
     restaurante?.imgen_principal,
     CLOUDINARY_BASE,
     ""
   );
-  const imagenFormularioOptimizada = getOptimizedImageUrl(restaurante?.imgen_form, {
+  const imagenFormularioOptimizada = getOptimizedFormImageUrl(restaurante?.imgen_form, {
     baseUrl: CLOUDINARY_BASE,
     fallbackImage: "/img/default.jpg",
-    width: 1000,
-    height: 800,
+    width: 1200,
   });
-  const imagenHeroIzquierda = imagenPrincipalOriginal || getOptimizedImageUrl(
-    imagenesRestaurante[0]?.url || restaurante?.imgen_principal || restaurante?.logo_url,
-    {
+  const imagenHeroIzquierda = imagenPrincipalOriginal || (
+    imagenesRestaurante[0]?.url
+      ? getOptimizedImageUrl(imagenesRestaurante[0].url, {
       baseUrl: CLOUDINARY_BASE,
       fallbackImage: "/favicon.svg",
       width: 1000,
       height: 900,
-    }
+      })
+      : logoOptimizado || "/favicon.svg"
   );
   const fuenteHeroDerecha = imagenesRestaurante[0]?.url || restaurante?.imgen_principal;
   const imagenHeroDerechaOptimizada = fuenteHeroDerecha
@@ -1062,7 +1113,7 @@ export default function Home() {
   }, [mobileNavOpen]);
 
   if (loading) {
-    return <RestaurantPageLoader logoUrl={restaurante?.logo} />;
+    return <RestaurantPageLoader logoUrl={logoOptimizado} />;
   }
 
   if (!slug) {
@@ -1098,7 +1149,9 @@ export default function Home() {
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
     ? restaurante.theme_color
     : "theme_9";
+  const usesThemeSevenHeroLayout = themeClass === "theme_7";
   const usesThemeNineHeroLayout = themeClass === "theme_8" || themeClass === "theme_9";
+  const usesBottomHeroFeatures = usesThemeSevenHeroLayout || usesThemeNineHeroLayout;
   const heroBadgeText = String(restaurante?.slogan || "").trim();
   const reservasActivas = Boolean(restaurante?.reservas_activas);
   const solicitudesEspecialesActivas = Boolean(restaurante?.solicitudes_especiales_activas);
@@ -1112,7 +1165,7 @@ export default function Home() {
   const deliveryActivo = restaurante?.delivery_activo === true;
   const heroFeatures = (
     <div
-      className={`hero-features${usesThemeNineHeroLayout ? " hero-features-theme-9" : ""}`}
+      className={`hero-features${usesThemeSevenHeroLayout ? " hero-features-theme-7" : ""}${usesThemeNineHeroLayout ? " hero-features-theme-9" : ""}`}
       aria-label="Características del restaurante"
     >
       <div className="hero-feature">
@@ -1127,7 +1180,7 @@ export default function Home() {
         <i className="bi bi-fire" aria-hidden="true"></i>
         <span>Sabor casero</span>
       </div>
-      {carritoWhatsappActivo && deliveryActivo && (
+      {!usesThemeSevenHeroLayout && carritoWhatsappActivo && deliveryActivo && (
         <div className="hero-feature">
           <i className="bi bi-bicycle" aria-hidden="true"></i>
           <span>Delivery</span>
@@ -1142,6 +1195,22 @@ export default function Home() {
   const tiendaCerradaConCarrito =
     carritoWhatsappActivo && restaurante?.abierto_ahora === false;
   const carritoDisponible = carritoWhatsappActivo && !tiendaCerradaConCarrito;
+  const variantesPromocion = getVariantesActivas(selectedPromotion);
+  const variantePromocionSeleccionada = variantesPromocion.find(
+    (variante) => String(variante.id) === String(selectedPromotionVariantId),
+  ) || null;
+  const gruposPromocion = gruposPersonalizacion(selectedPromotion);
+  const validacionPromocion = validarPersonalizacion(
+    gruposPromocion,
+    selectedPromotionOptions,
+  );
+  const precioPromocionConfigurada = selectedPromotion
+    ? calcularPrecioConfigurado(
+      selectedPromotion,
+      variantePromocionSeleccionada,
+      selectedPromotionOptions,
+    )
+    : 0;
   const mostrarModalTiendaCerrada =
     tiendaCerradaConCarrito && !tiendaCerradaModalCerrado;
   const destacadosClase = [
@@ -1422,11 +1491,11 @@ export default function Home() {
 
           <div className="hero-copy">
             {usesThemeNineHeroLayout ? (
-              logoOriginal && (
+              logoOptimizado && (
                 <div className="hero-logo-wrapper-theme-9">
                   <img
                     className="hero-brand-logo hero-logo-theme-9"
-                    src={logoOriginal}
+                    src={logoOptimizado}
                     alt={`Logo de ${restaurante?.nombre_empresa || "restaurante"}`}
                     width="220"
                     height="220"
@@ -1476,7 +1545,7 @@ export default function Home() {
               )}
             </div>
 
-            {!usesThemeNineHeroLayout && heroFeatures}
+            {!usesBottomHeroFeatures && heroFeatures}
 
             {restaurante?.link_delivery && (
               <div className="partner-row">
@@ -1495,7 +1564,7 @@ export default function Home() {
             )}
           </div>
 
-          {usesThemeNineHeroLayout && heroFeatures}
+          {usesBottomHeroFeatures && heroFeatures}
 
           <figure className="hero-visual hero-visual-right">
             <img
@@ -1583,7 +1652,7 @@ export default function Home() {
                               type="button"
                               className="commercial-action"
                               onClick={() => (
-                                getVariantesActivas(producto).length
+                                getVariantesActivas(producto).length || gruposPersonalizacion(producto).length
                                   ? handlePromotionClick(producto)
                                   : agregarAlCarrito(producto)
                               )}
@@ -1647,7 +1716,10 @@ export default function Home() {
           <div
             className="product-modal-backdrop"
             role="presentation"
-            onClick={() => setSelectedPromotion(null)}
+            onClick={() => {
+              setSelectedPromotion(null);
+              setSelectedPromotionOptions({});
+            }}
           >
             <article
               className="product-modal"
@@ -1660,7 +1732,10 @@ export default function Home() {
                 type="button"
                 className="product-modal-close"
                 aria-label="Cerrar promoción"
-                onClick={() => setSelectedPromotion(null)}
+                onClick={() => {
+                  setSelectedPromotion(null);
+                  setSelectedPromotionOptions({});
+                }}
               >
                 <i className="bi bi-x-lg" aria-hidden="true"></i>
               </button>
@@ -1678,8 +1753,10 @@ export default function Home() {
               <div className="product-modal-content">
                 <span className="product-modal-label">Promoción</span>
                 <h2 id="promotion-modal-title">{selectedPromotion.nombre}</h2>
-                {(selectedPromotion.variantes || []).filter((variante) => variante.activo !== false).length === 0 && (
-                  <strong>${Number(selectedPromotion.precio).toLocaleString("es-CL")}</strong>
+                {(variantesPromocion.length === 0 || variantePromocionSeleccionada) && (
+                  <strong className="product-configured-price">
+                    ${precioPromocionConfigurada.toLocaleString("es-CL")}
+                  </strong>
                 )}
                 <p>{selectedPromotion.descripcion || "Sin descripción disponible."}</p>
                 {getProductConditions(selectedPromotion) && (
@@ -1687,10 +1764,10 @@ export default function Home() {
                 )}
                 {carritoDisponible && (
                   <div className="product-modal-cart-actions">
-                    {(selectedPromotion.variantes || []).filter((variante) => variante.activo !== false).length > 0 && (
+                    {variantesPromocion.length > 0 && (
                       <fieldset className="product-variants" aria-label="Selecciona un tamaño">
                         <legend>Selecciona una variante o tamaño</legend>
-                        {(selectedPromotion.variantes || []).filter((variante) => variante.activo !== false).map((variante) => (
+                        {variantesPromocion.map((variante) => (
                           <label className="product-variant-option" key={variante.id}>
                             <input
                               type="radio"
@@ -1707,6 +1784,12 @@ export default function Home() {
                         ))}
                       </fieldset>
                     )}
+                    <ProductoOpcionesSelector
+                      gruposOpciones={gruposPromocion}
+                      selecciones={selectedPromotionOptions}
+                      errores={validacionPromocion.errores}
+                      onChange={setSelectedPromotionOptions}
+                    />
                     <label className="cart-modal-qty">
                       <span>Cantidad</span>
                       <input
@@ -1731,16 +1814,26 @@ export default function Home() {
                     <button
                       type="button"
                       className="producto-add-cart product-modal-add"
-                      disabled={(selectedPromotion.variantes || []).filter((variante) => variante.activo !== false).length > 0 && !selectedPromotionVariantId}
-                      onClick={() => agregarAlCarrito(
-                        selectedPromotion,
-                        cantidadPromocion,
-                        (selectedPromotion.variantes || []).find(
-                          (variante) => String(variante.id) === String(selectedPromotionVariantId)
-                        ) || null
-                      )}
+                      disabled={
+                        (variantesPromocion.length > 0 && !selectedPromotionVariantId) ||
+                        !validacionPromocion.valida
+                      }
+                      onClick={() => {
+                        const agregado = agregarAlCarrito(
+                          selectedPromotion,
+                          cantidadPromocion,
+                          variantePromocionSeleccionada,
+                          selectedPromotionOptions,
+                        );
+                        if (agregado) {
+                          setSelectedPromotion(null);
+                          setCantidadPromocion(1);
+                          setSelectedPromotionVariantId("");
+                          setSelectedPromotionOptions({});
+                        }
+                      }}
                     >
-                      Agregar al carrito
+                      Agregar · ${(precioPromocionConfigurada * cantidadPromocion).toLocaleString("es-CL")}
                     </button>
                   </div>
                 )}
@@ -1782,7 +1875,7 @@ export default function Home() {
           <Menu
             categorias={categorias}
             onProductClick={handleClickProducto}
-            fallbackImage={restaurante?.logo_url}
+            fallbackImage={logoOptimizado}
             carritoActivo={carritoDisponible}
             onAddToCart={agregarAlCarrito}
             maxCantidad={MAX_CANTIDAD_POR_PRODUCTO}
@@ -2003,10 +2096,21 @@ export default function Home() {
                 ) : (
                   carrito.map((item) => (
                     <article key={item.lineId} className="cart-item">
-                      <div>
-                        <h3>{item.nombre}</h3>
-                        {item.variantName && <small className="cart-item-variant">{item.variantName}</small>}
-                        <p>${item.unitPrice.toLocaleString("es-CL")} c/u</p>
+                      <div className="cart-item-detail">
+                        <h3>{item.nombre}{item.variantName ? ` — ${item.variantName}` : ""}</h3>
+                        {(item.gruposOpciones || []).map((grupo) => (
+                          <p className="cart-item-customization" key={grupo.grupo_id}>
+                            <strong>{grupo.grupo_nombre}:</strong>{" "}
+                            {grupo.opciones.map((opcion) => (
+                              `${opcion.nombre}${Number(opcion.precio_adicional) > 0
+                                ? ` (+$${Number(opcion.precio_adicional).toLocaleString("es-CL")})`
+                                : ""}`
+                            )).join(", ")}
+                          </p>
+                        ))}
+                        <p className="cart-item-unit-price">
+                          {item.cantidad} × ${item.unitPrice.toLocaleString("es-CL")}
+                        </p>
                       </div>
                       <div className="cart-quantity">
                         <button

@@ -1620,7 +1620,7 @@
   margin-bottom: 14px;
 }
 
-.pedido-items-detalle div {
+.pedido-items-detalle > div {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -2219,6 +2219,59 @@
   color: #9ca3af;
   font-size: 12px;
 }
+
+.pedido-snapshot-aviso {
+  color: #f59e0b !important;
+}
+
+.pedido-manual-error {
+  margin: 10px 22px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  border-radius: 8px;
+  background: rgba(127, 29, 29, 0.3);
+  color: #fecaca;
+}
+
+.pedido-opciones-selector {
+  display: grid;
+  gap: 12px;
+  max-height: 42vh;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.pedido-opciones-selector fieldset {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #263646;
+  border-radius: 10px;
+}
+
+.pedido-opciones-selector fieldset.has-error { border-color: #ef4444; }
+.pedido-opciones-selector legend { display: flex; justify-content: space-between; gap: 12px; width: 100%; color: #fff; }
+.pedido-opciones-selector legend small { color: #94a3b8; font-weight: 400; }
+.pedido-opciones-selector label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px; border-radius: 8px; background: #09131d; color: #e2e8f0; }
+.pedido-opciones-selector label.is-selected { outline: 1px solid #f06b0c; background: rgba(240, 107, 12, 0.12); }
+.pedido-opciones-selector label span { min-width: 0; overflow-wrap: anywhere; }
+.pedido-opciones-selector label span small { display: block; color: #fca5a5; }
+.pedido-opciones-selector label b { color: #f59e0b; font-size: 12px; }
+.pedido-opciones-selector fieldset > p { margin: 0; color: #fca5a5; font-size: 12px; }
+
+.pedido-configuracion-precio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 14px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #263646;
+  color: #cbd5e1;
+}
+
+.pedido-configuracion-precio b { color: #fff; }
 
 .pedido-manual-variante-inline {
   display: grid;
@@ -2977,7 +3030,7 @@
   font-size: 18px;
 }
 
-.pedido-items-detalle div {
+.pedido-items-detalle > div {
   display: grid;
   grid-template-columns: minmax(150px, 1fr) auto auto;
   align-items: center;

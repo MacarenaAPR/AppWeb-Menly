@@ -5,11 +5,33 @@ from urllib.parse import quote
 
 from django.db import transaction
 
-from menu.models import PedidoWhatsApp, Producto, ProductoVariante
+from menu.models import (
+    GrupoOpcionesProducto,
+    OpcionProducto,
+    PedidoWhatsApp,
+    Producto,
+    ProductoVariante,
+)
 from menu.services.secuencia_pedidos import obtener_siguiente_numero_pedido
 from menu.utils import crear_notificacion_pedido_whatsapp
 
 logger = logging.getLogger(__name__)
+
+
+class ProductosPedidoValidationError(ValueError):
+    """Error de seleccion de catalogo apto para mostrarse al cliente."""
+
+
+MAX_CANTIDAD_PEDIDO_WHATSAPP = 99
+MAX_CANTIDAD_PEDIDO_MANUAL = 999
+
+
+def clave_configuracion_producto(producto_id, variante_id=None, opciones=None):
+    return (
+        int(producto_id),
+        int(variante_id) if variante_id not in (None, "") else None,
+        tuple(sorted(int(opcion_id) for opcion_id in (opciones or []))),
+    )
 
 
 def _normalizar_entero_idempotencia(valor):
@@ -27,10 +49,16 @@ def calcular_hash_pedido_publico(restaurante, payload):
         if not isinstance(item, dict):
             productos.append(item)
             continue
+        opciones = [
+            _normalizar_entero_idempotencia(opcion_id)
+            for opcion_id in (item.get("opciones") or [])
+        ]
+        opciones.sort(key=lambda opcion_id: (str(type(opcion_id)), str(opcion_id)))
         productos.append({
             "producto_id": _normalizar_entero_idempotencia(item.get("producto_id")),
             "variante_id": _normalizar_entero_idempotencia(item.get("variante_id")),
             "cantidad": _normalizar_entero_idempotencia(item.get("cantidad")),
+            "opciones": opciones,
         })
 
     tipo_entrega = str(payload.get("tipo_entrega") or "").strip()
@@ -60,70 +88,233 @@ def obtener_whatsapp_destino(restaurante):
     return (restaurante.whatsapp or restaurante.telefono or "").strip()
 
 
-def normalizar_productos_pedido(restaurante, productos_solicitados):
+def agrupar_cantidades_por_configuracion(
+    productos_solicitados,
+    max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_WHATSAPP,
+):
     cantidades_por_linea = {}
     for item in productos_solicitados:
         producto_id = item["producto_id"]
         variante_id = item.get("variante_id")
-        clave = (producto_id, variante_id)
+        opciones_ids = item.get("opciones") or []
+        if len(opciones_ids) != len(set(opciones_ids)):
+            raise ProductosPedidoValidationError(
+                "No puedes seleccionar la misma opcion mas de una vez."
+            )
+        clave = clave_configuracion_producto(producto_id, variante_id, opciones_ids)
         cantidades_por_linea[clave] = (
             cantidades_por_linea.get(clave, 0) + item["cantidad"]
         )
 
-    producto_ids = {producto_id for producto_id, _ in cantidades_por_linea}
+    for cantidad in cantidades_por_linea.values():
+        if cantidad > max_cantidad_por_configuracion:
+            raise ProductosPedidoValidationError(
+                "La cantidad total para una misma configuracion no puede superar "
+                f"{max_cantidad_por_configuracion}."
+            )
+
+    return cantidades_por_linea
+
+
+def normalizar_productos_pedido(
+    restaurante,
+    productos_solicitados,
+    max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_WHATSAPP,
+):
+    cantidades_por_linea = agrupar_cantidades_por_configuracion(
+        productos_solicitados,
+        max_cantidad_por_configuracion=max_cantidad_por_configuracion,
+    )
+
+    producto_ids = {producto_id for producto_id, _, _ in cantidades_por_linea}
     productos = Producto.objects.filter(
         restaurante=restaurante,
-        disponible=True,
         id__in=producto_ids,
     ).prefetch_related("variantes").in_bulk()
 
     if len(productos) != len(producto_ids):
-        return None, None
+        raise ProductosPedidoValidationError(
+            "Uno o mas productos no pertenecen a este restaurante."
+        )
+    if any(not producto.disponible for producto in productos.values()):
+        raise ProductosPedidoValidationError(
+            "Uno o mas productos seleccionados no estan disponibles."
+        )
 
-    variante_ids = {variante_id for _, variante_id in cantidades_por_linea if variante_id}
+    variante_ids = {
+        variante_id
+        for _, variante_id, _ in cantidades_por_linea
+        if variante_id
+    }
     variantes = ProductoVariante.objects.filter(
         id__in=variante_ids,
-        activo=True,
         producto__restaurante=restaurante,
     ).select_related("producto").in_bulk()
 
     if len(variantes) != len(variante_ids):
-        return None, None
+        raise ProductosPedidoValidationError(
+            "La variante seleccionada no pertenece a este restaurante."
+        )
+
+    grupos = list(
+        GrupoOpcionesProducto.objects.filter(producto_id__in=producto_ids)
+        .select_related("producto")
+        .order_by("producto_id", "orden", "id")
+    )
+    grupos_por_producto = {}
+    for grupo in grupos:
+        grupos_por_producto.setdefault(grupo.producto_id, []).append(grupo)
+
+    opcion_ids = {
+        opcion_id
+        for _, _, opciones_linea in cantidades_por_linea
+        for opcion_id in opciones_linea
+    }
+    opciones = OpcionProducto.objects.filter(id__in=opcion_ids).select_related(
+        "grupo__producto"
+    ).in_bulk()
+    if len(opciones) != len(opcion_ids):
+        raise ProductosPedidoValidationError(
+            "Una de las opciones seleccionadas no existe."
+        )
 
     snapshot = []
     total = 0
 
-    for (producto_id, variante_id), cantidad in cantidades_por_linea.items():
+    for (producto_id, variante_id, opciones_ids), cantidad in cantidades_por_linea.items():
         producto = productos[producto_id]
         variantes_activas = [variante for variante in producto.variantes.all() if variante.activo]
 
         if variantes_activas and not variante_id:
-            return None, None
+            raise ProductosPedidoValidationError(
+                f"Debes seleccionar una variante de {producto.nombre}."
+            )
         if not variantes_activas and variante_id:
-            return None, None
+            raise ProductosPedidoValidationError(
+                "La variante seleccionada no pertenece a este producto."
+            )
 
         variante = variantes.get(variante_id) if variante_id else None
         if variante and variante.producto_id != producto.id:
-            return None, None
+            raise ProductosPedidoValidationError(
+                "La variante seleccionada no pertenece a este producto."
+            )
+        if variante and not variante.activo:
+            raise ProductosPedidoValidationError(
+                "La variante seleccionada no esta disponible."
+            )
 
-        precio_unitario = variante.precio if variante else producto.precio
+        opciones_seleccionadas = [opciones[opcion_id] for opcion_id in opciones_ids]
+        opciones_por_grupo = {}
+        for opcion in opciones_seleccionadas:
+            if opcion.grupo.producto_id != producto.id:
+                raise ProductosPedidoValidationError(
+                    "La opcion seleccionada no pertenece a este producto."
+                )
+            if opcion.grupo.producto.restaurante_id != restaurante.id:
+                raise ProductosPedidoValidationError(
+                    "La opcion seleccionada no pertenece a este restaurante."
+                )
+            if not opcion.disponible:
+                raise ProductosPedidoValidationError(
+                    f"La opcion {opcion.nombre} no esta disponible."
+                )
+            opciones_por_grupo.setdefault(opcion.grupo_id, []).append(opcion)
+
+        grupos_producto = grupos_por_producto.get(producto.id, [])
+        for grupo in grupos_producto:
+            cantidad_seleccionada = len(opciones_por_grupo.get(grupo.id, []))
+            minimo = grupo.minimo_selecciones
+            if grupo.obligatorio:
+                minimo = max(1, minimo)
+            if cantidad_seleccionada < minimo:
+                raise ProductosPedidoValidationError(
+                    f"Debes seleccionar al menos {minimo} opcion(es) de {grupo.nombre}."
+                )
+            if (
+                grupo.maximo_selecciones is not None
+                and cantidad_seleccionada > grupo.maximo_selecciones
+            ):
+                raise ProductosPedidoValidationError(
+                    "Puedes seleccionar como maximo "
+                    f"{grupo.maximo_selecciones} opcion(es) de {grupo.nombre}."
+                )
+
+        grupos_snapshot = []
+        opciones_total = 0
+        for grupo in grupos_producto:
+            seleccionadas = sorted(
+                opciones_por_grupo.get(grupo.id, []),
+                key=lambda opcion: (opcion.orden, opcion.id),
+            )
+            if not seleccionadas:
+                continue
+            opciones_snapshot = []
+            for opcion in seleccionadas:
+                opciones_total += opcion.precio_adicional
+                opciones_snapshot.append({
+                    "opcion_id": opcion.id,
+                    "nombre": opcion.nombre,
+                    "precio_adicional": int(opcion.precio_adicional),
+                })
+            grupos_snapshot.append({
+                "grupo_id": grupo.id,
+                "grupo_nombre": grupo.nombre,
+                "opciones": opciones_snapshot,
+            })
+
+        precio_base = variante.precio if variante else producto.precio
+        precio_unitario = precio_base + opciones_total
         subtotal = precio_unitario * cantidad
         total += subtotal
         item_snapshot = {
             "producto_id": producto.id,
             "nombre": producto.nombre,
+            "variante_id": variante.id if variante else None,
+            "variante_nombre": variante.nombre if variante else "",
+            "precio_base": int(precio_base),
+            "opciones_total": int(opciones_total),
             "precio_unitario": int(precio_unitario),
             "cantidad": cantidad,
             "subtotal": int(subtotal),
+            "grupos_opciones": grupos_snapshot,
         }
-        if variante:
-            item_snapshot.update({
-                "variante_id": variante.id,
-                "variante_nombre": variante.nombre,
-            })
         snapshot.append(item_snapshot)
 
     return snapshot, total
+
+
+def _formatear_precio(valor):
+    return f"{int(valor or 0):,}".replace(",", ".")
+
+
+def _formatear_item_whatsapp(item, prefijo=""):
+    grupos = item.get("grupos_opciones") or []
+    if not grupos:
+        if item.get("variante_nombre"):
+            return (
+                f"{prefijo}{item['nombre']} — {item['variante_nombre']} "
+                f"x{item['cantidad']} - ${item['subtotal']}"
+            )
+        return f"{prefijo}{item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
+
+    nombre = item.get("nombre", "Producto")
+    if item.get("variante_nombre"):
+        nombre = f"{nombre} — {item['variante_nombre']}"
+    lineas = [f"{prefijo}{item.get('cantidad', 0)}x {nombre}"]
+    for grupo in grupos:
+        opciones_texto = []
+        for opcion in grupo.get("opciones") or []:
+            texto = opcion.get("nombre", "")
+            adicional = int(opcion.get("precio_adicional") or 0)
+            if adicional:
+                texto += f" (+${_formatear_precio(adicional)})"
+            opciones_texto.append(texto)
+        lineas.append(
+            f"{grupo.get('grupo_nombre', 'Opciones')}: {', '.join(opciones_texto)}"
+        )
+    lineas.append(f"${_formatear_precio(item.get('subtotal', 0))}")
+    return "\n".join(lineas)
 
 
 def get_tracking_url(pedido, request=None):
@@ -143,12 +334,8 @@ def generar_mensaje_whatsapp(pedido, request=None):
     if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY:
         costo_delivery = "Costo de delivery: por confirmar con el restaurante.\n"
 
-    productos = "\n".join(
-        (
-            f"{item['nombre']} — {item['variante_nombre']} x{item['cantidad']} - ${item['subtotal']}"
-            if item.get("variante_nombre")
-            else f"{item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
-        )
+    productos = "\n\n".join(
+        _formatear_item_whatsapp(item)
         for item in pedido.productos_snapshot
     )
     metodo_pago_linea = (
@@ -182,12 +369,8 @@ def generar_mensaje_legacy(pedido):
     if pedido.tipo_entrega == PedidoWhatsApp.TIPO_DELIVERY:
         costo_delivery = "Costo de delivery: por confirmar con el restaurante.\n\n"
 
-    productos = "\n".join(
-        (
-            f"* {item['nombre']} — {item['variante_nombre']} x{item['cantidad']} - ${item['subtotal']}"
-            if item.get("variante_nombre")
-            else f"* {item['cantidad']} x {item['nombre']} - ${item['subtotal']}"
-        )
+    productos = "\n\n".join(
+        _formatear_item_whatsapp(item, prefijo="* ")
         for item in pedido.productos_snapshot
     )
     metodo_pago_linea = (

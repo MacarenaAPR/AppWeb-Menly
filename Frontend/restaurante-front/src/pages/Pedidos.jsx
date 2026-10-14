@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "../styles/ReservasDashboard.css";
 import MainMenu from "../componentes/Main-menu";
 import ConfirmarCancelacionPedido from "../componentes/ConfirmarCancelacionPedido";
+import PedidoProductoOpciones from "../componentes/PedidoProductoOpciones";
+import ProductoOpcionesSelectorPos from "../componentes/ProductoOpcionesSelectorPos";
 import { useSearchParams } from "react-router-dom";
 import { authFetch, readJsonResponse } from "../api";
 import { permisosPorRol } from "../utils/permisos";
@@ -19,6 +21,14 @@ import {
   obtenerEndpointDetallePedido,
   obtenerEstadosPedido,
 } from "../utils/pedidos";
+import {
+  calcularAdicionalOpciones,
+  construirSnapshotVisual,
+  crearClaveLineaPedido,
+  obtenerIdsOpcionesCatalogo,
+  obtenerIdsOpcionesSnapshot,
+  validarSelecciones,
+} from "../utils/pedidoPersonalizacion";
 const PEDIDOS_POLLING_MS = 10000;
 
 const formEspecialInicial = {
@@ -47,10 +57,13 @@ const obtenerVariantesActivas = (producto) => (
     : []
 );
 
-const claveLineaManual = (item, varianteId = null) => {
+const claveLineaManual = (item, varianteId = null, opciones = []) => {
   const productoId = typeof item === "object" ? item.producto_id : item;
   const variante = typeof item === "object" ? item.variante_id : varianteId;
-  return `${productoId}:${variante || "base"}`;
+  const opcionesIds = typeof item === "object"
+    ? (item.opciones || obtenerIdsOpcionesSnapshot(item.opciones_snapshot))
+    : opciones;
+  return crearClaveLineaPedido(productoId, variante, opcionesIds);
 };
 
 const formatearMoneda = (valor) =>
@@ -160,6 +173,7 @@ export default function PedidosDashboard() {
   const [formEspecial, setFormEspecial] = useState(formEspecialInicial);
   const [formManual, setFormManual] = useState(formManualInicial);
   const [guardandoManual, setGuardandoManual] = useState(false);
+  const [errorManual, setErrorManual] = useState("");
   const [abriendoCocina, setAbriendoCocina] = useState(false);
   const [cancelacionPendiente, setCancelacionPendiente] = useState(null);
   const [confirmandoCancelacion, setConfirmandoCancelacion] = useState(false);
@@ -647,6 +661,7 @@ export default function PedidosDashboard() {
               cantidad: item.cantidad,
               subtotal: item.subtotal,
               observaciones: item.observaciones || "",
+              opciones_snapshot: item.opciones_snapshot || [],
             }))
         : []
     );
@@ -732,6 +747,7 @@ export default function PedidosDashboard() {
         producto_id: Number(item.producto_id),
         variante_id: item.variante_id ? Number(item.variante_id) : null,
         cantidad: Number(item.cantidad),
+        opciones: obtenerIdsOpcionesSnapshot(item),
       })),
     });
 
@@ -938,6 +954,7 @@ export default function PedidosDashboard() {
     setProductoBusquedaManual("");
     setCategoriaManual("");
     setVarianteManualSelector(null);
+    setErrorManual("");
     setMostrarFormularioManual(true);
   };
 
@@ -945,6 +962,7 @@ export default function PedidosDashboard() {
     setMostrarFormularioManual(false);
     setPedidoManualEditando(null);
     setVarianteManualSelector(null);
+    setErrorManual("");
   };
 
   const abrirEditarManual = (pedido) => {
@@ -969,6 +987,9 @@ export default function PedidosDashboard() {
           precio_unitario: Number(item.precio_unitario || 0),
           cantidad: Number(item.cantidad || 1),
           observaciones: item.observaciones || "",
+          opciones: obtenerIdsOpcionesSnapshot(item.opciones_snapshot),
+          opciones_snapshot: item.opciones_snapshot || [],
+          es_snapshot_historico: true,
         };
       }),
     });
@@ -979,8 +1000,13 @@ export default function PedidosDashboard() {
     setMostrarFormularioManual(true);
   };
 
-  const agregarProductoManual = (producto, variante = null) => {
-    const lineaId = claveLineaManual(producto.id, variante?.id);
+  const agregarProductoManual = (producto, variante = null, selecciones = {}) => {
+    const grupos = producto.grupos_opciones || [];
+    const opciones = obtenerIdsOpcionesCatalogo(grupos, selecciones);
+    const opcionesSnapshot = construirSnapshotVisual(grupos, selecciones);
+    const lineaId = claveLineaManual(producto.id, variante?.id, opciones);
+    const precioBase = Number(variante?.precio ?? producto.precio ?? 0);
+    const precioUnitario = precioBase + calcularAdicionalOpciones(grupos, selecciones);
     setFormManual((actual) => {
       const existente = actual.items.find((item) => claveLineaManual(item) === lineaId);
       if (existente) {
@@ -1004,9 +1030,13 @@ export default function PedidosDashboard() {
             variante_nombre: variante?.nombre || "",
             nombre: producto.nombre,
             imagen: producto.imagen || "",
-            precio_unitario: Number(variante?.precio ?? producto.precio ?? 0),
+            precio_unitario: precioUnitario,
+            precio_base: precioBase,
             cantidad: 1,
             observaciones: "",
+            opciones,
+            opciones_snapshot: opcionesSnapshot,
+            es_snapshot_historico: false,
           },
         ],
       };
@@ -1015,15 +1045,21 @@ export default function PedidosDashboard() {
 
   const seleccionarProductoManual = (producto) => {
     const variantes = obtenerVariantesActivas(producto);
-    if (variantes.length === 0) {
+    const tieneOpciones = (producto.grupos_opciones || []).length > 0;
+    if (variantes.length === 0 && !tieneOpciones) {
       agregarProductoManual(producto);
       return;
     }
-    if (variantes.length === 1) {
+    if (variantes.length === 1 && !tieneOpciones) {
       agregarProductoManual(producto, variantes[0]);
       return;
     }
-    setVarianteManualSelector({ producto, varianteId: "" });
+    setVarianteManualSelector({
+      producto,
+      varianteId: variantes.length === 1 ? String(variantes[0].id) : "",
+      selecciones: {},
+      errores: {},
+    });
   };
 
   const confirmarVarianteManual = () => {
@@ -1031,10 +1067,20 @@ export default function PedidosDashboard() {
     const variante = obtenerVariantesActivas(varianteManualSelector.producto).find(
       (item) => String(item.id) === String(varianteManualSelector.varianteId)
     );
-    if (!variante) {
+    const grupos = varianteManualSelector.producto.grupos_opciones || [];
+    const errores = validarSelecciones(grupos, varianteManualSelector.selecciones);
+    if (Object.keys(errores).length) {
+      setVarianteManualSelector((actual) => actual ? { ...actual, errores } : actual);
       return;
     }
-    agregarProductoManual(varianteManualSelector.producto, variante);
+    if (obtenerVariantesActivas(varianteManualSelector.producto).length && !variante) {
+      return;
+    }
+    agregarProductoManual(
+      varianteManualSelector.producto,
+      variante || null,
+      varianteManualSelector.selecciones
+    );
     setVarianteManualSelector(null);
   };
 
@@ -1070,7 +1116,7 @@ export default function PedidosDashboard() {
     if (!producto || !variante) return;
 
     const lineaActualId = claveLineaManual(itemActual);
-    const lineaDestinoId = claveLineaManual(producto.id, variante.id);
+    const lineaDestinoId = claveLineaManual(producto.id, variante.id, itemActual.opciones || []);
     setFormManual((actual) => {
       const destino = actual.items.find((item) => claveLineaManual(item) === lineaDestinoId);
       if (destino && lineaDestinoId !== lineaActualId) {
@@ -1090,7 +1136,12 @@ export default function PedidosDashboard() {
               ...item,
               variante_id: variante.id,
               variante_nombre: variante.nombre,
-              precio_unitario: Number(variante.precio),
+              precio_unitario: Number(variante.precio) + (item.opciones_snapshot || []).reduce(
+                (total, grupo) => total + (grupo.opciones || []).reduce(
+                  (subtotal, opcion) => subtotal + Number(opcion.precio_adicional || 0), 0
+                ), 0
+              ),
+              precio_base: Number(variante.precio),
             }
           : item),
       };
@@ -1235,10 +1286,12 @@ export default function PedidosDashboard() {
         variante_id: item.variante_id ? Number(item.variante_id) : null,
         cantidad: Number(item.cantidad),
         observaciones: (item.observaciones || "").trim(),
+        opciones: (item.opciones || []).map(Number).sort((a, b) => a - b),
       })),
     };
 
     try {
+      setErrorManual("");
       setGuardandoManual(true);
       const endpoint = pedidoManualEditando
         ? `/mi-restaurante/pedidos/manuales/${pedidoManualEditando.id}/`
@@ -1262,8 +1315,8 @@ export default function PedidosDashboard() {
         paginasPedidosRef.current = { ...paginasPedidosRef.current, menly: 1 };
       }
       await cargarPedidos(restaurante, usuario?.rol);
-    } catch {
-      // Conserva el formulario abierto para permitir corregir o reintentar.
+    } catch (requestError) {
+      setErrorManual(requestError.message || "No se pudo guardar el pedido.");
     } finally {
       setGuardandoManual(false);
     }
@@ -1726,6 +1779,8 @@ export default function PedidosDashboard() {
                           <div className="pedido-producto-row" key={`${item.producto_id}-${index}`}>
                             <div>
                               <strong>{item.nombre}</strong>
+                              {item.variante_nombre && <small>{item.variante_nombre}</small>}
+                              <PedidoProductoOpciones snapshot={item} compacta />
                               <small>{formatearMoneda(item.precio_unitario)} c/u</small>
                             </div>
                             <div className="pedido-cantidad-control">
@@ -1802,6 +1857,7 @@ export default function PedidosDashboard() {
                             <span>
                               {item.cantidad} x {item.nombre_producto}
                               {item.variante_nombre ? ` — ${item.variante_nombre}` : ""}
+                              <PedidoProductoOpciones snapshot={item} compacta />
                             </span>
                             <small>
                               {formatearMoneda(item.precio_unitario)} c/u
@@ -1880,6 +1936,8 @@ export default function PedidosDashboard() {
                   </div>
                 </div>
               </div>
+
+              {errorManual && <p className="pedido-manual-error" role="alert">{errorManual}</p>}
 
               <div className="pedido-manual-layout">
                 <section className="pedido-form-section pedido-catalogo-manual">
@@ -2052,7 +2110,11 @@ export default function PedidosDashboard() {
                             <div className="pedido-manual-item-main">
                               <strong>{item.nombre}{item.variante_nombre ? ` — ${item.variante_nombre}` : ""}</strong>
                               <small>{formatearMoneda(item.precio_unitario)} c/u</small>
-                              {variantesActivas.length > 1 && (
+                              <PedidoProductoOpciones snapshot={item} compacta />
+                              {item.es_snapshot_historico && (item.opciones_snapshot || []).length > 0 && (
+                                <small className="pedido-snapshot-aviso">Configuracion guardada del pedido</small>
+                              )}
+                              {variantesActivas.length > 1 && !item.es_snapshot_historico && (
                                 <label className="pedido-manual-variante-inline">
                                   <span>Variante</span>
                                   <select
@@ -2143,9 +2205,11 @@ export default function PedidosDashboard() {
                       </button>
                     </div>
 
-                    <p className="pedido-variante-instruccion">Selecciona una variante</p>
-                    <div className="pedido-variante-opciones">
-                      {obtenerVariantesActivas(varianteManualSelector.producto).map((variante) => (
+                    {obtenerVariantesActivas(varianteManualSelector.producto).length > 0 && (
+                      <>
+                        <p className="pedido-variante-instruccion">Selecciona una variante</p>
+                        <div className="pedido-variante-opciones">
+                          {obtenerVariantesActivas(varianteManualSelector.producto).map((variante) => (
                         <label className="pedido-variante-opcion" key={variante.id}>
                           <input
                             type="radio"
@@ -2162,14 +2226,53 @@ export default function PedidosDashboard() {
                           </span>
                           <b>{formatearMoneda(variante.precio)}</b>
                         </label>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    <ProductoOpcionesSelectorPos
+                      grupos={varianteManualSelector.producto.grupos_opciones || []}
+                      selecciones={varianteManualSelector.selecciones}
+                      errores={varianteManualSelector.errores}
+                      onChange={(selecciones) => setVarianteManualSelector((actual) => (
+                        actual ? { ...actual, selecciones, errores: {} } : actual
                       ))}
+                    />
+
+                    <div className="pedido-configuracion-precio">
+                      <span>Precio base</span>
+                      <strong>{formatearMoneda(
+                        obtenerVariantesActivas(varianteManualSelector.producto).find(
+                          (variante) => String(variante.id) === String(varianteManualSelector.varianteId)
+                        )?.precio ?? varianteManualSelector.producto.precio
+                      )}</strong>
+                      <span>Opciones</span>
+                      <strong>+{formatearMoneda(calcularAdicionalOpciones(
+                        varianteManualSelector.producto.grupos_opciones || [],
+                        varianteManualSelector.selecciones
+                      ))}</strong>
+                      <b>Precio unitario</b>
+                      <b>{formatearMoneda(
+                        Number(obtenerVariantesActivas(varianteManualSelector.producto).find(
+                          (variante) => String(variante.id) === String(varianteManualSelector.varianteId)
+                        )?.precio ?? varianteManualSelector.producto.precio ?? 0) +
+                        calcularAdicionalOpciones(
+                          varianteManualSelector.producto.grupos_opciones || [],
+                          varianteManualSelector.selecciones
+                        )
+                      )}</b>
                     </div>
 
                     <div className="modal-actions">
                       <button className="button-cancelar" type="button" onClick={() => setVarianteManualSelector(null)}>
                         Cancelar
                       </button>
-                      <button type="button" disabled={!varianteManualSelector.varianteId} onClick={confirmarVarianteManual}>
+                      <button
+                        type="button"
+                        disabled={obtenerVariantesActivas(varianteManualSelector.producto).length > 0 && !varianteManualSelector.varianteId}
+                        onClick={confirmarVarianteManual}
+                      >
                         Agregar
                       </button>
                     </div>

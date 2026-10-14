@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { getOptimizedImageUrl } from "../utils/images";
 import { MAX_CANTIDAD_POR_PRODUCTO } from "../constants/carrito";
 import { CategoryIcon } from "../icons/categoryIcons";
+import ProductoOpcionesSelector from "./ProductoOpcionesSelector";
+import {
+  calcularPrecioConfigurado,
+  gruposPersonalizacion,
+  validarPersonalizacion,
+} from "../utils/productCustomization";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 
@@ -16,9 +22,11 @@ const getProductImage = (producto, fallbackImage, size = {}) => {
     producto?.foto_url ||
     producto?.foto;
 
+  if (!image) return fallbackImage || "/favicon.svg";
+
   return getOptimizedImageUrl(image, {
     baseUrl: CLOUDINARY_BASE,
-    fallbackImage,
+    fallbackImage: "/favicon.svg",
     width: size.width || 900,
     height: size.height || 650,
   });
@@ -53,6 +61,7 @@ export default function Menu({
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [cantidadProducto, setCantidadProducto] = useState(1);
   const [varianteSeleccionadaId, setVarianteSeleccionadaId] = useState("");
+  const [opcionesSeleccionadas, setOpcionesSeleccionadas] = useState({});
   const [cantidadesProductos, setCantidadesProductos] = useState({});
 
   useEffect(
@@ -85,11 +94,12 @@ export default function Menu({
     setCantidadProducto(1);
     const variantes = variantesActivas(producto);
     setVarianteSeleccionadaId(variantes.length === 1 ? String(variantes[0].id) : "");
+    setOpcionesSeleccionadas({});
     setSelectedProduct(producto);
   };
 
   const agregarDesdeTarjeta = (producto) => {
-    if (variantesActivas(producto).length) {
+    if (variantesActivas(producto).length || gruposPersonalizacion(producto).length) {
       handleProductClick(producto);
       return;
     }
@@ -193,6 +203,22 @@ export default function Menu({
   const selectedCategory = activeCategory === null ? null : categorias[activeCategory];
   const selectedCategoryName =
     selectedCategory?.categoria || selectedCategory?.nombre || "Categoría";
+  const variantesProductoSeleccionado = variantesActivas(selectedProduct);
+  const varianteProductoSeleccionada = variantesProductoSeleccionado.find(
+    (variante) => String(variante.id) === String(varianteSeleccionadaId),
+  ) || null;
+  const gruposProductoSeleccionado = gruposPersonalizacion(selectedProduct);
+  const validacionOpciones = validarPersonalizacion(
+    gruposProductoSeleccionado,
+    opcionesSeleccionadas,
+  );
+  const precioProductoConfigurado = selectedProduct
+    ? calcularPrecioConfigurado(
+      selectedProduct,
+      varianteProductoSeleccionada,
+      opcionesSeleccionadas,
+    )
+    : 0;
 
   return (
     <section className="menu-section">
@@ -355,7 +381,10 @@ export default function Menu({
               type="button"
               className="product-modal-close"
               aria-label="Cerrar producto"
-              onClick={() => setSelectedProduct(null)}
+              onClick={() => {
+                setSelectedProduct(null);
+                setOpcionesSeleccionadas({});
+              }}
             >
               <i className="bi bi-x-lg" aria-hidden="true"></i>
             </button>
@@ -372,8 +401,10 @@ export default function Menu({
 
             <div className="product-modal-content">
               <h2 id="product-modal-title">{selectedProduct.nombre}</h2>
-              {variantesActivas(selectedProduct).length === 0 && (
-                <strong>${Number(selectedProduct.precio).toLocaleString("es-CL")}</strong>
+              {(variantesProductoSeleccionado.length === 0 || varianteProductoSeleccionada) && (
+                <strong className="product-configured-price">
+                  ${precioProductoConfigurado.toLocaleString("es-CL")}
+                </strong>
               )}
               <p>{selectedProduct.descripcion || "Sin descripción disponible."}</p>
               {selectedProduct.condiciones && (
@@ -383,10 +414,10 @@ export default function Menu({
               )}
               {carritoActivo && (
                 <div className="product-modal-cart-actions">
-                  {variantesActivas(selectedProduct).length > 0 && (
+                  {variantesProductoSeleccionado.length > 0 && (
                     <fieldset className="product-variants" aria-label="Selecciona un tamaño">
                       <legend>Selecciona un tamaño</legend>
-                      {variantesActivas(selectedProduct).map((variante) => (
+                      {variantesProductoSeleccionado.map((variante) => (
                         <label className="product-variant-option" key={variante.id}>
                           <input
                             type="radio"
@@ -404,6 +435,12 @@ export default function Menu({
                       ))}
                     </fieldset>
                   )}
+                  <ProductoOpcionesSelector
+                    gruposOpciones={gruposProductoSeleccionado}
+                    selecciones={opcionesSeleccionadas}
+                    errores={validacionOpciones.errores}
+                    onChange={setOpcionesSeleccionadas}
+                  />
                   <label className="cart-modal-qty">
                     <span>Cantidad</span>
                     <input
@@ -425,15 +462,26 @@ export default function Menu({
                   <button
                     type="button"
                     className="producto-add-cart product-modal-add"
-                    disabled={variantesActivas(selectedProduct).length > 0 && !varianteSeleccionadaId}
+                    disabled={
+                      (variantesProductoSeleccionado.length > 0 && !varianteSeleccionadaId) ||
+                      !validacionOpciones.valida
+                    }
                     onClick={() => {
-                      const variante = variantesActivas(selectedProduct).find(
-                        (item) => String(item.id) === String(varianteSeleccionadaId)
+                      const agregado = onAddToCart?.(
+                        selectedProduct,
+                        cantidadProducto,
+                        varianteProductoSeleccionada,
+                        opcionesSeleccionadas,
                       );
-                      onAddToCart?.(selectedProduct, cantidadProducto, variante || null);
+                      if (agregado !== false) {
+                        setSelectedProduct(null);
+                        setCantidadProducto(1);
+                        setVarianteSeleccionadaId("");
+                        setOpcionesSeleccionadas({});
+                      }
                     }}
                   >
-                    Agregar
+                    Agregar · ${(precioProductoConfigurado * cantidadProducto).toLocaleString("es-CL")}
                   </button>
                 </div>
               )}

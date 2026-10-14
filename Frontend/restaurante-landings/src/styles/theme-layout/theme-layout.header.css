@@ -36,7 +36,8 @@
   height: 54px;
   max-width: 80px;
   border-radius: 50%;
-  object-fit: cover
+  object-fit: contain;
+  object-position: center
 }
 .brand-name {
   font-family: var(--font-family-header);
@@ -88,6 +89,7 @@
 }
 .page-shell .brand-logo {
   object-fit: contain;
+  object-position: center;
   border: 0
 }
 .page-shell .brand-name {

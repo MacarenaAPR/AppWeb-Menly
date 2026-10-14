@@ -250,7 +250,7 @@
   padding-bottom: 9px;
 }
 
-.cocina-item span {
+.cocina-item > span {
   color: #fff;
   font-size: 18px;
   font-weight: 900;
@@ -259,6 +259,17 @@
 .cocina-item small,
 .cocina-observacion {
   color: #fcd34d;
+}
+
+.cocina-item .pedido-opciones-snapshot {
+  text-transform: none;
+  color: #dbeafe;
+  font-size: 13px;
+}
+
+.cocina-item .pedido-opciones-snapshot > div > strong {
+  text-transform: uppercase;
+  color: #fbbf24;
 }
 
 .cocina-observacion {
