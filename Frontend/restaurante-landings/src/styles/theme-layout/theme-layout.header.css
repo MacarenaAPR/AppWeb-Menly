@@ -93,7 +93,7 @@
   border: 0
 }
 .page-shell .brand-name {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-header);
   color: var(--brand-name-text-color);
   font-size: var(--brand-name-text-size)
 }
