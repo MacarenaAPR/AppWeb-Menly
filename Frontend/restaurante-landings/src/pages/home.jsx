@@ -743,6 +743,11 @@ export default function Home() {
     fallbackImage: "/img/default.jpg",
     width: 1200,
   });
+  const imagenSobreNosotrosOptimizadaTheme7 = getOptimizedFormImageUrl(restaurante?.imgen_form, {
+    baseUrl: CLOUDINARY_BASE,
+    fallbackImage: "",
+    width: 1200,
+  });
   const imagenHeroIzquierda = imagenPrincipalOriginal || (
     imagenesRestaurante[0]?.url
       ? getOptimizedImageUrl(imagenesRestaurante[0].url, {
@@ -1180,7 +1185,7 @@ export default function Home() {
     horariosRestaurante.length || ubicacionRestaurante || telefonoRestaurante || tieneRedesRestaurante
   );
   const imagenSobreNosotrosTheme7 =
-    imagenFormularioOptimizada || imagenPrincipalOriginal || logoOptimizado;
+    imagenSobreNosotrosOptimizadaTheme7 || logoOptimizado || "/img/default.jpg";
   const imagenSobreNosotrosEsLogoTheme7 =
     Boolean(logoOptimizado) && imagenSobreNosotrosTheme7 === logoOptimizado;
   const mensajeHero = String(

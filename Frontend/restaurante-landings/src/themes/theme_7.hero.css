@@ -154,16 +154,8 @@
   display: none;
 }
 .page-shell.theme_7 .hero-theme-badge { display: none; }
-.page-shell.theme_7 .hero-panel p {
-  max-width: 600px;
-  margin: 0 auto 20px;
-  color: var(--theme-7-hero-copy-color);
-  font-family: var(--font-family-general);
-  font-size: var(--theme-7-hero-copy-size);
-  font-weight: 500;
-  line-height: 1.65;
-  text-align: center;
-}
+.page-shell.theme_7 .hero-panel p { display:none}
+
 .page-shell.theme_7 .hero-actions { width: auto; margin: 0 auto; justify-content: center; }
 .page-shell.theme_7 .hero-actions .button-primary,
 .page-shell.theme_7 .hero-actions .button-secondary {
@@ -1293,7 +1285,7 @@
 }
 
 .page-shell.theme_7 .producto-card-content {
-  min-height: 154px;
+  min-height: 124px;
   padding: 20px 20px 12px;
   gap: 9px;
 }

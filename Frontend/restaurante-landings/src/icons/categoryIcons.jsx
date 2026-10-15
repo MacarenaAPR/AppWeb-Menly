@@ -14,6 +14,7 @@ import {
   FaGulp,
   FaBirthdayCake,
 } from "react-icons/fa";
+import { BiSolidSushi } from "react-icons/bi";
 
 // Circum Icons
 import { CiFries } from "react-icons/ci";
@@ -43,6 +44,7 @@ const REACT_CATEGORY_ICONS = Object.freeze({
   LuCupSoda,
   FaGulp,
   FaBirthdayCake,
+  BiSolidSushi,
 });
 
 const DEFAULT_CATEGORY_ICON = "fa-solid fa-utensils";
