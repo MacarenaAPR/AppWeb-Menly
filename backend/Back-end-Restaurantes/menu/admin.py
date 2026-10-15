@@ -1,5 +1,10 @@
 from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,TurnoOperativo,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,RestaurantePedidoSecuencia,ActivacionCocina,SesionCocina,ReporteMetrica,PushSubscription
 from .forms import ProductoCSVImportForm
+from .admin_csv_importers import (
+    CSVImportError,
+    importar_personalizacion_csv,
+    importar_variantes_csv,
+)
 
 import csv
 from decimal import Decimal
@@ -175,6 +180,16 @@ class ProductoAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.importar_csv),
                 name="importar_productos_csv",
             ),
+            path(
+                "importar-variantes-csv/",
+                self.admin_site.admin_view(self.importar_variantes_csv),
+                name="importar_variantes_csv",
+            ),
+            path(
+                "importar-personalizacion-csv/",
+                self.admin_site.admin_view(self.importar_personalizacion_csv),
+                name="importar_personalizacion_csv",
+            ),
         ]
 
         return custom_urls + urls
@@ -277,6 +292,60 @@ class ProductoAdmin(admin.ModelAdmin):
             request,
             "admin/importar_productos_csv.html",
             {"form": form},
+        )
+
+    def _importar_catalogo_csv(self, request, *, importador, titulo, mensaje_resultado):
+        form = ProductoCSVImportForm(request.POST or None, request.FILES or None)
+        if request.method == "POST" and form.is_valid():
+            try:
+                resultado = importador(request.FILES["archivo_csv"].read())
+            except CSVImportError as exc:
+                for error in exc.errores[:20]:
+                    messages.error(request, error)
+                if len(exc.errores) > 20:
+                    messages.error(request, f"Hay {len(exc.errores) - 20} errores más.")
+            except Exception as exc:
+                messages.error(
+                    request,
+                    f"No se importó ningún registro debido a un error: {exc}",
+                )
+            else:
+                messages.success(request, mensaje_resultado(resultado))
+                return redirect("..")
+
+        return render(
+            request,
+            "admin/importar_catalogo_csv.html",
+            {
+                "form": form,
+                "title": titulo,
+            },
+        )
+
+    def importar_variantes_csv(self, request):
+        return self._importar_catalogo_csv(
+            request,
+            importador=importar_variantes_csv,
+            titulo="Importar variantes desde CSV",
+            mensaje_resultado=lambda resultado: (
+                "Importación terminada. "
+                f"Variantes creadas: {resultado['creados']}. "
+                f"Variantes actualizadas: {resultado['actualizados']}."
+            ),
+        )
+
+    def importar_personalizacion_csv(self, request):
+        return self._importar_catalogo_csv(
+            request,
+            importador=importar_personalizacion_csv,
+            titulo="Importar personalización desde CSV",
+            mensaje_resultado=lambda resultado: (
+                "Importación terminada. "
+                f"Grupos creados: {resultado['grupos_creados']}. "
+                f"Grupos actualizados: {resultado['grupos_actualizados']}. "
+                f"Opciones creadas: {resultado['opciones_creadas']}. "
+                f"Opciones actualizadas: {resultado['opciones_actualizadas']}."
+            ),
         )
 
 

@@ -234,7 +234,7 @@
   }
 
   /* Hero compartido para los themes editoriales de tres zonas. */
-  .page-shell:not(.theme_8):not(.theme_9) .page-content > .hero-panel {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .page-content > .hero-panel {
     display: grid !important;
     height: clamp(540px, 55vw, 600px) !important;
     min-height: 540px !important;
@@ -243,7 +243,7 @@
     overflow: hidden;
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-copy {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-copy {
     position: relative !important;
     width: 100% !important;
     height: 100% !important;
@@ -256,8 +256,8 @@
     text-align: center !important;
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-visual-left,
-  .page-shell:not(.theme_8):not(.theme_9) .hero-visual-right {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-visual-left,
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-visual-right {
     position: relative !important;
     display: grid !important;
     width: 100% !important;
@@ -265,30 +265,30 @@
     min-height: 0 !important;
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-visual img {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-visual img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-brand-logo {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-brand-logo {
     width: clamp(84px, 10vw, 112px);
     height: auto;
     max-height: 104px;
     object-fit: contain;
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-panel h1 {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-panel h1 {
     max-width: 100%;
     font-size: clamp(1.9rem, 4.2vw, 3rem);
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-panel p {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-panel p {
     max-width: 440px;
     font-size: clamp(0.86rem, 1.45vw, 1rem);
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-features {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-features {
     display: grid;
     width: min(100%, 430px);
     margin-top: clamp(14px, 2vw, 20px);
@@ -296,18 +296,18 @@
     align-items: stretch;
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-feature {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-feature {
     min-height: 58px;
     padding: 6px 10px;
     border-left: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-feature:nth-child(even) {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-feature:nth-child(even) {
     border-left: 1px solid rgba(255, 255, 255, 0.12);
   }
 
-  .page-shell:not(.theme_8):not(.theme_9) .hero-feature:last-child:nth-child(odd) {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .hero-feature:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
 
@@ -523,7 +523,7 @@
 
 /* Transición fluida hacia las dimensiones desktop existentes. */
 @media (min-width: 1021px) {
-  .page-shell:not(.theme_8):not(.theme_9) .page-content > .hero-panel {
+  .page-shell:not(.theme_8):not(.theme_9):where(:not(.theme_7)) .page-content > .hero-panel {
     height: clamp(560px, 52vw, 600px);
   }
 

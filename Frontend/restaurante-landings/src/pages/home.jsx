@@ -1163,6 +1163,40 @@ export default function Home() {
       : "reservation-showcase reservation-showcase--dos";
   const carritoWhatsappActivo = restaurante?.carrito_whatsapp_activo === true;
   const deliveryActivo = restaurante?.delivery_activo === true;
+  const descripcionRestaurante = String(
+    restaurante?.sobre_nosotros || restaurante?.descripcion || ""
+  ).trim();
+  const horariosRestaurante = Array.isArray(restaurante?.horarios)
+    ? restaurante.horarios
+    : [];
+  const ubicacionRestaurante = [restaurante?.direccion, restaurante?.ciudad]
+    .filter(Boolean)
+    .join(", ");
+  const telefonoRestaurante = restaurante?.telefono || restaurante?.whatsapp || "";
+  const tieneRedesRestaurante = Boolean(
+    restaurante?.facebook || restaurante?.instagram || restaurante?.whatsapp
+  );
+  const tieneInformacionRestaurante = Boolean(
+    horariosRestaurante.length || ubicacionRestaurante || telefonoRestaurante || tieneRedesRestaurante
+  );
+  const imagenSobreNosotrosTheme7 =
+    imagenFormularioOptimizada || imagenPrincipalOriginal || logoOptimizado;
+  const imagenSobreNosotrosEsLogoTheme7 =
+    Boolean(logoOptimizado) && imagenSobreNosotrosTheme7 === logoOptimizado;
+  const mensajeHero = String(
+    restaurante?.mensaje_bienvenida || restaurante?.descripcion || ""
+  ).trim();
+  const nombreRestauranteTheme7 = String(restaurante?.nombre_empresa || "").trim();
+  const palabrasNombreTheme7 = usesThemeSevenHeroLayout
+    ? nombreRestauranteTheme7.split(/\s+/).filter(Boolean)
+    : [];
+  // Theme 7 usa la última palabra como firma sólo en nombres de 3+ palabras.
+  const nombrePrincipalTheme7 = palabrasNombreTheme7.length >= 3
+    ? palabrasNombreTheme7.slice(0, -1).join(" ")
+    : nombreRestauranteTheme7;
+  const nombreSecundarioTheme7 = palabrasNombreTheme7.length >= 3
+    ? palabrasNombreTheme7.at(-1)
+    : "";
   const heroFeatures = (
     <div
       className={`hero-features${usesThemeSevenHeroLayout ? " hero-features-theme-7" : ""}${usesThemeNineHeroLayout ? " hero-features-theme-9" : ""}`}
@@ -1236,146 +1270,176 @@ export default function Home() {
 
   const detallesRestaurante = (
     <div className="restaurant-details-column">
-      <section
-        className="gallery-panel"
-        id={usesThemeSevenHeroLayout ? "galeria" : undefined}
-        aria-label="Galería del restaurante"
-      >
-        <h2>Galería</h2>
-        <div className="gallery-grid">
-          {imagenesRestaurante.length > 0 ? (
-            <div className="gallery-track">
-              <div className="gallery-group">
-                {imagenesRestaurante.map((imagen, index) => (
-                  <button
-                    key={imagen.id || imagen.url || index}
-                    type="button"
-                    className="gallery-card"
-                    onClick={() => setSelectedGalleryImage(imagen)}
-                    aria-label={`Ampliar ${imagen.label || `imagen ${index + 1}`}`}
-                  >
-                    <img
-                      src={getOptimizedImageUrl(imagen.url, {
-                        baseUrl: CLOUDINARY_BASE,
-                        width: 520,
-                        height: 390,
-                      })}
-                      alt={imagen.label || `Imagen ${index + 1} de ${restaurante?.nombre_empresa || "restaurante"}`}
-                      loading="lazy"
-                      width="520"
-                      height="390"
-                    />
-                  </button>
-                ))}
+      {(!usesThemeSevenHeroLayout || imagenesRestaurante.length > 0) && (
+        <section
+          className="gallery-panel"
+          id={usesThemeSevenHeroLayout ? "galeria" : undefined}
+          aria-label="Galería del restaurante"
+        >
+          <h2>Galería</h2>
+          <div className="gallery-grid">
+            {imagenesRestaurante.length > 0 ? (
+              <div className="gallery-track">
+                <div className="gallery-group">
+                  {imagenesRestaurante.map((imagen, index) => (
+                    <button
+                      key={imagen.id || imagen.url || index}
+                      type="button"
+                      className="gallery-card"
+                      onClick={() => setSelectedGalleryImage(imagen)}
+                      aria-label={`Ampliar ${imagen.label || `imagen ${index + 1}`}`}
+                    >
+                      <img
+                        src={getOptimizedImageUrl(imagen.url, {
+                          baseUrl: CLOUDINARY_BASE,
+                          width: 520,
+                          height: 390,
+                        })}
+                        alt={imagen.label || `Imagen ${index + 1} de ${restaurante?.nombre_empresa || "restaurante"}`}
+                        loading="lazy"
+                        width="520"
+                        height="390"
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="gallery-group" aria-hidden="true">
+                  {imagenesRestaurante.map((imagen, index) => (
+                    <button
+                      key={`gallery-copy-${imagen.id || imagen.url || index}`}
+                      type="button"
+                      className="gallery-card"
+                      tabIndex="-1"
+                      onClick={() => setSelectedGalleryImage(imagen)}
+                    >
+                      <img
+                        src={getOptimizedImageUrl(imagen.url, {
+                          baseUrl: CLOUDINARY_BASE,
+                          width: 520,
+                          height: 390,
+                        })}
+                        alt=""
+                        loading="lazy"
+                        width="520"
+                        height="390"
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
-
-              <div className="gallery-group" aria-hidden="true">
-                {imagenesRestaurante.map((imagen, index) => (
-                  <button
-                    key={`gallery-copy-${imagen.id || imagen.url || index}`}
-                    type="button"
-                    className="gallery-card"
-                    tabIndex="-1"
-                    onClick={() => setSelectedGalleryImage(imagen)}
-                  >
-                    <img
-                      src={getOptimizedImageUrl(imagen.url, {
-                        baseUrl: CLOUDINARY_BASE,
-                        width: 520,
-                        height: 390,
-                      })}
-                      alt=""
-                      loading="lazy"
-                      width="520"
-                      height="390"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="gallery-empty">No hay imágenes disponibles.</p>
-          )}
-        </div>
-      </section>
-
-      <section className="about-panel" id="nosotros">
-        <div className="about-panel-heading">
-          {logoOptimizado && (
-            <img
-              src={logoOptimizado}
-              alt={restaurante?.nombre_empresa}
-              loading="lazy"
-              width="110"
-              height="110"
-            />
-          )}
-          <div>
-            <h2>Sobre Nosotros</h2>
-            <p>
-              {restaurante?.sobre_nosotros ||
-                restaurante?.descripcion ||
-                "Sabores que convierten cualquier momento en algo especial."}
-            </p>
-          </div>
-        </div>
-
-        <div className="about-panel-details">
-          <article>
-            <h3>Horarios</h3>
-            {Array.isArray(restaurante?.horarios) && restaurante.horarios.length > 0 ? (
-              <ul className="about-schedule-list">
-                {restaurante.horarios.map((horario) => (
-                  <li key={horario.id || horario.dia}>
-                    <span>{horario.dia_nombre || horario.dia}</span>
-                    <strong>{formatearHorarioPublico(horario)}</strong>
-                  </li>
-                ))}
-              </ul>
             ) : (
-              <p>Consulta nuestros horarios de atención.</p>
+              <p className="gallery-empty">No hay imágenes disponibles.</p>
             )}
-          </article>
-          <article>
-            <h3>Ubicación</h3>
-            <p>{restaurante?.direccion}, {restaurante?.ciudad}</p>
-            {restaurante?.google_maps && (
-              <a href={restaurante.google_maps} target="_blank" rel="noreferrer">
-                Ver mapa
-              </a>
-            )}
-          </article>
-          <article>
-            <h3>Contacto</h3>
-            <p>{restaurante?.telefono || restaurante?.whatsapp}</p>
-          </article>
-          <article>
-            <h3>Síguenos</h3>
-            <div className="social-links">
-              {restaurante?.facebook && (
-                <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
-                  <i className="bi bi-facebook"></i>
-                </a>
+          </div>
+        </section>
+      )}
+
+      {(!usesThemeSevenHeroLayout || descripcionRestaurante || tieneInformacionRestaurante) && (
+        <section className="about-panel" id="nosotros">
+          {(!usesThemeSevenHeroLayout || descripcionRestaurante) && (
+            <div className="about-panel-heading">
+              {(usesThemeSevenHeroLayout ? imagenSobreNosotrosTheme7 : logoOptimizado) && (
+                <img
+                  className={
+                    usesThemeSevenHeroLayout
+                      ? `theme-7-about-image${imagenSobreNosotrosEsLogoTheme7 ? " is-logo" : ""}`
+                      : undefined
+                  }
+                  src={usesThemeSevenHeroLayout ? imagenSobreNosotrosTheme7 : logoOptimizado}
+                  alt={restaurante?.nombre_empresa}
+                  loading="lazy"
+                  width={usesThemeSevenHeroLayout ? "640" : "110"}
+                  height={usesThemeSevenHeroLayout ? "480" : "110"}
+                />
               )}
-              {restaurante?.instagram && (
-                <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
-                  <i className="bi bi-instagram"></i>
-                </a>
+              <div>
+                <h2>Sobre Nosotros</h2>
+                <p>
+                  {usesThemeSevenHeroLayout
+                    ? descripcionRestaurante
+                    : restaurante?.sobre_nosotros ||
+                      restaurante?.descripcion ||
+                      "Sabores que convierten cualquier momento en algo especial."}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {(!usesThemeSevenHeroLayout || tieneInformacionRestaurante) && (
+            <div
+              className="about-panel-details"
+              id={usesThemeSevenHeroLayout ? "contacto" : undefined}
+            >
+              {(!usesThemeSevenHeroLayout || horariosRestaurante.length > 0) && (
+                <article>
+                  <h3>Horarios</h3>
+                  {horariosRestaurante.length > 0 ? (
+                    <ul className="about-schedule-list">
+                      {horariosRestaurante.map((horario) => (
+                        <li key={horario.id || horario.dia}>
+                          <span>{horario.dia_nombre || horario.dia}</span>
+                          <strong>{formatearHorarioPublico(horario)}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>Consulta nuestros horarios de atención.</p>
+                  )}
+                </article>
               )}
-              {restaurante?.whatsapp && (
-                <a
-                  href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="WhatsApp"
-                >
-                  <i className="bi bi-whatsapp"></i>
-                </a>
+              {(!usesThemeSevenHeroLayout || ubicacionRestaurante) && (
+                <article>
+                  <h3>Ubicación</h3>
+                  <p>
+                    {usesThemeSevenHeroLayout
+                      ? ubicacionRestaurante
+                      : `${restaurante?.direccion}, ${restaurante?.ciudad}`}
+                  </p>
+                  {restaurante?.google_maps && (
+                    <a href={restaurante.google_maps} target="_blank" rel="noreferrer">
+                      Ver mapa
+                    </a>
+                  )}
+                </article>
+              )}
+              {(!usesThemeSevenHeroLayout || telefonoRestaurante) && (
+                <article>
+                  <h3>Contacto</h3>
+                  <p>{telefonoRestaurante}</p>
+                </article>
+              )}
+              {(!usesThemeSevenHeroLayout || tieneRedesRestaurante) && (
+                <article>
+                  <h3>Síguenos</h3>
+                  <div className="social-links">
+                    {restaurante?.facebook && (
+                      <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                        <i className="bi bi-facebook"></i>
+                      </a>
+                    )}
+                    {restaurante?.instagram && (
+                      <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                        <i className="bi bi-instagram"></i>
+                      </a>
+                    )}
+                    {restaurante?.whatsapp && (
+                      <a
+                        href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="WhatsApp"
+                      >
+                        <i className="bi bi-whatsapp"></i>
+                      </a>
+                    )}
+                  </div>
+                </article>
               )}
             </div>
-          </article>
-        </div>
-      </section>
+          )}
+        </section>
+      )}
     </div>
   );
  
@@ -1434,6 +1498,15 @@ export default function Home() {
             <a href="#inicio" onClick={() => setMobileNavOpen(false)}>Inicio</a>
           )}
           <a href="#menu" onClick={() => setMobileNavOpen(false)}>Menú</a>
+          {usesThemeSevenHeroLayout && descripcionRestaurante && (
+            <a href="#nosotros" onClick={() => setMobileNavOpen(false)}>Nosotros</a>
+          )}
+          {usesThemeSevenHeroLayout && imagenesRestaurante.length > 0 && (
+            <a href="#galeria" onClick={() => setMobileNavOpen(false)}>Galería</a>
+          )}
+          {usesThemeSevenHeroLayout && tieneInformacionRestaurante && (
+            <a href="#contacto" onClick={() => setMobileNavOpen(false)}>Contacto</a>
+          )}
           {!usesThemeSevenHeroLayout && reservasActivas && (
             <a
               href="#reserva"
@@ -1528,17 +1601,32 @@ export default function Home() {
                 />
               )
             )}
-            {!usesThemeNineHeroLayout && <h1>{restaurante?.nombre_empresa}</h1>}
+            {usesThemeSevenHeroLayout ? (
+              <div className="theme-7-hero-name">
+                <h1>{nombrePrincipalTheme7}</h1>
+                {nombreSecundarioTheme7 && (
+                  <span className="theme-7-hero-name-secondary">
+                    {nombreSecundarioTheme7}
+                  </span>
+                )}
+              </div>
+            ) : (
+              !usesThemeNineHeroLayout && <h1>{restaurante?.nombre_empresa}</h1>
+            )}
             {!usesThemeNineHeroLayout && heroBadgeText && (
               <div className="hero-theme-badge">
                 <span>{heroBadgeText}</span>
               </div>
             )}
-            <p className={usesThemeNineHeroLayout ? "hero-welcome-theme-9" : undefined}>
-              {restaurante?.mensaje_bienvenida ||
-                restaurante?.descripcion ||
-                "Sabores preparados con ingredientes frescos para convertir cada momento en algo especial."}
-            </p>
+            {(!usesThemeSevenHeroLayout || mensajeHero) && (
+              <p className={usesThemeNineHeroLayout ? "hero-welcome-theme-9" : undefined}>
+                {usesThemeSevenHeroLayout
+                  ? mensajeHero
+                  : restaurante?.mensaje_bienvenida ||
+                    restaurante?.descripcion ||
+                    "Sabores preparados con ingredientes frescos para convertir cada momento en algo especial."}
+              </p>
+            )}
 
             <div className={`hero-actions${usesThemeNineHeroLayout ? " hero-actions-theme-9" : ""}`}>
               <a className="button-primary" href="#menu">
@@ -1588,6 +1676,7 @@ export default function Home() {
           </figure>
         </section>
 
+        {(!usesThemeSevenHeroLayout || promociones.length > 0 || productosDestacados.length > 0) && (
         <section className="promo-panel" id="promociones">
           <article className="promo-card promo-card-small commercial-showcase-card">
             <div className="promo-card-header">
@@ -1724,6 +1813,7 @@ export default function Home() {
             )}
           </article>
         </section>
+        )}
 
         {selectedPromotion && (
           <div
@@ -1888,7 +1978,11 @@ export default function Home() {
           <Menu
             categorias={categorias}
             onProductClick={handleClickProducto}
-            fallbackImage={logoOptimizado}
+            fallbackImage={
+              usesThemeSevenHeroLayout
+                ? "/theme-7-product-placeholder.svg"
+                : logoOptimizado
+            }
             carritoActivo={carritoDisponible}
             onAddToCart={agregarAlCarrito}
             maxCantidad={MAX_CANTIDAD_POR_PRODUCTO}
@@ -1956,9 +2050,50 @@ export default function Home() {
         )}
 
         <footer className="landing-footer">
-          <p>
-            © 2026 {restaurante?.nombre_empresa} · Desarrollado con Menly
-          </p>
+          {usesThemeSevenHeroLayout ? (
+            <>
+              <div className="theme-7-footer-brand">
+                {logoOptimizado && (
+                  <img src={logoOptimizado} alt="" loading="lazy" width="72" height="72" />
+                )}
+                <strong>{restaurante?.nombre_empresa}</strong>
+              </div>
+              <nav className="theme-7-footer-nav" aria-label="Enlaces del pie de página">
+                <a href="#inicio">Inicio</a>
+                <a href="#menu">Menú</a>
+                {descripcionRestaurante && <a href="#nosotros">Nosotros</a>}
+                {imagenesRestaurante.length > 0 && <a href="#galeria">Galería</a>}
+                {tieneInformacionRestaurante && <a href="#contacto">Contacto</a>}
+              </nav>
+              {tieneRedesRestaurante && (
+                <div className="theme-7-footer-social" aria-label="Redes sociales">
+                  {restaurante?.facebook && (
+                    <a href={restaurante.facebook} target="_blank" rel="noreferrer" aria-label="Facebook">
+                      <i className="bi bi-facebook" aria-hidden="true"></i>
+                    </a>
+                  )}
+                  {restaurante?.instagram && (
+                    <a href={restaurante.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+                      <i className="bi bi-instagram" aria-hidden="true"></i>
+                    </a>
+                  )}
+                  {restaurante?.whatsapp && (
+                    <a
+                      href={`https://wa.me/${String(restaurante.whatsapp).replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="WhatsApp"
+                    >
+                      <i className="bi bi-whatsapp" aria-hidden="true"></i>
+                    </a>
+                  )}
+                </div>
+              )}
+              <p>© 2026 {restaurante?.nombre_empresa} · Desarrollado con Menly</p>
+            </>
+          ) : (
+            <p>© 2026 {restaurante?.nombre_empresa} · Desarrollado con Menly</p>
+          )}
         </footer>
       </main>
       {selectedGalleryImage && (

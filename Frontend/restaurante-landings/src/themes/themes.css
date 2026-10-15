@@ -371,9 +371,9 @@
 
     /* Tipografías compartidas */
     --font-family-general:var(--theme-7-font-family);
-    --font-family-base:var(--theme-7-font-family);
-    --font-family-btns:var(--theme-7-font-family);
-    --font-family-card-producto-p:var(--theme-7-font-family);
+    --font-family-base:Arial, "Helvetica Neue", sans-serif;
+    --font-family-btns:Arial, "Helvetica Neue", sans-serif;
+    --font-family-card-producto-p:Arial, "Helvetica Neue", sans-serif;
     --landing-font-body:var(--font-family-general);
 
     /* Landing */
