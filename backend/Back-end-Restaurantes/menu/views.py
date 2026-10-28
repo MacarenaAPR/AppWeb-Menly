@@ -326,6 +326,10 @@ def construir_datos_respaldo(restaurante):
                 "descripcion": p.descripcion,
                 "condiciones": p.condiciones,
                 "precio": str(p.precio),
+                "en_oferta": p.en_oferta,
+                "porcentaje_descuento": p.porcentaje_descuento,
+                "precio_oferta": str(p.precio_oferta) if p.precio_oferta is not None else None,
+                "precio_efectivo": str(p.precio_efectivo),
                 "imagen": p.imagen.url if p.imagen else None,
                 "disponible": p.disponible,
                 "destacado": p.destacado,
@@ -3033,6 +3037,10 @@ class ProductoListView(TenantScopedQuerysetMixin, APIView):
                     "nombre": p.nombre,
                     "descripcion": p.descripcion,
                     "precio": str(p.precio),
+                    "en_oferta": p.en_oferta,
+                    "porcentaje_descuento": p.porcentaje_descuento,
+                    "precio_oferta": str(p.precio_oferta) if p.precio_oferta is not None else None,
+                    "precio_efectivo": str(p.precio_efectivo),
                     "imagen": p.imagen.url if p.imagen else None,
                     "disponible": p.disponible,
                     "categoria": {
@@ -3069,6 +3077,7 @@ class ProductoUpdateView(TenantScopedQuerysetMixin, UpdateAPIView):
 
         nombre_anterior = producto.nombre
         precio_anterior = producto.precio
+        porcentaje_descuento_anterior = producto.porcentaje_descuento
         descripcion_anterior = producto.descripcion
         condiciones_anterior = producto.condiciones
         disponible_anterior = producto.disponible
@@ -3077,32 +3086,15 @@ class ProductoUpdateView(TenantScopedQuerysetMixin, UpdateAPIView):
         categoria_anterior = producto.categoria.nombre
         imagen_anterior = producto.imagen.url if producto.imagen else None
 
-        try:
-            nuevo_orden = int(request.data.get("orden", producto.orden))
-            nueva_categoria_id = int(request.data.get("categoria", producto.categoria_id))
-        except (TypeError, ValueError):
-            return Response(
-                {"error": "Categoria u orden invalido."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+        serializer = self.get_serializer(producto, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        datos_validados = dict(serializer.validated_data)
+        nuevo_orden = datos_validados.pop("orden", producto.orden)
+        nueva_categoria = datos_validados.pop("categoria", producto.categoria)
 
-        nueva_categoria = get_object_for_restaurante_or_404(
-            Categoria,
-            producto.restaurante,
-            id=nueva_categoria_id,
-        )
-
-        # actualizar datos normales
-        producto.nombre = request.data.get("nombre", producto.nombre)
-        producto.precio = request.data.get("precio", producto.precio)
-        producto.descripcion = request.data.get("descripcion", producto.descripcion)
-        producto.condiciones = request.data.get("condiciones", producto.condiciones)
-        campos_producto_actualizados = [
-            "nombre",
-            "precio",
-            "descripcion",
-            "condiciones",
-        ]
+        for campo, valor in datos_validados.items():
+            setattr(producto, campo, valor)
+        campos_producto_actualizados = list(datos_validados.keys())
 
         if Producto.objects.filter(
             restaurante=producto.restaurante,
@@ -3113,19 +3105,8 @@ class ProductoUpdateView(TenantScopedQuerysetMixin, UpdateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if "disponible" in request.data:
-            producto.disponible = valor_booleano(request.data.get("disponible"))
-            campos_producto_actualizados.append("disponible")
-
-        if "destacado" in request.data:
-            producto.destacado = valor_booleano(request.data.get("destacado"))
-            campos_producto_actualizados.append("destacado")
-
-        if "imagen" in request.FILES:
-            producto.imagen = request.FILES["imagen"]
-            campos_producto_actualizados.append("imagen")
-
-        producto.save(update_fields=campos_producto_actualizados)
+        if campos_producto_actualizados:
+            producto.save(update_fields=campos_producto_actualizados)
 
         # productos de la categoría
         producto = reordenar_producto(
@@ -3150,6 +3131,11 @@ class ProductoUpdateView(TenantScopedQuerysetMixin, UpdateAPIView):
 
         if str(precio_anterior) != str(producto.precio):
             cambios.append(f"Precio: {precio_anterior} → {producto.precio}")
+
+        if porcentaje_descuento_anterior != producto.porcentaje_descuento:
+            anterior = porcentaje_descuento_anterior or "sin oferta"
+            nuevo = producto.porcentaje_descuento or "sin oferta"
+            cambios.append(f"Oferta: {anterior} -> {nuevo}")
 
         if descripcion_anterior != producto.descripcion:
             cambios.append("Descripción actualizada")
@@ -3438,6 +3424,7 @@ class ProductoCreateView(CreateAPIView):
             categoria=categoria,
             nombre=serializer.validated_data["nombre"],
             precio=serializer.validated_data["precio"],
+            porcentaje_descuento=serializer.validated_data.get("porcentaje_descuento"),
             descripcion=serializer.validated_data.get("descripcion", ""),
             condiciones=serializer.validated_data.get("condiciones", ""),
             imagen=serializer.validated_data.get("imagen"),
@@ -3925,6 +3912,10 @@ class MiRestauranteView(APIView):
                     "nombre": p.nombre,
                     "descripcion": p.descripcion,
                     "precio": str(p.precio),
+                    "en_oferta": p.en_oferta,
+                    "porcentaje_descuento": p.porcentaje_descuento,
+                    "precio_oferta": str(p.precio_oferta) if p.precio_oferta is not None else None,
+                    "precio_efectivo": str(p.precio_efectivo),
                     "imagen": p.imagen.url if p.imagen else None,
                     "disponible": p.disponible,
                     "categoria": {
@@ -3962,6 +3953,10 @@ class MiRestauranteView(APIView):
                             "nombre": p.nombre,
                             "descripcion": p.descripcion,
                             "precio": str(p.precio),
+                            "en_oferta": p.en_oferta,
+                            "porcentaje_descuento": p.porcentaje_descuento,
+                            "precio_oferta": str(p.precio_oferta) if p.precio_oferta is not None else None,
+                            "precio_efectivo": str(p.precio_efectivo),
                             "imagen": p.imagen.url if p.imagen else None,
                             "disponible": p.disponible,
                         }
@@ -4096,6 +4091,10 @@ def menu_api(request, slug):
                     "nombre": p.nombre,
                     "descripcion": p.descripcion,
                     "precio": str(p.precio),
+                    "en_oferta": p.en_oferta,
+                    "porcentaje_descuento": p.porcentaje_descuento,
+                    "precio_oferta": str(p.precio_oferta) if p.precio_oferta is not None else None,
+                    "precio_efectivo": str(p.precio_efectivo),
                     "condiciones": p.condiciones,
                     "imagen": p.imagen.url if p.imagen else None,
                     "destacado": p.destacado,

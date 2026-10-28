@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   calcularPrecioConfigurado,
+  calcularPrecioConfiguradoOriginal,
   cambiarOpcionSeleccionada,
   construirResumenOpciones,
   crearClaveCarrito,
@@ -80,4 +81,19 @@ test("calcula precio, resumen histórico visual e identidad canónica", () => {
     crearClaveCarrito(10, 42, [12, 13]),
     crearClaveCarrito(10, 42, [12, 13, 25]),
   );
+});
+
+test("aplica oferta a variante antes de sumar extras", () => {
+  const producto = {
+    precio: 8990,
+    precio_efectivo: 7192,
+    en_oferta: true,
+    porcentaje_descuento: 20,
+    grupos_opciones: grupos,
+  };
+  const variante = { id: 42, precio: 10000, precio_efectivo: 8000 };
+  const selecciones = { "3": ["12"], "6": ["25"] };
+
+  assert.equal(calcularPrecioConfigurado(producto, variante, selecciones), 9500);
+  assert.equal(calcularPrecioConfiguradoOriginal(producto, variante, selecciones), 11500);
 });

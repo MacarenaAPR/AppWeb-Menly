@@ -410,3 +410,39 @@
     transition: none;
   }
 }
+
+/* La oferta conserva la fila compacta de precios propia de las cards de theme_8. */
+.page-shell.theme_8 .producto-card-price {
+  min-width: 0;
+}
+
+.page-shell.theme_8 .producto-card-price .product-price-with-offer {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: clamp(0.82rem, 1.4vw, 1.05rem);
+  white-space: nowrap;
+}
+
+.page-shell.theme_8 .producto-card-price .product-price-original {
+  font-size: 0.68em;
+  opacity: 0.5;
+}
+
+.page-shell.theme_8 .producto-card-price .product-discount-badge {
+  min-height: 1.2rem;
+  padding-inline: 0.32rem;
+  background: var(--color-accent);
+  color: var(--color-text);
+  font-size: 0.6rem;
+}
+
+.page-shell.theme_8 .featured-product-price .product-discount-badge,
+.page-shell.theme_8 .product-configured-price .product-discount-badge,
+.page-shell.theme_8 .product-variant-price .product-discount-badge {
+  background: var(--color-accent);
+  color: var(--color-text);
+}

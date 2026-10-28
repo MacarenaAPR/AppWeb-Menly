@@ -3,16 +3,26 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import "../styles/style-componentes.css";
 import { useState } from "react";
 import { authFetch } from "../api";
+import { formatearPrecioClp } from "../utils/precios";
 
-const formatearPrecioClp = (valor) =>
-  new Intl.NumberFormat("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  }).format(Number(valor || 0));
+const PrecioProducto = ({ precio, precioEfectivo, porcentaje, className = "", as: Component = "strong" }) => {
+  const enOferta = porcentaje != null && Number(porcentaje) >= 1;
+  if (!enOferta) {
+    return <Component className={className}>{formatearPrecioClp(precio)}</Component>;
+  }
+  return (
+    <Component className={`product-price-stack ${className}`.trim()}>
+      <span className="product-price-original">{formatearPrecioClp(precio)}</span>
+      <span className="product-price-offer">{formatearPrecioClp(precioEfectivo)}</span>
+      <span className="product-discount-badge">-{porcentaje}%</span>
+    </Component>
+  );
+};
 
 export default function CardsProductos({
   price,
+  precioEfectivo,
+  porcentajeDescuento,
   titulo,
   categoria,
   descripcion,
@@ -122,7 +132,7 @@ export default function CardsProductos({
 
         <strong className="producto-empleado-name">{titulo}</strong>
         <span className="producto-empleado-category">{categoria || "Sin categoría"}</span>
-        <strong className="producto-empleado-price">{formatearPrecioClp(price)}</strong>
+        <PrecioProducto className="producto-empleado-price" precio={price} precioEfectivo={precioEfectivo} porcentaje={porcentajeDescuento} />
 
         {canToggleAvailability && (
           <label className="form-switch producto-empleado-available" htmlFor={`producto-empleado-disponible-${id}`}>
@@ -147,7 +157,7 @@ export default function CardsProductos({
         <article className="producto-mobile-list-row">
           <div className="producto-mobile-list-top">
             <strong className="producto-mobile-list-name">{titulo}</strong>
-            <strong className="producto-mobile-list-price">{formatearPrecioClp(price)}</strong>
+            <PrecioProducto className="producto-mobile-list-price" precio={price} precioEfectivo={precioEfectivo} porcentaje={porcentajeDescuento} />
           </div>
 
           <div className="producto-mobile-list-bottom">
@@ -207,7 +217,7 @@ export default function CardsProductos({
             </div>
 
             <strong className="producto-mobile-card-name">{titulo}</strong>
-            <strong className="producto-mobile-card-price">{formatearPrecioClp(price)}</strong>
+            <PrecioProducto className="producto-mobile-card-price" precio={price} precioEfectivo={precioEfectivo} porcentaje={porcentajeDescuento} />
           </div>
 
           <div className="producto-mobile-card-bottom">
@@ -271,7 +281,7 @@ export default function CardsProductos({
           <p className="producto-mobile-meta">
             <span>{categoria || "Sin categoría"}</span>
             <span className="producto-mobile-price-separator" aria-hidden="true">·</span>
-            <strong className="producto-mobile-price">{formatearPrecioClp(price)}</strong>
+            <PrecioProducto className="producto-mobile-price" precio={price} precioEfectivo={precioEfectivo} porcentaje={porcentajeDescuento} />
             {variantesCount > 0 && <span>· {variantesCount} {variantesCount === 1 ? "variante" : "variantes"}</span>}
           </p>
           <p className="producto-description-text">{descripcion || categoria || "Sin descripción"}</p>
@@ -283,9 +293,7 @@ export default function CardsProductos({
       </div>
 
       <div className="producto-table-cell producto-cell-price">
-        <h4 className="price-text-card">
-          {formatearPrecioClp(price)}
-        </h4>
+        <PrecioProducto className="price-text-card" precio={price} precioEfectivo={precioEfectivo} porcentaje={porcentajeDescuento} as="h4" />
       </div>
 
       {canManage && (

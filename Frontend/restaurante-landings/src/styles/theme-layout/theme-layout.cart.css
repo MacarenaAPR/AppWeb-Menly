@@ -109,6 +109,26 @@
   color: var(--color-text-primary);
   font-weight: 800
 }
+.cart-item .cart-item-unit-price-with-offer {
+  display: inline-flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .2rem .45rem
+}
+.cart-item .cart-item-unit-price-original {
+  color: inherit;
+  font-size: .88em;
+  font-weight: 600;
+  opacity: .62;
+  text-decoration: line-through;
+  white-space: nowrap
+}
+.cart-item .cart-item-unit-price-effective {
+  color: var(--color-secondary);
+  font: inherit;
+  white-space: nowrap
+}
 .cart-item p {
   color: var(--color-text-secondary);
   font-size: 0.86rem

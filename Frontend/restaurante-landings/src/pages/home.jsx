@@ -17,8 +17,10 @@ import { TiShoppingCart } from "react-icons/ti";
 import { MdOutlineShoppingBag } from "react-icons/md";
 import RestaurantPageLoader from "../components/RestaurantPageLoader";
 import ProductoOpcionesSelector from "../components/ProductoOpcionesSelector";
+import ProductPrice from "../components/ProductPrice";
 import {
   calcularPrecioConfigurado,
+  calcularPrecioConfiguradoOriginal,
   calcularPrecioOpciones,
   construirResumenOpciones,
   crearClaveCarrito,
@@ -26,6 +28,7 @@ import {
   obtenerIdsOpciones,
   validarPersonalizacion,
 } from "../utils/productCustomization";
+import { obtenerPreciosMinimos, obtenerPrecioEfectivo, obtenerPrecioOriginal } from "../utils/pricing";
 import {
   MAX_CANTIDAD_POR_PRODUCTO,
   MENSAJE_MAX_CANTIDAD_POR_PRODUCTO,
@@ -289,11 +292,18 @@ export default function Home() {
   const getVariantesActivas = (producto) =>
     (producto?.variantes || []).filter((variante) => variante.activo !== false);
 
-  const getPrecioMinimo = (producto) => {
-    const variantes = getVariantesActivas(producto);
-    return variantes.length
-      ? Math.min(...variantes.map((variante) => Number(variante.precio)))
-      : Number(producto?.precio || 0);
+  const renderPrecioProducto = (producto, className = "", as = "span") => {
+    const precios = obtenerPreciosMinimos(producto);
+    return (
+      <ProductPrice
+        producto={producto}
+        precioOriginal={precios.original}
+        precioEfectivo={precios.efectivo}
+        desde={precios.tieneVariantes}
+        className={className}
+        as={as}
+      />
+    );
   };
 
   const hasProductImage = (producto) =>
@@ -354,7 +364,8 @@ export default function Home() {
     }
     const opciones = obtenerIdsOpciones(grupos, selecciones);
     const gruposOpciones = construirResumenOpciones(grupos, selecciones);
-    const precioBase = Number(variante?.precio ?? producto.precio);
+    const precioBaseOriginal = obtenerPrecioOriginal(variante || producto);
+    const precioBase = obtenerPrecioEfectivo(variante || producto);
     const precioOpciones = calcularPrecioOpciones(grupos, selecciones);
     const unitPrice = precioBase + precioOpciones;
     const lineId = crearClaveCarrito(producto.id, variante?.id ?? null, opciones);
@@ -392,6 +403,8 @@ export default function Home() {
           variantName: variante?.nombre || "",
           opciones,
           gruposOpciones,
+          precioBaseOriginal,
+          porcentajeDescuento: producto.porcentaje_descuento,
           precioBase,
           precioOpciones,
           lineId,
@@ -530,7 +543,16 @@ export default function Home() {
         retries: 0,
       });
 
-      setPedidoMensaje("Pedido guardado correctamente. Se abrirá WhatsApp para enviarlo.");
+      const totalDefinitivo = Number(pedido.total ?? totalCarrito);
+      const precioActualizado = totalDefinitivo !== totalCarrito;
+      setPedidoMensaje(
+        precioActualizado
+          ? `Pedido guardado. El total definitivo se actualizó a $${totalDefinitivo.toLocaleString("es-CL")}.`
+          : "Pedido guardado correctamente. Se abrirá WhatsApp para enviarlo.",
+      );
+      if (precioActualizado) {
+        mostrarToastCarrito(`Total definitivo: $${totalDefinitivo.toLocaleString("es-CL")}`);
+      }
       setCarrito([]);
       setCarritoAbierto(false);
       setTipoEntregaPedido("");
@@ -1250,6 +1272,13 @@ export default function Home() {
       selectedPromotionOptions,
     )
     : 0;
+  const precioPromocionConfiguradaOriginal = selectedPromotion
+    ? calcularPrecioConfiguradoOriginal(
+      selectedPromotion,
+      variantePromocionSeleccionada,
+      selectedPromotionOptions,
+    )
+    : 0;
   const mostrarModalTiendaCerrada =
     tiendaCerradaConCarrito && !tiendaCerradaModalCerrado;
   const destacadosClase = [
@@ -1725,7 +1754,7 @@ export default function Home() {
 
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
-                          <strong>{getVariantesActivas(producto).length ? "Desde " : ""}${getPrecioMinimo(producto).toLocaleString("es-CL")}</strong>
+                          {renderPrecioProducto(producto, "featured-product-price", "strong")}
                           <button
                             type="button"
                             className="commercial-action"
@@ -1753,7 +1782,7 @@ export default function Home() {
 
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
-                          <strong>{getVariantesActivas(producto).length ? "Desde " : ""}${getPrecioMinimo(producto).toLocaleString("es-CL")}</strong>
+                          {renderPrecioProducto(producto, "featured-product-price", "strong")}
                           {carritoDisponible && (
                             <button
                               type="button"
@@ -1787,7 +1816,7 @@ export default function Home() {
                         <span className="commercial-badge">Promoción</span>
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
-                          <strong>{getVariantesActivas(producto).length ? "Desde " : ""}${getPrecioMinimo(producto).toLocaleString("es-CL")}</strong>
+                          {renderPrecioProducto(producto, "featured-product-price", "strong")}
                         </div>
                       </div>
                     ))}
@@ -1806,7 +1835,7 @@ export default function Home() {
                         <span className="commercial-badge">Destacado</span>
                         <div className="promo-item-small">
                           <h3>{producto.nombre}</h3>
-                          <strong>{getVariantesActivas(producto).length ? "Desde " : ""}${getPrecioMinimo(producto).toLocaleString("es-CL")}</strong>
+                          {renderPrecioProducto(producto, "featured-product-price", "strong")}
                         </div>
                       </div>
                     ))}
@@ -1862,9 +1891,13 @@ export default function Home() {
                 <span className="product-modal-label">Promoción</span>
                 <h2 id="promotion-modal-title">{selectedPromotion.nombre}</h2>
                 {(variantesPromocion.length === 0 || variantePromocionSeleccionada) && (
-                  <strong className="product-configured-price">
-                    ${precioPromocionConfigurada.toLocaleString("es-CL")}
-                  </strong>
+                  <ProductPrice
+                    producto={selectedPromotion}
+                    precioOriginal={precioPromocionConfiguradaOriginal}
+                    precioEfectivo={precioPromocionConfigurada}
+                    className="product-configured-price"
+                    as="strong"
+                  />
                 )}
                 <p>{selectedPromotion.descripcion || "Sin descripción disponible."}</p>
                 {getProductConditions(selectedPromotion) && (
@@ -1887,7 +1920,13 @@ export default function Home() {
                               <strong>{variante.nombre}</strong>
                               {variante.descripcion && <small>{variante.descripcion}</small>}
                             </span>
-                            <b>${Number(variante.precio).toLocaleString("es-CL")}</b>
+                            <ProductPrice
+                              producto={selectedPromotion}
+                              precioOriginal={obtenerPrecioOriginal(variante)}
+                              precioEfectivo={obtenerPrecioEfectivo(variante)}
+                              className="product-variant-price"
+                              as="b"
+                            />
                           </label>
                         ))}
                       </fieldset>
@@ -2261,9 +2300,21 @@ export default function Home() {
                             )).join(", ")}
                           </p>
                         ))}
-                        <p className="cart-item-unit-price">
-                          {item.cantidad} × ${item.unitPrice.toLocaleString("es-CL")}
-                        </p>
+                        {Number(item.porcentajeDescuento) >= 1 && item.precioBase < item.precioBaseOriginal ? (
+                          <p className="cart-item-unit-price cart-item-unit-price-with-offer">
+                            <span>{item.cantidad} ×</span>
+                            <span className="cart-item-unit-price-original">
+                              ${item.precioBaseOriginal.toLocaleString("es-CL")}
+                            </span>
+                            <strong className="cart-item-unit-price-effective">
+                              ${item.precioBase.toLocaleString("es-CL")}
+                            </strong>
+                          </p>
+                        ) : (
+                          <p className="cart-item-unit-price">
+                            {item.cantidad} × ${item.unitPrice.toLocaleString("es-CL")}
+                          </p>
+                        )}
                       </div>
                       <div className="cart-quantity">
                         <button

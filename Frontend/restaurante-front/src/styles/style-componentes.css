@@ -613,3 +613,38 @@
         border-radius: 7px;
     }
 }
+.carta-productos-page .product-price-stack {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  color: inherit;
+  line-height: 1.1;
+}
+
+.carta-productos-page .product-price-original {
+  color: #898989;
+  font-size: 0.78em;
+  font-weight: 500;
+  opacity: 0.72;
+  text-decoration: line-through;
+}
+
+.carta-productos-page .product-price-offer {
+    color: #F8761D;
+  font: inherit;
+  font-weight: 800;
+}
+
+.carta-productos-page .product-discount-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.45rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  color: #fff;
+  background: #ef251b;
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}

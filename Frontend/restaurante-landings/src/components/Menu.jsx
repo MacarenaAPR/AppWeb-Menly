@@ -3,11 +3,14 @@ import { getOptimizedImageUrl } from "../utils/images";
 import { MAX_CANTIDAD_POR_PRODUCTO } from "../constants/carrito";
 import { CategoryIcon } from "../icons/categoryIcons";
 import ProductoOpcionesSelector from "./ProductoOpcionesSelector";
+import ProductPrice from "./ProductPrice";
 import {
   calcularPrecioConfigurado,
+  calcularPrecioConfiguradoOriginal,
   gruposPersonalizacion,
   validarPersonalizacion,
 } from "../utils/productCustomization";
+import { obtenerPreciosMinimos, obtenerPrecioEfectivo, obtenerPrecioOriginal } from "../utils/pricing";
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_BASE;
 
@@ -33,11 +36,6 @@ const getProductImage = (producto, fallbackImage, size = {}) => {
 };
 
 const variantesActivas = (producto) => (producto?.variantes || []).filter((variante) => variante.activo !== false);
-const precioMinimo = (producto) => {
-  const variantes = variantesActivas(producto);
-  return variantes.length ? Math.min(...variantes.map((variante) => Number(variante.precio))) : Number(producto.precio);
-};
-
 export default function Menu({
   categorias,
   onProductClick,
@@ -219,6 +217,13 @@ export default function Menu({
       opcionesSeleccionadas,
     )
     : 0;
+  const precioProductoConfiguradoOriginal = selectedProduct
+    ? calcularPrecioConfiguradoOriginal(
+      selectedProduct,
+      varianteProductoSeleccionada,
+      opcionesSeleccionadas,
+    )
+    : 0;
 
   return (
     <section className="menu-section">
@@ -280,7 +285,9 @@ export default function Menu({
           </div>
 
           <div className="productos-list">
-            {(selectedCategory.productos || []).map((producto) => (
+            {(selectedCategory.productos || []).map((producto) => {
+              const precios = obtenerPreciosMinimos(producto);
+              return (
               <article
                 key={producto.id}
                 className="producto-card"
@@ -317,8 +324,12 @@ export default function Menu({
                 </button>
                 <div className="producto-card-footer">
                   <span className="producto-card-price">
-                    {variantesActivas(producto).length > 0 && <small>Desde</small>}
-                    ${precioMinimo(producto).toLocaleString("es-CL")}
+                    <ProductPrice
+                      producto={producto}
+                      precioOriginal={precios.original}
+                      precioEfectivo={precios.efectivo}
+                      desde={precios.tieneVariantes}
+                    />
                   </span>
                   {carritoActivo && (
                     <div className="producto-card-actions">
@@ -359,7 +370,8 @@ export default function Menu({
                   )}
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -402,9 +414,13 @@ export default function Menu({
             <div className="product-modal-content">
               <h2 id="product-modal-title">{selectedProduct.nombre}</h2>
               {(variantesProductoSeleccionado.length === 0 || varianteProductoSeleccionada) && (
-                <strong className="product-configured-price">
-                  ${precioProductoConfigurado.toLocaleString("es-CL")}
-                </strong>
+                <ProductPrice
+                  producto={selectedProduct}
+                  precioOriginal={precioProductoConfiguradoOriginal}
+                  precioEfectivo={precioProductoConfigurado}
+                  className="product-configured-price"
+                  as="strong"
+                />
               )}
               <p>{selectedProduct.descripcion || "Sin descripción disponible."}</p>
               {selectedProduct.condiciones && (
@@ -430,7 +446,13 @@ export default function Menu({
                             <strong>{variante.nombre}</strong>
                             {variante.descripcion && <small>{variante.descripcion}</small>}
                           </span>
-                          <b>${Number(variante.precio).toLocaleString("es-CL")}</b>
+                          <ProductPrice
+                            producto={selectedProduct}
+                            precioOriginal={obtenerPrecioOriginal(variante)}
+                            precioEfectivo={obtenerPrecioEfectivo(variante)}
+                            className="product-variant-price"
+                            as="b"
+                          />
                         </label>
                       ))}
                     </fieldset>

@@ -1,6 +1,7 @@
 import django
 import hashlib
 import secrets
+from decimal import Decimal, ROUND_HALF_UP
 from django.db import models
 from cloudinary.models import CloudinaryField
 from django.core.exceptions import ValidationError
@@ -175,7 +176,16 @@ class Producto(models.Model):
     descripcion = models.TextField(blank=True)
     condiciones = models.TextField(blank=True)
 
-    precio = models.DecimalField(max_digits=8, decimal_places=0)
+    precio = models.DecimalField(
+        max_digits=8,
+        decimal_places=0,
+        validators=[MinValueValidator(0)],
+    )
+    porcentaje_descuento = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(99)],
+    )
 
     imagen = CloudinaryField("imagen", blank=True, null=True)
 
@@ -194,6 +204,17 @@ class Producto(models.Model):
             models.Index(fields=["restaurante", "clicks"], name="prod_clicks_idx"),
         ]
         constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(porcentaje_descuento__isnull=True)
+                    | models.Q(porcentaje_descuento__gte=1, porcentaje_descuento__lte=99)
+                ),
+                name="producto_descuento_nulo_o_1_99",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(precio__gte=0),
+                name="producto_precio_no_negativo",
+            ),
             models.UniqueConstraint(
                 fields=["restaurante", "nombre"],
                 name="unique_producto_por_restaurante"
@@ -213,6 +234,54 @@ class Producto(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+
+    @property
+    def en_oferta(self):
+        return self.porcentaje_descuento is not None
+
+    @staticmethod
+    def calcular_detalle_precio(precio_original, porcentaje_descuento=None):
+        original = Decimal(precio_original or 0)
+        if porcentaje_descuento is None:
+            return {
+                "precio_original": original,
+                "precio_oferta": None,
+                "precio_efectivo": original,
+                "monto_descuento": Decimal("0"),
+            }
+
+        porcentaje = Decimal(porcentaje_descuento)
+        oferta = (
+            original * (Decimal("100") - porcentaje) / Decimal("100")
+        ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        return {
+            "precio_original": original,
+            "precio_oferta": oferta,
+            "precio_efectivo": oferta,
+            "monto_descuento": original - oferta,
+        }
+
+    def detalle_precio(self, precio_original=None):
+        return self.calcular_detalle_precio(
+            self.precio if precio_original is None else precio_original,
+            self.porcentaje_descuento,
+        )
+
+    @property
+    def precio_original(self):
+        return self.precio
+
+    @property
+    def precio_oferta(self):
+        return self.detalle_precio()["precio_oferta"]
+
+    @property
+    def precio_efectivo(self):
+        return self.detalle_precio()["precio_efectivo"]
+
+    @property
+    def monto_descuento(self):
+        return self.detalle_precio()["monto_descuento"]
 
     def __str__(self):
         return f"{self.nombre} - {self.restaurante.nombre_empresa}"
@@ -968,6 +1037,22 @@ class PedidoManualItem(models.Model):
     nombre_producto = models.CharField(max_length=150)
     variante_nombre = models.CharField(max_length=100, blank=True)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=0)
+    precio_original = models.DecimalField(
+        max_digits=10,
+        decimal_places=0,
+        null=True,
+        blank=True,
+    )
+    porcentaje_descuento_aplicado = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+    )
+    monto_descuento = models.DecimalField(
+        max_digits=10,
+        decimal_places=0,
+        null=True,
+        blank=True,
+    )
     cantidad = models.PositiveIntegerField()
     subtotal = models.DecimalField(max_digits=10, decimal_places=0)
     observaciones = models.TextField(blank=True)

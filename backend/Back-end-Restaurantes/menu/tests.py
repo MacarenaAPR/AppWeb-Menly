@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from importlib import import_module
 from unittest.mock import patch
 from concurrent.futures import ThreadPoolExecutor
@@ -15,7 +16,7 @@ from django.db import close_old_connections
 
 from .models import Restaurante, UsuarioRestaurante, Categoria, Producto, ProductoVariante, GrupoOpcionesProducto, OpcionProducto, Reserva, Mesa, RespaldoRestaurante, HorarioAtencion, MetodoPago, BitacoraProducto, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, HistorialEstadoPedidoWhatsApp, HistorialEstadoPedidoManual, HistorialEstadoPedidoEspecial, PedidoEspecial, PedidoManual, PedidoManualItem, RestaurantePedidoSecuencia, ActivacionCocina, SesionCocina, Plan
 from .views import CrearReservaPublicaView, PublicReservaRateThrottle, ProductoClickRateThrottle, ProductoClickView, PasswordResetRequestView, PasswordResetRateThrottle, CrearSolicitudEspecialPublicaView, PublicSolicitudEspecialRateThrottle
-from .cache_utils import menu_cache_key
+from .cache_utils import invalidate_menu_cache, menu_cache_key
 from .utils import get_slug_from_host, validar_horario_reserva
 from .services.estado_restaurante import calcular_estado_abierto, calcular_estado_restaurante
 from .services.estados_pedidos import TransicionEstadoInvalida, cambiar_estado_pedido
@@ -29,7 +30,7 @@ from .services.pedidos_whatsapp import (
     normalizar_productos_pedido,
 )
 from .services.metricas.pedidos import pedidos_manuales_activos, pedidos_manuales_finalizados
-from .serializers import PedidoWhatsAppDashboardSerializer
+from .serializers import PedidoWhatsAppCreateSerializer, PedidoWhatsAppDashboardSerializer
 from django.core.cache import cache
 
 
@@ -133,6 +134,271 @@ class BaseTestCase(TestCase):
             disponible=True,
             destacado=False,
             orden=1,
+        )
+
+
+class OfertasProductoTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.dueno)
+
+    def test_calculo_sin_oferta_y_ofertas_limite(self):
+        self.assertFalse(self.producto.en_oferta)
+        self.assertEqual(self.producto.precio_efectivo, Decimal("1500"))
+        self.assertIsNone(self.producto.precio_oferta)
+
+        casos = [(1, 1485), (20, 1200), (99, 15)]
+        for porcentaje, esperado in casos:
+            with self.subTest(porcentaje=porcentaje):
+                self.producto.porcentaje_descuento = porcentaje
+                self.assertEqual(self.producto.precio_efectivo, Decimal(esperado))
+
+    def test_redondeo_half_up(self):
+        self.producto.precio = 9990
+        self.producto.porcentaje_descuento = 15
+        self.assertEqual(self.producto.precio_efectivo, Decimal("8492"))
+        self.assertEqual(self.producto.monto_descuento, Decimal("1498"))
+
+    def test_api_rechaza_porcentajes_invalidos_y_precio_negativo(self):
+        endpoint = "/api/mi-restaurante/productos/agregar/"
+        invalidos = [0, 100, -1, 101, 1.5]
+        for indice, porcentaje in enumerate(invalidos, start=2):
+            response = self.client.post(endpoint, {
+                "categoria": self.categoria.id,
+                "nombre": f"Oferta invalida {indice}",
+                "precio": 10000,
+                "porcentaje_descuento": porcentaje,
+                "orden": indice,
+            }, format="json")
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = self.client.post(endpoint, {
+            "categoria": self.categoria.id,
+            "nombre": "Precio negativo",
+            "precio": -1,
+            "orden": 9,
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_actualizar_y_desactivar_oferta_usa_datos_validados(self):
+        endpoint = f"/api/mi-restaurante/productos/{self.producto.id}/actualizar/"
+        activar = self.client.patch(endpoint, {
+            "porcentaje_descuento": 20,
+            "precio": 10000,
+        }, format="json")
+        self.assertEqual(activar.status_code, status.HTTP_200_OK)
+        self.assertEqual(activar.data["precio_oferta"], "8000")
+
+        invalido = self.client.patch(endpoint, {"precio": -100}, format="json")
+        self.assertEqual(invalido.status_code, status.HTTP_400_BAD_REQUEST)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.precio, Decimal("10000"))
+
+        desactivar = self.client.patch(
+            endpoint,
+            {"porcentaje_descuento": ""},
+            format="multipart",
+        )
+        self.assertEqual(desactivar.status_code, status.HTTP_200_OK)
+        self.assertFalse(desactivar.data["en_oferta"])
+        self.assertEqual(desactivar.data["precio_efectivo"], "10000")
+
+    def test_api_publica_y_privada_exponen_contrato_oferta(self):
+        self.producto.porcentaje_descuento = 20
+        self.producto.save(update_fields=["porcentaje_descuento"])
+        invalidate_menu_cache(self.restaurante)
+
+        publico = self.client.get(f"/api/menu/{self.restaurante.slug}/")
+        producto_publico = publico.json()["categorias"][0]["productos"][0]
+        self.assertEqual(producto_publico["precio"], "1500")
+        self.assertTrue(producto_publico["en_oferta"])
+        self.assertEqual(producto_publico["precio_oferta"], "1200")
+        self.assertEqual(producto_publico["precio_efectivo"], "1200")
+
+        privado = self.client.get("/api/mi-restaurante/")
+        producto_privado = next(
+            item for item in privado.data["productos"] if item["id"] == self.producto.id
+        )
+        self.assertEqual(producto_privado["porcentaje_descuento"], 20)
+        self.assertEqual(producto_privado["precio_efectivo"], "1200")
+
+    def test_actualizar_oferta_invalida_cache_del_menu(self):
+        inicial = self.client.get(f"/api/menu/{self.restaurante.slug}/")
+        self.assertFalse(
+            inicial.json()["categorias"][0]["productos"][0]["en_oferta"]
+        )
+
+        actualizar = self.client.patch(
+            f"/api/mi-restaurante/productos/{self.producto.id}/actualizar/",
+            {"porcentaje_descuento": 20},
+            format="json",
+        )
+        self.assertEqual(actualizar.status_code, status.HTTP_200_OK)
+
+        refrescado = self.client.get(f"/api/menu/{self.restaurante.slug}/")
+        producto = refrescado.json()["categorias"][0]["productos"][0]
+        self.assertTrue(producto["en_oferta"])
+        self.assertEqual(producto["precio_efectivo"], "1200")
+
+    def test_variante_y_extras_descuentan_solo_precio_base(self):
+        self.producto.porcentaje_descuento = 20
+        self.producto.save(update_fields=["porcentaje_descuento"])
+        variante = ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="Grande",
+            precio=10000,
+            activo=True,
+        )
+        grupo = GrupoOpcionesProducto.objects.create(
+            producto=self.producto,
+            nombre="Extras",
+            maximo_selecciones=1,
+        )
+        extra = OpcionProducto.objects.create(
+            grupo=grupo,
+            nombre="Queso",
+            precio_adicional=1500,
+        )
+        snapshot, total = normalizar_productos_pedido(self.restaurante, [{
+            "producto_id": self.producto.id,
+            "variante_id": variante.id,
+            "cantidad": 2,
+            "opciones": [extra.id],
+        }])
+        item = snapshot[0]
+        self.assertEqual(item["precio_original"], 10000)
+        self.assertEqual(item["monto_descuento"], 2000)
+        self.assertEqual(item["precio_base"], 8000)
+        self.assertEqual(item["opciones_total"], 1500)
+        self.assertEqual(item["precio_unitario"], 9500)
+        self.assertEqual(total, 19000)
+
+    def test_api_variante_expone_precio_original_y_efectivo(self):
+        self.producto.porcentaje_descuento = 20
+        self.producto.save(update_fields=["porcentaje_descuento"])
+        ProductoVariante.objects.create(
+            producto=self.producto,
+            nombre="Familiar",
+            precio=12000,
+            activo=True,
+        )
+        invalidate_menu_cache(self.restaurante)
+
+        response = self.client.get(f"/api/menu/{self.restaurante.slug}/")
+        variante = response.json()["categorias"][0]["productos"][0]["variantes"][0]
+        self.assertEqual(variante["precio"], "12000")
+        self.assertEqual(variante["precio_oferta"], "9600")
+        self.assertEqual(variante["precio_efectivo"], "9600")
+
+    def test_pedido_whatsapp_y_manual_guardan_snapshot_de_oferta(self):
+        self.producto.porcentaje_descuento = 20
+        self.producto.save(update_fields=["porcentaje_descuento"])
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.pedidos_pos = True
+        self.restaurante.whatsapp = "56911111111"
+        self.restaurante.save(update_fields=[
+            "carrito_whatsapp_activo", "pedidos_pos", "whatsapp"
+        ])
+
+        whatsapp = PedidoWhatsAppCreateSerializer(
+            data={
+                "nombre_cliente": "Cliente",
+                "telefono_cliente": "56922222222",
+                "tipo_entrega": PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+                "productos": [{"producto_id": self.producto.id, "cantidad": 1}],
+            },
+            context={"restaurante": self.restaurante},
+        )
+        self.assertTrue(whatsapp.is_valid(), whatsapp.errors)
+        pedido_whatsapp = whatsapp.save()
+        self.assertEqual(pedido_whatsapp.productos_snapshot[0]["precio_base"], 1200)
+        self.assertEqual(
+            pedido_whatsapp.productos_snapshot[0]["porcentaje_descuento_aplicado"],
+            20,
+        )
+
+        manual = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [{"producto_id": self.producto.id, "cantidad": 1}],
+            },
+            format="json",
+        )
+        self.assertEqual(manual.status_code, status.HTTP_201_CREATED)
+        item_manual = PedidoManualItem.objects.get(pedido_id=manual.data["pedido"]["id"])
+        self.assertEqual(item_manual.precio_original, Decimal("1500"))
+        self.assertEqual(item_manual.porcentaje_descuento_aplicado, 20)
+        self.assertEqual(item_manual.monto_descuento, Decimal("300"))
+        self.assertEqual(item_manual.precio_unitario, Decimal("1200"))
+
+    def test_snapshot_no_cambia_y_edicion_conserva_linea_existente(self):
+        self.restaurante.pedidos_pos = True
+        self.restaurante.save(update_fields=["pedidos_pos"])
+        self.producto.porcentaje_descuento = 20
+        self.producto.save(update_fields=["porcentaje_descuento"])
+        crear = self.client.post(
+            "/api/mi-restaurante/pedidos/manuales/",
+            {
+                "tipo_entrega": PedidoManual.TIPO_RETIRO,
+                "items": [{"producto_id": self.producto.id, "cantidad": 1}],
+            },
+            format="json",
+        )
+        pedido = PedidoManual.objects.get(id=crear.data["pedido"]["id"])
+
+        self.producto.precio = 5000
+        self.producto.porcentaje_descuento = 50
+        self.producto.save(update_fields=["precio", "porcentaje_descuento"])
+        editar = self.client.patch(
+            f"/api/mi-restaurante/pedidos/manuales/{pedido.id}/",
+            {
+                "items": [{"producto_id": self.producto.id, "cantidad": 2}],
+            },
+            format="json",
+        )
+        self.assertEqual(editar.status_code, status.HTTP_200_OK)
+        item = pedido.items.get()
+        self.assertEqual(item.precio_unitario, Decimal("1200"))
+        self.assertEqual(item.subtotal, Decimal("2400"))
+        self.assertEqual(item.porcentaje_descuento_aplicado, 20)
+
+    def test_edicion_whatsapp_conserva_precio_de_linea_existente(self):
+        self.producto.porcentaje_descuento = 20
+        self.producto.save(update_fields=["porcentaje_descuento"])
+        pedido = PedidoWhatsApp.objects.create(
+            restaurante=self.restaurante,
+            numero_pedido=1,
+            nombre_cliente="Cliente",
+            telefono_cliente="56911111111",
+            tipo_entrega=PedidoWhatsApp.TIPO_RETIRO_LOCAL,
+            productos_snapshot=normalizar_productos_pedido(
+                self.restaurante,
+                [{"producto_id": self.producto.id, "cantidad": 1}],
+            )[0],
+            total=1200,
+            mensaje_whatsapp_generado="Pedido",
+            whatsapp_destino="56911111111",
+        )
+        self.producto.precio = 5000
+        self.producto.porcentaje_descuento = 50
+        self.producto.save(update_fields=["precio", "porcentaje_descuento"])
+
+        serializer = PedidoWhatsAppDashboardSerializer(
+            pedido,
+            data={
+                "productos": [{"producto_id": self.producto.id, "cantidad": 2}],
+            },
+            partial=True,
+            context={"restaurante": self.restaurante},
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        actualizado = serializer.save()
+        self.assertEqual(actualizado.total, 2400)
+        self.assertEqual(actualizado.productos_snapshot[0]["precio_unitario"], 1200)
+        self.assertEqual(
+            actualizado.productos_snapshot[0]["porcentaje_descuento_aplicado"],
+            20,
         )
 
 
@@ -3668,6 +3934,9 @@ class SeguridadCriticaTests(BaseTestCase):
                     "nombre": "Coca Cola",
                     "variante_id": None,
                     "variante_nombre": "",
+                    "precio_original": 1500,
+                    "porcentaje_descuento_aplicado": None,
+                    "monto_descuento": 0,
                     "precio_base": 1500,
                     "opciones_total": 0,
                     "precio_unitario": 1500,

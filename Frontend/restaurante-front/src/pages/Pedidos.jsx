@@ -29,6 +29,7 @@ import {
   obtenerIdsOpcionesSnapshot,
   validarSelecciones,
 } from "../utils/pedidoPersonalizacion";
+import { obtenerPrecioEfectivo } from "../utils/precios";
 const PEDIDOS_POLLING_MS = 10000;
 
 const formEspecialInicial = {
@@ -711,12 +712,12 @@ export default function PedidosDashboard() {
           return {
             ...item,
             cantidad: nuevaCantidad,
-            subtotal: nuevaCantidad * Number(item.precio_unitario || producto.precio || 0),
+            subtotal: nuevaCantidad * Number(item.precio_unitario || obtenerPrecioEfectivo(producto)),
           };
         });
       }
 
-      const precio = Number(producto.precio || 0);
+      const precio = obtenerPrecioEfectivo(producto);
       return [...actuales, {
         producto_id: producto.id,
         nombre: producto.nombre,
@@ -1005,7 +1006,7 @@ export default function PedidosDashboard() {
     const opciones = obtenerIdsOpcionesCatalogo(grupos, selecciones);
     const opcionesSnapshot = construirSnapshotVisual(grupos, selecciones);
     const lineaId = claveLineaManual(producto.id, variante?.id, opciones);
-    const precioBase = Number(variante?.precio ?? producto.precio ?? 0);
+    const precioBase = obtenerPrecioEfectivo(variante || producto);
     const precioUnitario = precioBase + calcularAdicionalOpciones(grupos, selecciones);
     setFormManual((actual) => {
       const existente = actual.items.find((item) => claveLineaManual(item) === lineaId);
@@ -1136,12 +1137,12 @@ export default function PedidosDashboard() {
               ...item,
               variante_id: variante.id,
               variante_nombre: variante.nombre,
-              precio_unitario: Number(variante.precio) + (item.opciones_snapshot || []).reduce(
+              precio_unitario: obtenerPrecioEfectivo(variante) + (item.opciones_snapshot || []).reduce(
                 (total, grupo) => total + (grupo.opciones || []).reduce(
                   (subtotal, opcion) => subtotal + Number(opcion.precio_adicional || 0), 0
                 ), 0
               ),
-              precio_base: Number(variante.precio),
+              precio_base: obtenerPrecioEfectivo(variante),
             }
           : item),
       };
@@ -1820,7 +1821,7 @@ export default function PedidosDashboard() {
                           <option value="">Seleccionar producto</option>
                           {productosFiltrados.map((producto) => (
                             <option key={producto.id} value={producto.id}>
-                              {producto.nombre} - {formatearMoneda(producto.precio)}
+                              {producto.nombre} - {formatearMoneda(obtenerPrecioEfectivo(producto))}
                             </option>
                           ))}
                         </select>
@@ -1973,8 +1974,8 @@ export default function PedidosDashboard() {
                       const tieneImagen = Boolean(producto.imagen);
                       const variantesActivas = obtenerVariantesActivas(producto);
                       const precioCatalogo = variantesActivas.length
-                        ? Math.min(...variantesActivas.map((variante) => Number(variante.precio)))
-                        : Number(producto.precio || 0);
+                        ? Math.min(...variantesActivas.map(obtenerPrecioEfectivo))
+                        : obtenerPrecioEfectivo(producto);
                       return (
                         <button
                           type="button"
@@ -2123,7 +2124,7 @@ export default function PedidosDashboard() {
                                   >
                                     {variantesActivas.map((variante) => (
                                       <option key={variante.id} value={variante.id}>
-                                        {variante.nombre} — {formatearMoneda(variante.precio)}
+                                        {variante.nombre} — {formatearMoneda(obtenerPrecioEfectivo(variante))}
                                       </option>
                                     ))}
                                   </select>
@@ -2224,7 +2225,7 @@ export default function PedidosDashboard() {
                             <strong>{variante.nombre}</strong>
                             {variante.descripcion && <small>{variante.descripcion}</small>}
                           </span>
-                          <b>{formatearMoneda(variante.precio)}</b>
+                          <b>{formatearMoneda(obtenerPrecioEfectivo(variante))}</b>
                         </label>
                           ))}
                         </div>
@@ -2243,9 +2244,9 @@ export default function PedidosDashboard() {
                     <div className="pedido-configuracion-precio">
                       <span>Precio base</span>
                       <strong>{formatearMoneda(
-                        obtenerVariantesActivas(varianteManualSelector.producto).find(
+                        obtenerPrecioEfectivo(obtenerVariantesActivas(varianteManualSelector.producto).find(
                           (variante) => String(variante.id) === String(varianteManualSelector.varianteId)
-                        )?.precio ?? varianteManualSelector.producto.precio
+                        ) || varianteManualSelector.producto)
                       )}</strong>
                       <span>Opciones</span>
                       <strong>+{formatearMoneda(calcularAdicionalOpciones(
@@ -2254,9 +2255,9 @@ export default function PedidosDashboard() {
                       ))}</strong>
                       <b>Precio unitario</b>
                       <b>{formatearMoneda(
-                        Number(obtenerVariantesActivas(varianteManualSelector.producto).find(
+                        obtenerPrecioEfectivo(obtenerVariantesActivas(varianteManualSelector.producto).find(
                           (variante) => String(variante.id) === String(varianteManualSelector.varianteId)
-                        )?.precio ?? varianteManualSelector.producto.precio ?? 0) +
+                        ) || varianteManualSelector.producto) +
                         calcularAdicionalOpciones(
                           varianteManualSelector.producto.grupos_opciones || [],
                           varianteManualSelector.selecciones

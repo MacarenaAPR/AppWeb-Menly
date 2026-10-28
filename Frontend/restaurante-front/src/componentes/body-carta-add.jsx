@@ -8,6 +8,7 @@ import { authFetch, readJsonResponse } from "../api";
 import ProductoVariantesEditor from "./ProductoVariantesEditor";
 import ProductoOpcionesEditor from "./ProductoOpcionesEditor";
 import { crearPersonalizacionProducto } from "../api/productoOpciones";
+import OfertaProductoControl from "./OfertaProductoControl";
 
 export default function AddProductos() {
   const navigate = useNavigate();
@@ -25,6 +26,8 @@ export default function AddProductos() {
     categoria: "",
     nombre: "",
     precio: "",
+    en_oferta: false,
+    porcentaje_descuento: "",
     descripcion: "",
     condiciones: "",
     disponible: true,
@@ -60,6 +63,22 @@ export default function AddProductos() {
     setLoading(true);
     setError("");
 
+    const precioNumero = Number(form.precio);
+    if (form.precio === "" || !Number.isFinite(precioNumero) || precioNumero < 0) {
+      setError("El precio debe ser un valor válido, igual o mayor a 0.");
+      setLoading(false);
+      return;
+    }
+    const porcentaje = Number(form.porcentaje_descuento);
+    if (
+      form.en_oferta &&
+      (!Number.isInteger(porcentaje) || porcentaje < 1 || porcentaje > 99)
+    ) {
+      setError("El porcentaje de descuento debe ser un entero entre 1 y 99.");
+      setLoading(false);
+      return;
+    }
+
     const nombres = variantes.map((variante) => variante.nombre.trim().toLowerCase());
     if (nombres.some((nombre) => !nombre) || new Set(nombres).size !== nombres.length) {
       setError("Cada variante debe tener un nombre único.");
@@ -77,6 +96,10 @@ export default function AddProductos() {
       formData.append("categoria", form.categoria);
       formData.append("nombre", form.nombre);
       formData.append("precio", form.precio);
+      formData.append(
+        "porcentaje_descuento",
+        form.en_oferta ? String(porcentaje) : "",
+      );
       formData.append("descripcion", form.descripcion);
       formData.append("condiciones", form.condiciones);
       formData.append("disponible", form.disponible);
@@ -133,6 +156,7 @@ export default function AddProductos() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     const cargarCategorias = async () => {
@@ -263,6 +287,7 @@ export default function AddProductos() {
                         <span className="input-group-text">CLP</span>
                         <input
                           type="number"
+                          min="0"
                           className="form-control"
                           name="precio"
                           placeholder="Ej: 10990"
@@ -272,6 +297,8 @@ export default function AddProductos() {
                         />
                       </div>
                     </div>
+
+                    <OfertaProductoControl form={form} setForm={setForm} />
 
                     <div className="col-12">
                       <label className="form-label">Descripción</label>

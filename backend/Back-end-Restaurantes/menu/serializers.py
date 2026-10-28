@@ -825,11 +825,52 @@ class PedidoWhatsAppDashboardSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"productos": "Agrega al menos un producto."})
 
         try:
-            snapshot, total = normalizar_productos_pedido(
-                restaurante,
+            cantidades = agrupar_cantidades_por_configuracion(
                 productos_solicitados,
                 max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_WHATSAPP,
             )
+            existentes = {}
+            for item in self.instance.productos_snapshot or []:
+                opciones = [
+                    opcion.get("opcion_id")
+                    for grupo in (item.get("grupos_opciones") or [])
+                    for opcion in (grupo.get("opciones") or [])
+                    if opcion.get("opcion_id")
+                ]
+                existentes[clave_configuracion_producto(
+                    item.get("producto_id"),
+                    item.get("variante_id"),
+                    opciones,
+                )] = item
+
+            snapshot = []
+            lineas_nuevas = []
+            for clave, cantidad in cantidades.items():
+                existente = existentes.get(clave)
+                if existente:
+                    item_historico = dict(existente)
+                    item_historico["cantidad"] = cantidad
+                    item_historico["subtotal"] = int(
+                        item_historico.get("precio_unitario", 0)
+                    ) * cantidad
+                    snapshot.append(item_historico)
+                else:
+                    producto_id, variante_id, opciones = clave
+                    lineas_nuevas.append({
+                        "producto_id": producto_id,
+                        "variante_id": variante_id,
+                        "cantidad": cantidad,
+                        "opciones": list(opciones),
+                    })
+
+            if lineas_nuevas:
+                nuevos, _ = normalizar_productos_pedido(
+                    restaurante,
+                    lineas_nuevas,
+                    max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_WHATSAPP,
+                )
+                snapshot.extend(nuevos)
+            total = sum(int(item.get("subtotal", 0)) for item in snapshot)
         except ProductosPedidoValidationError as exc:
             raise serializers.ValidationError({
                 "productos": str(exc)
@@ -1094,6 +1135,9 @@ class PedidoManualItemSerializer(serializers.ModelSerializer):
             "variante_id",
             "nombre_producto",
             "variante_nombre",
+            "precio_original",
+            "porcentaje_descuento_aplicado",
+            "monto_descuento",
             "precio_unitario",
             "cantidad",
             "subtotal",
@@ -1247,21 +1291,16 @@ class PedidoManualSerializer(serializers.ModelSerializer):
                     item["producto_id"], item.get("variante_id"), item.get("opciones") or []
                 )
                 existente = existentes.get(clave)
-                try:
-                    normalizar_productos_pedido(
-                        restaurante,
-                        [item],
-                        max_cantidad_por_configuracion=MAX_CANTIDAD_PEDIDO_MANUAL,
-                    )
-                except ProductosPedidoValidationError as exc:
-                    if not existente:
-                        raise serializers.ValidationError({"items": str(exc)}) from exc
+                if existente:
                     cantidad = item["cantidad"]
                     items_historicos.append({
                         "producto": existente.producto,
                         "variante": existente.variante,
                         "nombre_producto": existente.nombre_producto,
                         "variante_nombre": existente.variante_nombre,
+                        "precio_original": existente.precio_original,
+                        "porcentaje_descuento_aplicado": existente.porcentaje_descuento_aplicado,
+                        "monto_descuento": existente.monto_descuento,
                         "precio_unitario": existente.precio_unitario,
                         "cantidad": cantidad,
                         "subtotal": existente.precio_unitario * cantidad,
@@ -1313,6 +1352,9 @@ class PedidoManualSerializer(serializers.ModelSerializer):
                 "variante_id": variante_id,
                 "nombre_producto": item["nombre"],
                 "variante_nombre": item.get("variante_nombre", ""),
+                "precio_original": item.get("precio_original"),
+                "porcentaje_descuento_aplicado": item.get("porcentaje_descuento_aplicado"),
+                "monto_descuento": item.get("monto_descuento"),
                 "precio_unitario": item["precio_unitario"],
                 "cantidad": item["cantidad"],
                 "subtotal": item["subtotal"],
@@ -1785,10 +1827,14 @@ class GrupoOpcionesProductoSerializer(serializers.ModelSerializer):
 
 
 class ProductoVarianteSerializer(serializers.ModelSerializer):
+    precio_oferta = serializers.SerializerMethodField()
+    precio_efectivo = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductoVariante
         fields = [
-            "id", "nombre", "descripcion", "precio", "activo", "orden",
+            "id", "nombre", "descripcion", "precio", "precio_oferta",
+            "precio_efectivo", "activo", "orden",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
@@ -1814,6 +1860,18 @@ class ProductoVarianteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Ya existe una variante con este nombre.")
         return nombre
 
+    def _detalle_precio(self, variante):
+        producto = getattr(variante, "producto", None)
+        porcentaje = getattr(producto, "porcentaje_descuento", None)
+        return Producto.calcular_detalle_precio(variante.precio, porcentaje)
+
+    def get_precio_oferta(self, variante):
+        precio = self._detalle_precio(variante)["precio_oferta"]
+        return str(precio) if precio is not None else None
+
+    def get_precio_efectivo(self, variante):
+        return str(self._detalle_precio(variante)["precio_efectivo"])
+
 
 class ProductoCreateSerializer(serializers.ModelSerializer):
     variantes = ProductoVarianteSerializer(many=True, read_only=True)
@@ -1821,6 +1879,9 @@ class ProductoCreateSerializer(serializers.ModelSerializer):
     categoria = serializers.PrimaryKeyRelatedField(
         queryset=Categoria.objects.all()
     )
+    en_oferta = serializers.BooleanField(read_only=True)
+    precio_oferta = serializers.SerializerMethodField()
+    precio_efectivo = serializers.SerializerMethodField()
 
     class Meta:
         model = Producto
@@ -1831,6 +1892,10 @@ class ProductoCreateSerializer(serializers.ModelSerializer):
             "descripcion",
             "condiciones",
             "precio",
+            "en_oferta",
+            "porcentaje_descuento",
+            "precio_oferta",
+            "precio_efectivo",
             "imagen",
             "disponible",
             "destacado",
@@ -1852,6 +1917,25 @@ class ProductoCreateSerializer(serializers.ModelSerializer):
             )
 
         return categoria
+
+    def validate_precio(self, value):
+        if value < 0:
+            raise serializers.ValidationError("El precio no puede ser negativo.")
+        return value
+
+    def validate_porcentaje_descuento(self, value):
+        if value is not None and not 1 <= value <= 99:
+            raise serializers.ValidationError(
+                "El porcentaje de descuento debe estar entre 1 y 99."
+            )
+        return value
+
+    def get_precio_oferta(self, producto):
+        precio = producto.precio_oferta
+        return str(precio) if precio is not None else None
+
+    def get_precio_efectivo(self, producto):
+        return str(producto.precio_efectivo)
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = "email"

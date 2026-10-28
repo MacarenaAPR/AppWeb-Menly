@@ -263,7 +263,9 @@ def normalizar_productos_pedido(
                 "opciones": opciones_snapshot,
             })
 
-        precio_base = variante.precio if variante else producto.precio
+        precio_original = variante.precio if variante else producto.precio
+        detalle_precio = producto.detalle_precio(precio_original)
+        precio_base = detalle_precio["precio_efectivo"]
         precio_unitario = precio_base + opciones_total
         subtotal = precio_unitario * cantidad
         total += subtotal
@@ -272,6 +274,9 @@ def normalizar_productos_pedido(
             "nombre": producto.nombre,
             "variante_id": variante.id if variante else None,
             "variante_nombre": variante.nombre if variante else "",
+            "precio_original": int(detalle_precio["precio_original"]),
+            "porcentaje_descuento_aplicado": producto.porcentaje_descuento,
+            "monto_descuento": int(detalle_precio["monto_descuento"]),
             "precio_base": int(precio_base),
             "opciones_total": int(opciones_total),
             "precio_unitario": int(precio_unitario),

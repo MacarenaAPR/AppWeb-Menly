@@ -484,6 +484,8 @@ export default function CartaProducto(){
                           img={p.imagen}
                           titulo={p.nombre}
                           price={p.precio}
+                          precioEfectivo={p.precio_efectivo}
+                          porcentajeDescuento={p.porcentaje_descuento}
                           descripcion={p.descripcion}
                           categoria={
                             typeof p.categoria === "string"

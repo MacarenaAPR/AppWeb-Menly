@@ -481,6 +481,14 @@
 .page-shell .featured-carousel .promo-item-small strong {
   white-space: nowrap;
 }
+.page-shell .featured-carousel .featured-product-price .product-price-prefix {
+  font: inherit;
+}
+.page-shell .featured-carousel .featured-product-price .product-discount-badge {
+  background: var(--color-bg-btn-pedidosya, var(--highlight-badge-background));
+  color: var(--color-text-btn-pedidosya, var(--highlight-badge-text));
+  text-shadow: none;
+}
 .commercial-badge {
   position: absolute;
   top: 13px;

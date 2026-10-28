@@ -1,3 +1,5 @@
+import { obtenerPrecioEfectivo, obtenerPrecioOriginal } from "./pricing.js";
+
 const comoId = (valor) => String(valor);
 
 export const gruposPersonalizacion = (producto) => producto?.grupos_opciones || [];
@@ -94,7 +96,12 @@ export const calcularPrecioOpciones = (grupos = [], selecciones = {}) =>
     .reduce((total, { opcion }) => total + Number(opcion.precio_adicional || 0), 0);
 
 export const calcularPrecioConfigurado = (producto, variante, selecciones = {}) => {
-  const precioBase = Number(variante?.precio ?? producto?.precio ?? 0);
+  const precioBase = obtenerPrecioEfectivo(variante || producto);
+  return precioBase + calcularPrecioOpciones(gruposPersonalizacion(producto), selecciones);
+};
+
+export const calcularPrecioConfiguradoOriginal = (producto, variante, selecciones = {}) => {
+  const precioBase = obtenerPrecioOriginal(variante || producto);
   return precioBase + calcularPrecioOpciones(gruposPersonalizacion(producto), selecciones);
 };
 
