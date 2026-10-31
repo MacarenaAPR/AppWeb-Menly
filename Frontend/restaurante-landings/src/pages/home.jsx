@@ -2373,6 +2373,7 @@ export default function Home() {
                     {deliveryActivo && <option value="delivery">Delivery</option>}
                     <option value="retiro_local">Retiro en local</option>
                     <option value="para_llevar">Para llevar</option>
+                    <option value="servir_en_local">Servir en el local</option>
                   </select>
                 </label>
                 {tipoEntregaPedido === "delivery" && (

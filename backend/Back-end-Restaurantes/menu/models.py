@@ -626,11 +626,13 @@ class PedidoWhatsApp(models.Model):
     TIPO_DELIVERY = "delivery"
     TIPO_RETIRO_LOCAL = "retiro_local"
     TIPO_PARA_LLEVAR = "para_llevar"
+    TIPO_SERVIR_EN_LOCAL = "servir_en_local"
 
     TIPOS_ENTREGA = [
         (TIPO_DELIVERY, "Delivery"),
         (TIPO_RETIRO_LOCAL, "Retiro en local"),
         (TIPO_PARA_LLEVAR, "Para llevar"),
+        (TIPO_SERVIR_EN_LOCAL, "Servir en el local"),
     ]
 
     ESTADO_RECIBIDO = "recibido"

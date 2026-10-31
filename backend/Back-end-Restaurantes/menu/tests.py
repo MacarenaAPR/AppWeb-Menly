@@ -3994,6 +3994,51 @@ class SeguridadCriticaTests(BaseTestCase):
         self.assertIn("productos", response.data)
         self.assertFalse(PedidoWhatsApp.objects.filter(restaurante=self.restaurante).exists())
 
+    def test_pedido_whatsapp_publico_permite_servir_en_el_local(self):
+        self.restaurante.carrito_whatsapp_activo = True
+        self.restaurante.whatsapp = "56999999999"
+        self.restaurante.save(update_fields=["carrito_whatsapp_activo", "whatsapp"])
+
+        response = self.client.post(
+            f"/api/pedidos-whatsapp/{self.restaurante.slug}/",
+            {
+                "nombre_cliente": "Cliente Local",
+                "telefono_cliente": "912345678",
+                "tipo_entrega": PedidoWhatsApp.TIPO_SERVIR_EN_LOCAL,
+                "productos": [
+                    {"producto_id": self.producto.id, "cantidad": 1},
+                ],
+            },
+            format="json",
+            HTTP_ORIGIN="http://localhost:5173",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        pedido = PedidoWhatsApp.objects.get(id=response.data["pedido_id"])
+        self.assertEqual(pedido.tipo_entrega, PedidoWhatsApp.TIPO_SERVIR_EN_LOCAL)
+        self.assertIsNone(pedido.direccion_entrega)
+        self.assertIn(
+            "Tipo entrega: Servir en el local",
+            pedido.mensaje_whatsapp_generado,
+        )
+
+        pedido.estado = PedidoWhatsApp.ESTADO_LISTO
+        pedido.save(update_fields=["estado"])
+        seguimiento = self.client.get(
+            f"/api/public/pedidos/seguimiento/{pedido.tracking_token}/"
+        )
+
+        self.assertEqual(seguimiento.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            seguimiento.data["tipo_entrega"],
+            PedidoWhatsApp.TIPO_SERVIR_EN_LOCAL,
+        )
+        self.assertEqual(
+            seguimiento.data["tipo_entrega_display"],
+            "Servir en el local",
+        )
+        self.assertEqual(seguimiento.data["estado"], PedidoWhatsApp.ESTADO_LISTO)
+
     def test_seguimiento_publico_devuelve_solo_payload_seguro(self):
         pedido = PedidoWhatsApp.objects.create(
             restaurante=self.restaurante,

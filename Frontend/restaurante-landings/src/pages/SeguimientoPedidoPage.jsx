@@ -105,6 +105,11 @@ export default function SeguimientoPedidoPage() {
     return Math.round(((indice + 1) / ESTADOS.length) * 100);
   }, [pedido]);
 
+  const estadoVisible =
+    pedido?.estado === "listo" && pedido?.tipo_entrega === "servir_en_local"
+      ? "Listo para servir"
+      : ESTADO_LABELS[pedido?.estado] || pedido?.estado_display || pedido?.estado;
+
   if (loading) {
     return (
       <main className="tracking-page">
@@ -137,7 +142,7 @@ export default function SeguimientoPedidoPage() {
             <h1>Pedido #{pedido.numero_pedido}</h1>
           </div>
           <span className={`tracking-status tracking-status-${pedido.estado}`}>
-            {ESTADO_LABELS[pedido.estado] || pedido.estado_display || pedido.estado}
+            {estadoVisible}
           </span>
         </header>
 
