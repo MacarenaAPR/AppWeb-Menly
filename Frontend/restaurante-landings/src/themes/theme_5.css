@@ -772,6 +772,154 @@
   background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
 }
 
+/* Formulario de pedidos especiales */
+.page-shell.theme_5 .landing-modal-backdrop:has(.landing-modal--special-request) {
+  background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.page-shell.theme_5 .landing-modal--special-request {
+  width: min(820px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-cinco));
+  border-radius: 20px;
+  color: color-mix(in srgb, var(--color-primary) 68%, var(--color-cuatro));
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--color-primary) 9%, transparent), transparent 38%),
+    var(--color-cinco);
+  box-shadow: 0 26px 70px color-mix(in srgb, var(--color-cuatro) 24%, transparent);
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-card {
+  padding: clamp(44px, 5vw, 56px) clamp(24px, 4vw, 38px) clamp(26px, 4vw, 36px);
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-header > span {
+  margin-bottom: 10px;
+  color: var(--color-primary);
+  font-family: var(--font-family-general);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-header h2 {
+  margin: 0 0 12px;
+  color: color-mix(in srgb, var(--color-primary) 82%, var(--color-cuatro));
+  font-family: var(--font-family-base);
+  font-size: clamp(1.8rem, 3vw, 2.15rem);
+  font-weight: 500;
+  line-height: 1.12;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-header p {
+display: none;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form {
+  gap: 16px;
+  margin-top: 20px;
+  font-family: var(--font-family-general);
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-row {
+  gap: 24px;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form label {
+  gap: 7px;
+  color: color-mix(in srgb, var(--color-primary) 76%, var(--color-cuatro));
+  font-family: var(--font-family-general);
+  font-weight: 600;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form label > span {
+  font-family: var(--font-family-general);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form input,
+.page-shell.theme_5 .landing-modal--special-request .reserva-form textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-uno));
+  border-radius: 9px;
+  color: color-mix(in srgb, var(--color-primary) 48%, var(--color-cuatro));
+  background: color-mix(in srgb, var(--color-uno) 92%, var(--color-cinco));
+  font-family: var(--font-family-general);
+  font-size: 0.95rem;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-uno) 80%, transparent);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form textarea {
+  min-height: 118px;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form input:focus-visible,
+.page-shell.theme_5 .landing-modal--special-request .reserva-form textarea:focus-visible {
+  border-color: var(--color-primary);
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
+  outline-offset: 1px;
+  background: var(--color-uno);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 9%, transparent);
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form .button-primary {
+  min-width: 150px;
+  min-height: 48px;
+  justify-self: center;
+  border-radius: 9px;
+  color: var(--color-uno);
+  background: var(--color-primary);
+  font-family: var(--font-family-general);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form .button-primary:hover:not(:disabled),
+.page-shell.theme_5 .landing-modal--special-request .reserva-form .button-primary:focus-visible:not(:disabled) {
+  filter: brightness(0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.page-shell.theme_5 .landing-modal--special-request .reserva-form .button-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .form-success {
+  border-color: color-mix(in srgb, var(--color-tres) 34%, transparent);
+  color: color-mix(in srgb, var(--color-tres) 72%, var(--color-cuatro));
+  background: color-mix(in srgb, var(--color-tres) 10%, var(--color-uno));
+}
+
+.page-shell.theme_5 .landing-modal--special-request .form-error {
+  color: var(--color-cuatro);
+  background: color-mix(in srgb, rgba(239, 68, 68, 0.12) 70%, var(--color-uno));
+}
+
+.page-shell.theme_5 .landing-modal--special-request .landing-modal-close {
+  border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-uno));
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-uno) 88%, transparent);
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.page-shell.theme_5 .landing-modal--special-request .landing-modal-close:hover,
+.page-shell.theme_5 .landing-modal--special-request .landing-modal-close:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-uno));
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-uno));
+  transform: translateY(-1px);
+}
+
 /* Galeria y sobre nosotros permanecen en superficie clara */
 .page-shell.theme_5 .reservation-showcase,
 .page-shell.theme_5 .restaurant-details-showcase {
@@ -1460,6 +1608,58 @@
     width: calc(100% - 20px);
     max-width: calc(100% - 20px);
     border-radius: 12px;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request {
+    width: calc(100% - 20px);
+    max-width: calc(100% - 20px);
+    max-height: calc(100dvh - 24px);
+    border-radius: 14px;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-card {
+    padding: 48px 18px 22px;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-header > span {
+    margin-bottom: 7px;
+    font-size: 0.72rem;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-header h2 {
+    margin-bottom: 10px;
+    font-size: clamp(1.65rem, 8vw, 1.95rem);
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-header p {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-form {
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-form input,
+  .page-shell.theme_5 .landing-modal--special-request .reserva-form textarea {
+    min-height: 46px;
+    padding: 11px 12px;
+    font-size: 0.92rem;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-form textarea {
+    min-height: 100px;
+  }
+
+  .page-shell.theme_5 .landing-modal--special-request .reserva-form .button-primary {
+    width: 100%;
+    justify-self: stretch;
   }
 }
 

@@ -2337,7 +2337,9 @@ export default function Home() {
           onClick={() => setModalActivo(null)}
         >
           <section
-            className="landing-modal"
+            className={`landing-modal${
+              modalActivo === "solicitud" ? " landing-modal--special-request" : ""
+            }`}
             role="dialog"
             aria-modal="true"
             aria-label={modalActivo === "reserva" ? "Reserva tu mesa" : "Solicitudes especiales"}
