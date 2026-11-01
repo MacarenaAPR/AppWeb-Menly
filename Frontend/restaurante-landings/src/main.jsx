@@ -9,6 +9,7 @@ import './themes/theme_7.hero.css'
 import './themes/theme_8.hero.css'
 import './themes/theme_9.css'
 import './themes/theme_6.css'
+import './themes/theme_5.css'
 import './styles/theme-layout/responsive/theme-layout.breakpoints.css'
 import App from './App.jsx'
 

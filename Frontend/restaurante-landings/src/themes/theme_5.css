@@ -1,0 +1,1521 @@
+/*
+ * THEME 5 — EDITORIAL GASTRONOMICO
+ * Los tokens de identidad viven en themes.css.
+ * Este archivo contiene solo composicion y overrides exclusivos.
+ */
+
+.page-shell.theme_5 {
+  --theme5-nav-height: 70px;
+  --theme5-services-height: 90px;
+}
+
+/* Header compacto */
+.page-shell.theme_5 .site-header {
+  position: sticky !important;
+  top: 0;
+  min-height: var(--theme5-nav-height);
+  margin-bottom: calc(var(--theme5-nav-height) * -1);
+  padding-block: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
+  color: var(--text-color-general);
+  background: transparent !important;
+  backdrop-filter: none;
+  box-shadow: none;
+  z-index: 60;
+}
+
+.page-shell.theme_5 .brand-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  background: var(--color-uno);
+}
+
+.page-shell.theme_5 .brand-block {
+  min-width: 210px;
+}
+
+.page-shell.theme_5 .span-info-brand-block {
+  gap: 2px;
+  line-height: 1;
+}
+
+.page-shell.theme_5 .brand-name,
+.page-shell.theme_5 .brand-subtitle,
+.page-shell.theme_5 .brand-tag {
+  display: block;
+  max-width: 100%;
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+
+.page-shell.theme_5 .brand-name {
+  font-family: var(--font-family-base);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.page-shell.theme_5 .brand-subtitle {
+  font-family: var(--font-family-general);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.page-shell.theme_5 .brand-tag {
+  display: none;
+}
+
+.page-shell.theme_5 .site-nav a {
+  position: relative;
+  color: var(--color-primary);
+  transition: color 180ms ease, opacity 180ms ease;
+}
+
+.page-shell.theme_5 .site-nav a::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  left: 0;
+  height: 1px;
+  background: var(--color-primary);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 180ms ease;
+}
+
+.page-shell.theme_5 .site-nav a:hover::after,
+.page-shell.theme_5 .site-nav a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.page-shell.theme_5 .site-nav a:hover,
+.page-shell.theme_5 .site-nav a:focus-visible {
+  color: var(--color-primary);
+  opacity: 0.76;
+}
+
+.page-shell.theme_5 .header-social > span,
+.page-shell.theme_5 .mobile-menu-toggle,
+.page-shell.theme_5 .mobile-nav-close {
+  color: var(--color-primary);
+}
+
+.page-shell.theme_5 .header-social a {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-uno) 58%, transparent);
+  transition: color 180ms ease, border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.page-shell.theme_5 .header-social a:hover,
+.page-shell.theme_5 .header-social a:focus-visible {
+  border-color: var(--color-primary);
+  color: var(--color-uno);
+  background: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+/* Hero inmersivo con la imagen principal dinamica */
+.page-shell.theme_5.theme_5.theme_5.theme_5 .page-content > .hero-panel {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: calc(100vh - var(--theme5-services-height)) var(--theme5-services-height) !important;
+  grid-template-rows: calc(100dvh - var(--theme5-services-height)) var(--theme5-services-height) !important;
+  width: 100%;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0;
+  padding: 0 !important;
+  gap: 0;
+  align-items: stretch;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--color-cinco);
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-visual-left {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 0 auto;
+  width: 100%;
+  height: calc(100vh - var(--theme5-services-height));
+  height: calc(100dvh - var(--theme5-services-height));
+  z-index: -2;
+}
+
+.page-shell.theme_5 .hero-visual-left::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--color-cinco) 78%, transparent) 0%, color-mix(in srgb, var(--color-cinco) 56%, transparent) 30%, color-mix(in srgb, var(--color-cinco) 18%, transparent) 55%, transparent 76%);
+  pointer-events: none;
+}
+
+.page-shell.theme_5 .hero-visual-left img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left;
+  transition: transform 500ms ease;
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-copy {
+  grid-column: 1;
+  grid-row: 1;
+  align-items: flex-start !important;
+  justify-content: start !important;
+  width: min(1280px, 100%);
+  min-width: 0;
+  margin: 0 auto !important;
+  padding: calc(var(--theme5-nav-height) + 10px) clamp(28px, 7vw, 96px) 24px !important;
+  text-align: left !important;
+  color: var(--text-color-general);
+  background: transparent;
+  z-index: 1;
+}
+
+.page-shell.theme_5 .hero-copy::before {
+  content: none;
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-brand-logo {
+  width: clamp(320px, 35vw, 450px) !important;
+  max-width: min(450px, 76vw) !important;
+  height: clamp(210px, 28vw, 335px) !important;
+  max-height: 335px !important;
+  margin-bottom: 2px;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 5px 20px color-mix(in srgb, var(--color-uno) 42%, transparent));
+}
+
+.page-shell.theme_5 .theme-5-visually-hidden-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.page-shell.theme_5 .hero-theme-badge {
+  margin: 0 0 18px;
+}
+
+.page-shell.theme_5 .hero-theme-badge::before {
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  left: 0;
+  width: 21px;
+  height: 1px;
+  background: var(--color-primary);
+  transform: translateY(-50%);
+}
+
+.page-shell.theme_5 .hero-theme-badge span {
+  line-height: 1.35;
+  text-align: left;
+  color: var(--text-color-general);
+  text-shadow: none;
+  white-space: normal;
+}
+
+.page-shell.theme_5 .hero-panel p {
+  max-width: 320px;
+  margin: 0 0 28px;
+  color: var(--color-primary);
+  font-size: clamp(1rem, 1.25vw, 1.12rem);
+  font-weight: 400;
+  line-height: 1.7;
+  text-align: left;
+  text-shadow: none;
+}
+
+.page-shell.theme_5 .hero-actions {
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.page-shell.theme_5 .hero-actions .button-primary,
+.page-shell.theme_5 .hero-actions .button-secondary {
+  width: auto;
+  min-width: 156px;
+  min-height: 48px;
+  padding: 11px 22px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+}
+
+.page-shell.theme_5 .hero-actions .button-secondary {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: transparent;
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 {
+  display: grid !important;
+  grid-column: 1;
+  grid-row: 2;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 clamp(18px, 5vw, 72px);
+  border: 0;
+  background: var(--color-surface);
+  box-shadow: 0 -1px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
+  z-index: 2;
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature {
+  min-height: 90px;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 14px;
+  border-left: 1px solid var(--color-border);
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature:first-child {
+  border-left: 0;
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature i {
+  color: var(--color-primary);
+  font-size: 1.35rem;
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature span {
+  color: var(--text-color-general);
+  font-size: 0.74rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.page-shell.theme_5 .partner-row {
+  justify-content: flex-start;
+  margin-top: 18px;
+}
+
+.page-shell.theme_5 .partner-pill {
+  border-radius: 7px;
+}
+
+.page-shell.theme_5.theme_5.theme_5.theme_5 .hero-visual-right {
+  display: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .page-shell.theme_5 .hero-panel:hover .hero-visual-left img {
+    transform: scale(1.008);
+  }
+
+  .page-shell.theme_5 .hero-actions .button-secondary:hover,
+  .page-shell.theme_5 .hero-actions .button-secondary:focus-visible {
+    color: var(--color-uno);
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+  }
+}
+
+/* Separacion editorial de destacados */
+.page-shell.theme_5 .promo-panel {
+  position: relative;
+  padding: clamp(32px, 3.5vw, 46px) clamp(20px, 5vw, 68px) 24px;
+  border-top: 1px solid var(--color-border);
+  background: var(--bg-general);
+  z-index: 0;
+}
+
+.page-shell.theme_5 .promo-card-small {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  background: transparent;
+}
+
+.page-shell.theme_5 .promo-card-small .promo-card-header {
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.page-shell.theme_5 .promo-tag {
+  font-size: 1.4rem;
+  font-weight: 650;
+  letter-spacing: 0.15em;
+  text-transform:capitalize;
+  font-family: var(--font-family-general);
+}
+
+.page-shell.theme_5 .theme5-featured-editorial {
+  display: grid;
+  width: 100%;
+  gap: 48px;
+}
+
+.page-shell.theme_5 .theme5-featured-editorial--double {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 1050px;
+  margin-inline: auto;
+  align-items: start;
+}
+
+.page-shell.theme_5 .theme5-featured-editorial--single {
+  max-width: 680px;
+  margin-inline: auto;
+}
+
+.page-shell.theme_5 .theme5-featured-item {
+  display: grid;
+  grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+  column-gap: 24px;
+  align-items: stretch;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+}
+
+.page-shell.theme_5 .theme5-featured-editorial--single .theme5-featured-item {
+  grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+}
+
+.page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-item {
+  grid-template-rows: minmax(200px, auto);
+}
+
+.page-shell.theme_5 .theme5-featured-content {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 100%;
+  padding: 16px 0;
+}
+
+.page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-content {
+  min-height: 0;
+  padding: 16px 0;
+}
+
+.page-shell.theme_5 .theme5-featured-label {
+  margin-bottom: 10px;
+  color: var(--color-primary);
+  font-family: var(--font-family-general);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.page-shell.theme_5 .theme5-featured-content h3 {
+  max-width: 100%;
+  margin: 0 0 8px;
+  color: var(--color-text-promo-tag);
+  font-family: var(--font-family-base);
+  font-size: clamp(1.75rem, 2.2vw, 2.1rem);
+  font-weight: 500;
+  line-height: 1.05;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-content h3 {
+  font-size: clamp(1.65rem, 2vw, 2rem);
+}
+
+.page-shell.theme_5 .theme5-featured-content > p {
+  display: -webkit-box;
+  max-width: 48ch;
+  margin: 0 0 10px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-general);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-content > p {
+  -webkit-line-clamp: 2;
+}
+
+.page-shell.theme_5 .theme5-featured-price {
+  display: none;
+
+}
+
+.page-shell.theme_5 .theme5-featured-price .product-price-original {
+  color: var(--color-text-secondary);
+  font-size: 0.68em;
+}
+
+.page-shell.theme_5 .theme5-featured-price .product-discount-badge {
+  color: var(--color-uno);
+  background: var(--color-primary);
+  text-shadow: none;
+}
+
+.page-shell.theme_5 .theme5-featured-content .commercial-action {
+  margin-top: 0;
+}
+
+.page-shell.theme_5 .theme5-featured-image {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 220px;
+  aspect-ratio: auto;
+  overflow: hidden;
+}
+
+.page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-image {
+  height: 200px;
+}
+
+.page-shell.theme_5 .theme5-featured-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 260ms ease;
+}
+
+.page-shell.theme_5 .featured-track {
+  gap: 18px;
+}
+
+.page-shell.theme_5 .featured-carousel .featured-slide {
+  grid-template-rows: 220px 1fr;
+  border-radius: 14px;
+  box-shadow: none;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.page-shell.theme_5 .featured-carousel .featured-slide-image {
+  height: 220px;
+}
+
+.page-shell.theme_5 .featured-carousel .featured-slide-image img {
+  object-fit: cover;
+}
+
+.page-shell.theme_5 .featured-carousel .featured-slide-image::after {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--color-cuatro) 78%, transparent) 0%,
+    color-mix(in srgb, var(--color-cuatro) 42%, transparent) 38%,
+    transparent 68%
+  );
+}
+
+.page-shell.theme_5 .featured-carousel .promo-item-small {
+  padding: 17px 18px 19px;
+}
+
+.page-shell.theme_5 .featured-carousel .promo-item-small h3 {
+  color: var(--color-uno);
+  font-family: var(--font-family-base);
+  font-size: 1.25rem;
+  font-weight: 500;
+  text-shadow: 0 2px 7px color-mix(in srgb, var(--color-cuatro) 82%, transparent);
+}
+
+.page-shell.theme_5 .featured-carousel .promo-item-small strong,
+.page-shell.theme_5 .featured-carousel .promo-item-small .product-price {
+  color: var(--color-uno);
+  text-shadow: 0 2px 7px color-mix(in srgb, var(--color-cuatro) 82%, transparent);
+}
+
+.page-shell.theme_5 .featured-carousel .promo-item-small .product-price-original,
+.page-shell.theme_5 .featured-carousel .promo-item-small .product-price-effective {
+  color: var(--color-uno);
+}
+
+.page-shell.theme_5 .commercial-badge {
+  border-radius: 5px;
+  letter-spacing: 0.08em;
+}
+
+.page-shell.theme_5 .commercial-action {
+  width: fit-content;
+  border-radius: 7px;
+}
+
+.page-shell.theme_5 .promo-card-small > p {
+  margin: 0;
+  padding: 18px 0 4px;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .page-shell.theme_5 .theme5-featured-item:hover .theme5-featured-image img {
+    transform: scale(1.015);
+  }
+
+  .page-shell.theme_5 .featured-carousel .featured-slide:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--color-cuatro) 7%, transparent);
+    transform: translateY(-3px);
+  }
+}
+
+/* Catalogo fotografico */
+.page-shell.theme_5 .menu-wrapper {
+
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.page-shell.theme_5 .menu-section {
+  width: min(1240px, 100%);
+  margin: 0 auto;
+  padding: 0;
+}
+
+.page-shell.theme_5 .menu-header {
+  margin-bottom: 28px;
+  text-align: left;
+}
+
+.page-shell.theme_5 .menu-header h2 {
+  margin-bottom: 8px;
+  font-family: var(--font-family-title-menu);
+  font-size: var(--font-size-text-title-menu);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.page-shell.theme_5 .menu-tabs {
+  justify-content: flex-start;
+  margin-bottom: 32px;
+  padding-bottom: 14px;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.page-shell.theme_5 .menu-tab {
+  min-height: 42px;
+  padding: 9px 16px;
+  border-radius: 6px;
+  letter-spacing: 0.1em;
+
+}
+.page-shell.theme_5 .menu-tab .category-icon{
+  color: var(--color-cinco)!important;
+}
+.page-shell.theme_5 .menu-tab.is-active{
+  background: var(--color-dos);
+  color: var(--color-uno)!important;
+}
+
+.page-shell.theme_5 .menu-bubble {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.page-shell.theme_5 .menu-bubble::before {
+  display: none;
+}
+
+.page-shell.theme_5 .menu-bubble-header {
+  margin-bottom: 20px;
+  padding: 0;
+  border: 0;
+}
+
+.page-shell.theme_5 .category-title {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.page-shell.theme_5 .productos-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.page-shell.theme_5 .producto-card {
+  border-radius: 14px;
+  box-shadow: none;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.page-shell.theme_5 .producto-card-image {
+  aspect-ratio: 4 / 3;
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface));
+}
+
+.page-shell.theme_5 .producto-card-image img {
+  object-fit: cover;
+  transition: transform 240ms ease;
+}
+
+.page-shell.theme_5 .producto-card-content {
+  padding: 0px 15px 18px !important;
+}
+
+.page-shell.theme_5 .producto-card h3 {
+  font-family: var(--font-family-base);
+  font-size: 2.4rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-primary);
+}
+
+.page-shell.theme_5 .producto-card p {
+  margin-top: 7px;
+  line-height: 1.48;
+}
+
+.page-shell.theme_5 .producto-card-footer {
+  padding: 12px 18px 18px;
+}
+
+.page-shell.theme_5 .menu-wrapper .producto-card > .producto-card-footer > .producto-card-price {
+  display: none;
+}
+
+.page-shell.theme_5 .menu-wrapper .producto-card-footer:not(:has(.producto-card-actions)) {
+  display: none;
+}
+
+.page-shell.theme_5 .menu-wrapper .producto-card-footer:has(.producto-card-actions) {
+  justify-content: flex-end;
+}
+
+.page-shell.theme_5 .producto-card-price,
+.page-shell.theme_5 .producto-card-price .product-price-effective,
+.page-shell.theme_5 .producto-card-price .product-price-offer {
+  font-size: var(--product-card-font-size-price);
+}
+
+.page-shell.theme_5 .producto-add-cart {
+  min-height: 38px;
+  border-radius: 7px;
+}
+
+.page-shell.theme_5 .producto-quantity-control {
+  border-radius: 7px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .page-shell.theme_5 .producto-card:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--color-cuatro) 7%, transparent);
+    transform: translateY(-3px);
+  }
+
+  .page-shell.theme_5 .producto-card:hover .producto-card-image img {
+    transform: scale(1.018);
+  }
+}
+
+/* Modales: geometria sobria, colores heredados del contrato */
+.page-shell.theme_5 .product-modal,
+.page-shell.theme_5 .cart-whatsapp-modal,
+.page-shell.theme_5 .landing-modal,
+.page-shell.theme_5 .store-closed-modal {
+  border-radius: 16px;
+  box-shadow: 0 28px 80px color-mix(in srgb, var(--color-cuatro) 20%, transparent);
+}
+
+.page-shell.theme_5 .product-modal-image img {
+  object-fit: cover;
+}
+
+.page-shell.theme_5 .product-modal-content h2,
+.page-shell.theme_5 .reserva-header h2,
+.page-shell.theme_5 .cart-whatsapp-header h2 {
+  font-family: var(--font-family-base);
+  font-weight: 500;
+}
+
+.page-shell.theme_5 .product-option,
+.page-shell.theme_5 .product-variant-option,
+.page-shell.theme_5 .reserva-form input,
+.page-shell.theme_5 .reserva-form textarea,
+.page-shell.theme_5 .cart-form input,
+.page-shell.theme_5 .cart-form select {
+  border-radius: 7px;
+}
+
+.page-shell.theme_5 .product-option:hover:not(.is-disabled),
+.page-shell.theme_5 .product-option.is-selected,
+.page-shell.theme_5 .product-variant-option:has(input:checked) {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
+/* Galeria y sobre nosotros permanecen en superficie clara */
+.page-shell.theme_5 .reservation-showcase,
+.page-shell.theme_5 .restaurant-details-showcase {
+  width: min(calc(100% - 48px), 1280px);
+  max-width: 1280px;
+  margin: 0 auto 48px;
+  padding: clamp(26px, 3vw, 42px) 0;
+}
+
+.page-shell.theme_5 .restaurant-details-showcase {
+  background: var(--bg-general);
+}
+
+.page-shell.theme_5 .reservation-showcase {
+  min-height: 0;
+  margin-bottom: 0;
+  grid-template-columns: minmax(400px, 0.56fr) minmax(0, 1fr);
+  gap: clamp(30px, 4vw, 48px);
+  align-items: stretch;
+  background: var(--bg-general);
+}
+
+.page-shell.theme_5 .restaurant-details-column {
+  width: 100%;
+  margin: 0 auto;
+  flex-direction: column-reverse;
+  gap: 34px;
+}
+
+.page-shell.theme_5 .gallery-panel,
+.page-shell.theme_5 .about-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.page-shell.theme_5 .gallery-panel h2,
+.page-shell.theme_5 .about-panel h2 {
+  font-family: var(--font-family-general);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.page-shell.theme_5 .gallery-grid {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.page-shell.theme_5 .gallery-track,
+.page-shell.theme_5 .gallery-group {
+  gap: 14px;
+}
+
+@media (min-width: 1021px) {
+  .page-shell.theme_5 .gallery-card,
+  .page-shell.theme_5 .gallery-card:first-child {
+    height: clamp(240px, 21vw, 280px);
+    min-height: clamp(240px, 21vw, 280px);
+  }
+
+  .page-shell.theme_5 .gallery-track:has(> .gallery-group:first-child > .gallery-card:nth-child(3):last-child) {
+    width: 100%;
+    animation: none;
+    will-change: auto;
+  }
+
+  .page-shell.theme_5 .gallery-track:has(> .gallery-group:first-child > .gallery-card:nth-child(3):last-child) > .gallery-group:first-child {
+    width: 100%;
+    padding-right: 0;
+  }
+
+  .page-shell.theme_5 .gallery-track:has(> .gallery-group:first-child > .gallery-card:nth-child(3):last-child) > .gallery-group:first-child > .gallery-card {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    height: clamp(240px, 21vw, 280px);
+    min-height: clamp(240px, 21vw, 280px);
+  }
+
+  .page-shell.theme_5 .gallery-track:has(> .gallery-group:first-child > .gallery-card:nth-child(3):last-child) > .gallery-group[aria-hidden="true"] {
+    display: none;
+  }
+}
+
+.page-shell.theme_5 .gallery-card,
+.page-shell.theme_5 .gallery-card:first-child {
+  border: 0;
+  border-radius: 14px 4px 14px 4px;
+  box-shadow: none;
+}
+
+.page-shell.theme_5 .gallery-card img {
+  object-fit: cover;
+  transition: transform 240ms ease;
+}
+
+.page-shell.theme_5 .gallery-empty {
+  min-height: 0;
+  padding: 18px 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.page-shell.theme_5 .about-panel {
+  padding-top: 38px;
+  border-top: 1px solid var(--color-border);
+}
+
+.page-shell.theme_5 .about-panel-heading {
+  padding-bottom: 30px;
+  border-bottom-color: var(--color-border);
+}
+
+.page-shell.theme_5 .about-panel-heading img {
+  border-radius: 12px 4px 12px 4px;
+}
+
+.page-shell.theme_5 .about-panel-details article {
+  border-color: var(--color-border);
+}
+
+.page-shell.theme_5 .about-panel-details {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .page-shell.theme_5 .gallery-card:hover img {
+    transform: scale(1.02);
+  }
+}
+
+.page-shell.theme_5 .reservation-card {
+  width: 100%;
+  max-width: 520px;
+  min-height: 600px;
+  margin: 0;
+  padding: clamp(48px, 5vw, 68px) clamp(32px, 4vw, 48px) 38px;
+  justify-self: start;
+  justify-content: space-between;
+  border-radius: 16px;
+  background-image: var(--reservation-card-color-bg);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.page-shell.theme_5 .reservation-card--form-image {
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(4, 52, 55, 0.42) 0%,
+      rgba(4, 52, 55, 0.22) 30%,
+      rgba(4, 52, 55, 0.05) 62%,
+      rgba(4, 52, 55, 0.14) 100%
+    ),
+    var(--theme5-form-image);
+}
+
+.page-shell.theme_5 .reservation-card-copy,
+.page-shell.theme_5 .reservation-card .action-cards {
+  position: relative;
+  z-index: 1;
+}
+
+.page-shell.theme_5 .reservation-card-copy {
+  max-width: 38ch;
+  margin: 0 auto;
+}
+.page-shell.theme_5 .about-panel-details h3{
+  font-family: var(--font-family-general);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.2;
+
+}
+.page-shell.theme_5 .reservation-card-copy h2 {
+  max-width: auto;
+  margin: 0 auto 20px;
+  color: #fff;
+  font-size: 2.2rem;
+  line-height: 1;
+  text-shadow: none;
+  font-family: var(--font-family-general)!important;
+}
+
+.page-shell.theme_5 .reservation-card-copy p {
+  max-width: 34ch;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.9375rem;
+  line-height: 1.48;
+  text-shadow: none;
+}
+
+.page-shell.theme_5 .reservation-card .action-cards {
+  margin-top: auto;
+  padding-top: clamp(48px, 8vh, 92px);
+}
+
+.page-shell.theme_5 .reservation-card .action-card--quote {
+  justify-self: center;
+  width: max-content;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 22px;
+  flex-direction: row;
+  gap: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  color: #075d61;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(4px);
+}
+
+.page-shell.theme_5 .reservation-card .action-card--quote::after {
+  content: "\2192";
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.page-shell.theme_5 .reservation-card .action-card--quote i {
+  display: none;
+}
+
+.page-shell.theme_5 .reservation-card .action-card {
+  border-radius: 9px;
+  backdrop-filter: blur(2px);
+}
+
+.page-shell.theme_5 .reservation-card .action-card:hover,
+.page-shell.theme_5 .reservation-card .action-card:focus-visible {
+  transform: translateY(-2px);
+}
+
+.page-shell.theme_5 .reservation-card .action-card--quote:hover,
+.page-shell.theme_5 .reservation-card .action-card--quote:focus-visible {
+  color: #043f42;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(4, 52, 55, 0.18);
+}
+
+/* Cierre visual */
+.page-shell.theme_5 .landing-footer {
+  min-height: 0;
+  padding: 14px clamp(20px, 5vw, 68px);
+  border-top: 3px solid var(--color-primary);
+  font-family: var(--font-family-general);
+  font-size: 0.1rem;
+}
+
+.page-shell.theme_5 .whatsapp-floating-btn {
+  border-radius: 10px;
+}
+
+.page-shell.theme_5 a:focus-visible,
+.page-shell.theme_5 button:focus-visible,
+.page-shell.theme_5 input:focus-visible,
+.page-shell.theme_5 select:focus-visible,
+.page-shell.theme_5 textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* Tablet: especificidad adicional frente a breakpoints compartidos posteriores */
+@media (min-width: 776px) and (max-width: 1100px) {
+  .page-shell.theme_5 .brand-block {
+    min-width: 0;
+  }
+
+  .page-shell.theme_5 .brand-name {
+    font-size: 1.08rem;
+  }
+
+  .page-shell.theme_5 .brand-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .page-shell.theme_5 .brand-tag {
+    font-size: 0.54rem;
+    letter-spacing: 0.2em;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-brand-logo {
+    width: clamp(290px, 34vw, 390px) !important;
+    max-width: min(390px, 72vw) !important;
+    height: clamp(190px, 27vw, 290px) !important;
+    max-height: 290px !important;
+    margin-bottom: 6px;
+    transform: translateY(-12px);
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .page-content > .hero-panel {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(calc(100vh - var(--theme5-services-height)), auto) var(--theme5-services-height) !important;
+    grid-template-rows: minmax(calc(100dvh - var(--theme5-services-height)), auto) var(--theme5-services-height) !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    padding: 0 !important;
+    gap: 0;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-copy {
+    grid-column: 1;
+    grid-row: 1;
+    padding: calc(var(--theme5-nav-height) + 10px) clamp(34px, 7vw, 72px) 24px !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-visual-right {
+    display: none;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .page-shell.theme_5 .theme5-featured-editorial--single .theme5-featured-item {
+    grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+  }
+
+  .page-shell.theme_5 .theme5-featured-content {
+    padding-inline: 0;
+  }
+
+  .page-shell.theme_5 .productos-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-shell.theme_5 .reservation-showcase {
+    width: min(calc(100% - 40px), 1040px);
+    grid-template-columns: minmax(250px, 0.55fr) minmax(0, 1fr);
+    gap: 28px;
+    padding-block: 28px;
+  }
+
+  .page-shell.theme_5 .reservation-card {
+    max-width: 460px;
+    min-height: clamp(520px, 62vw, 580px);
+    padding: 42px 28px 30px;
+  }
+
+  .page-shell.theme_5 .reservation-card-copy h2 {
+    font-size: clamp(2.375rem, 4.2vw, 2.75rem);
+  }
+
+  .page-shell.theme_5 .restaurant-details-column {
+    gap: 28px;
+  }
+
+  .page-shell.theme_5 .gallery-grid {
+    min-height: 0;
+  }
+}
+
+@media (min-width: 776px) and (max-width: 900px) {
+  .page-shell.theme_5 .theme5-featured-editorial--double {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 680px;
+    gap: 30px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 775px) {
+  .page-shell.theme_5 {
+    --theme5-nav-height: 64px;
+    --theme5-services-height: 144px;
+  }
+
+  .page-shell.theme_5 .site-header {
+    position: sticky !important;
+    min-height: var(--theme5-nav-height);
+    margin-bottom: calc(var(--theme5-nav-height) * -1);
+    padding: 6px 112px 6px 62px;
+    background: transparent !important;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .page-shell.theme_5 .brand-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .page-shell.theme_5 .brand-block {
+    min-width: 0;
+  }
+
+  .page-shell.theme_5 .span-info-brand-block {
+    width: 100%;
+    max-width: 100%;
+    gap: 1px;
+  }
+
+  .page-shell.theme_5 .brand-name,
+  .page-shell.theme_5 .brand-subtitle,
+  .page-shell.theme_5 .brand-tag {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .page-shell.theme_5 .brand-name {
+    font-size: clamp(0.9rem, 4.2vw, 1.04rem);
+  }
+
+  .page-shell.theme_5 .brand-subtitle {
+    font-size: clamp(0.61rem, 2.7vw, 0.68rem);
+  }
+
+  .page-shell.theme_5 .brand-tag {
+    display: block;
+    margin-top: 1px;
+    font-size: clamp(0.48rem, 2.1vw, 0.53rem);
+    letter-spacing: 0.18em;
+  }
+
+  .page-shell.theme_5 .site-nav {
+    background: var(--bg-general);
+    box-shadow: 18px 0 50px color-mix(in srgb, var(--color-cuatro) 14%, transparent);
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .page-content > .hero-panel {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(calc(100vh - var(--theme5-services-height)), auto) auto !important;
+    grid-template-rows: minmax(calc(100dvh - var(--theme5-services-height)), auto) auto !important;
+    width: 100%;
+    height: auto !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    padding: 0 !important;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-copy {
+    grid-column: 1;
+    grid-row: 1;
+    align-items: center;
+    justify-content: center;
+    height: auto !important;
+    min-height: calc(100vh - var(--theme5-services-height)) !important;
+    min-height: calc(100dvh - var(--theme5-services-height)) !important;
+    padding: calc(var(--theme5-nav-height) + 20px) 20px 34px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .page-shell.theme_5 .hero-visual-left::after {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--color-cinco) 76%, transparent) 0%, color-mix(in srgb, var(--color-cinco) 62%, transparent) 58%, color-mix(in srgb, var(--color-cinco) 48%, transparent) 100%);
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-visual-left {
+    height: 100%;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-brand-logo {
+    width: min(270px, 76vw) !important;
+    max-width: 270px !important;
+    height: clamp(170px, 52vw, 230px) !important;
+    max-height: 230px !important;
+    margin-bottom: 16px;
+    object-position: center;
+    transform: none;
+  }
+
+  .page-shell.theme_5 .hero-theme-badge span,
+  .page-shell.theme_5 .hero-panel p {
+    max-width: 500px;
+    margin-bottom: 18px;
+    font-size: 0.95rem;
+    line-height: 1.58;
+    text-align: center;
+  }
+
+  .page-shell.theme_5 .hero-actions {
+    width: 100%;
+    max-width: 500px;
+    justify-content: center;
+  }
+
+  .page-shell.theme_5 .hero-actions .button-primary,
+  .page-shell.theme_5 .hero-actions .button-secondary {
+    flex: 1 1 145px;
+    min-width: 0;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0 !important;
+    padding: 0 14px;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature {
+    min-height: 72px;
+    padding: 12px 6px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature:first-child,
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature:nth-child(2) {
+    border-top: 0;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-features-theme-5 .hero-feature span {
+    text-align: center;
+  }
+
+  .page-shell.theme_5.theme_5.theme_5.theme_5 .hero-visual-right {
+    display: none;
+  }
+
+  .page-shell.theme_5 .promo-panel,
+  .page-shell.theme_5 .menu-wrapper,
+  .page-shell.theme_5 .reservation-showcase,
+  .page-shell.theme_5 .restaurant-details-showcase {
+    padding: 48px 14px;
+  }
+
+  .page-shell.theme_5 .reservation-showcase {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: calc(100% - 28px);
+    max-width: none;
+    min-height: auto;
+    margin: 0 auto 36px;
+    padding: 32px 0 0;
+    gap: 28px;
+    align-items: stretch;
+  }
+
+  .page-shell.theme_5 .reservation-showcase .restaurant-details-column {
+    display: contents;
+  }
+
+  .page-shell.theme_5 .reservation-showcase .gallery-panel {
+    order: 3;
+    min-width: 0;
+  }
+
+  .page-shell.theme_5 .reservation-showcase .reservation-card {
+    order: 1;
+  }
+
+  .page-shell.theme_5 .reservation-showcase .about-panel {
+    order: 2;
+  }
+
+  .page-shell.theme_5 .restaurant-details-showcase {
+    width: calc(100% - 28px);
+    max-width: none;
+    margin: 0 auto 36px;
+    padding: 32px 0;
+  }
+
+  .page-shell.theme_5 .theme5-featured-editorial,
+  .page-shell.theme_5 .theme5-featured-editorial--double {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+
+  .page-shell.theme_5 .theme5-featured-editorial--single .theme5-featured-item,
+  .page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-item {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  .page-shell.theme_5 .theme5-featured-content,
+  .page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-content {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 0;
+    padding: 18px 2px 20px;
+  }
+
+  .page-shell.theme_5 .theme5-featured-content h3,
+  .page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-content h3 {
+    font-size: clamp(1.65rem, 8vw, 2rem);
+  }
+
+  .page-shell.theme_5 .theme5-featured-image,
+  .page-shell.theme_5 .theme5-featured-editorial--double .theme5-featured-image {
+    grid-column: 1;
+    grid-row: 1;
+    height: 200px;
+    aspect-ratio: auto;
+  }
+
+  .page-shell.theme_5 .promo-panel {
+    padding-block: 30px 20px;
+  }
+
+  .page-shell.theme_5 .featured-carousel .featured-slide {
+    grid-template-rows: 200px 1fr;
+  }
+
+  .page-shell.theme_5 .featured-carousel .featured-slide-image {
+    height: 200px;
+  }
+
+  .page-shell.theme_5 .menu-header h2 {
+    font-size: clamp(2.2rem, 12vw, 3.4rem);
+  }
+
+  .page-shell.theme_5 .menu-tabs {
+    justify-content: flex-start;
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .page-shell.theme_5 .menu-tab {
+    flex: 0 0 auto;
+    min-width: max-content;
+    scroll-snap-align: start;
+  }
+
+  .page-shell.theme_5 .productos-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .page-shell.theme_5 .gallery-track,
+  .page-shell.theme_5 .gallery-group {
+    gap: 10px;
+  }
+
+  .page-shell.theme_5 .about-panel {
+    padding-top: 30px;
+  }
+
+  .page-shell.theme_5 .about-panel-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .page-shell.theme_5 .reservation-card {
+    width: 100%;
+    max-width: none;
+    min-height: clamp(430px, 135vw, 520px);
+    padding: 32px 22px 24px;
+    justify-self: stretch;
+    border-radius: 12px;
+  }
+
+  .page-shell.theme_5 .reservation-card-copy h2 {
+    max-width: 11ch;
+    margin-bottom: 22px;
+    font-size: clamp(2.125rem, 9.5vw, 2.5rem);
+    line-height: 1.02;
+  }
+
+  .page-shell.theme_5 .reservation-card-copy p {
+    max-width: 32ch;
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
+
+  .page-shell.theme_5 .reservation-card .action-cards {
+    padding-top: 36px;
+  }
+
+  .page-shell.theme_5 .product-modal,
+  .page-shell.theme_5 .cart-whatsapp-modal,
+  .page-shell.theme_5 .landing-modal {
+    width: calc(100% - 20px);
+    max-width: calc(100% - 20px);
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 520px) {
+  .page-shell.theme_5 .hero-actions {
+    flex-direction: column;
+  }
+
+  .page-shell.theme_5 .hero-actions .button-primary,
+  .page-shell.theme_5 .hero-actions .button-secondary {
+    flex: none;
+    width: 100%;
+  }
+
+  .page-shell.theme_5 .producto-card-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-shell.theme_5 .producto-card-actions,
+  .page-shell.theme_5 .producto-add-cart {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 390px) {
+  .page-shell.theme_5 .brand-name,
+  .page-shell.theme_5 .brand-subtitle,
+  .page-shell.theme_5 .brand-tag {
+    max-width: 100%;
+  }
+
+  .page-shell.theme_5 .hero-panel h1 {
+    font-size: 2.15rem;
+  }
+
+  .page-shell.theme_5 .promo-panel,
+  .page-shell.theme_5 .menu-wrapper,
+  .page-shell.theme_5 .reservation-showcase,
+  .page-shell.theme_5 .restaurant-details-showcase {
+    padding-inline: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-shell.theme_5 * {
+    scroll-behavior: auto;
+  }
+
+  .page-shell.theme_5 .hero-visual-right img,
+  .page-shell.theme_5 .featured-slide,
+  .page-shell.theme_5 .producto-card,
+  .page-shell.theme_5 .producto-card-image img,
+  .page-shell.theme_5 .gallery-card img,
+  .page-shell.theme_5 .site-nav a::after {
+    transition: none;
+  }
+}

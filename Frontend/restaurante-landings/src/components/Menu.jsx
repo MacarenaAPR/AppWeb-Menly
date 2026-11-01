@@ -45,6 +45,7 @@ export default function Menu({
   maxCantidad = MAX_CANTIDAD_POR_PRODUCTO,
   onMaxCantidad,
   carritoMensajeInactivo = "",
+  sectionTitle = "Menú",
 }) {
   const menuTabsRef = useRef(null);
   const dragStateRef = useRef({
@@ -228,7 +229,7 @@ export default function Menu({
   return (
     <section className="menu-section">
       <div className="menu-header">
-        <h2>Menú</h2>
+        <h2>{sectionTitle}</h2>
         <p>Explora nuestras categorías y selecciona tus platos favoritos.</p>
         {carritoMensajeInactivo && (
           <span className="menu-order-disabled-message">

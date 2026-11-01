@@ -765,6 +765,7 @@ export default function Home() {
     fallbackImage: "/img/default.jpg",
     width: 1200,
   });
+  const tieneImagenFormulario = Boolean(restaurante?.imgen_form && imagenFormularioOptimizada);
   const imagenSobreNosotrosOptimizadaTheme7 = getOptimizedFormImageUrl(restaurante?.imgen_form, {
     baseUrl: CLOUDINARY_BASE,
     fallbackImage: "",
@@ -1176,9 +1177,10 @@ export default function Home() {
   const themeClass = allowedThemes.includes(restaurante?.theme_color)
     ? restaurante.theme_color
     : "theme_9";
+  const usesThemeFiveLayout = themeClass === "theme_5";
   const usesThemeSevenHeroLayout = themeClass === "theme_7";
   const usesThemeNineHeroLayout = themeClass === "theme_8" || themeClass === "theme_9";
-  const usesBottomHeroFeatures = usesThemeSevenHeroLayout || usesThemeNineHeroLayout;
+  const usesBottomHeroFeatures = usesThemeFiveLayout || usesThemeSevenHeroLayout || usesThemeNineHeroLayout;
   const heroBadgeText = String(restaurante?.slogan || "").trim();
   const reservasActivas = Boolean(restaurante?.reservas_activas);
   const solicitudesEspecialesActivas = Boolean(restaurante?.solicitudes_especiales_activas);
@@ -1224,7 +1226,29 @@ export default function Home() {
   const nombreSecundarioTheme7 = palabrasNombreTheme7.length >= 3
     ? palabrasNombreTheme7.at(-1)
     : "";
-  const heroFeatures = (
+  const heroFeatures = usesThemeFiveLayout ? (
+    <div
+      className="hero-features hero-features-theme-5"
+      aria-label="Servicios del restaurante"
+    >
+      <div className="hero-feature">
+        <i className="bi bi-cup-hot" aria-hidden="true"></i>
+        <span>Coffee Break</span>
+      </div>
+      <div className="hero-feature">
+        <i className="bi bi-cookie" aria-hidden="true"></i>
+        <span>Banquetería</span>
+      </div>
+      <div className="hero-feature">
+        <i className="bi bi-cake2" aria-hidden="true"></i>
+        <span>Dulcería</span>
+      </div>
+      <div className="hero-feature">
+        <i className="bi bi-calendar-event" aria-hidden="true"></i>
+        <span>Eventos</span>
+      </div>
+    </div>
+  ) : (
     <div
       className={`hero-features${usesThemeSevenHeroLayout ? " hero-features-theme-7" : ""}${usesThemeNineHeroLayout ? " hero-features-theme-9" : ""}`}
       aria-label="Características del restaurante"
@@ -1286,6 +1310,16 @@ export default function Home() {
     destacadosConCarrusel ? "is-carousel" : "is-static",
     `featured-count-${destacadosVisibles}`,
   ].join(" ");
+  const themeFiveFeaturedItems = usesThemeFiveLayout
+    ? [
+        ...promociones.map((producto) => ({ producto, tipo: "promocion" })),
+        ...productosDestacados.map((producto) => ({ producto, tipo: "destacado" })),
+      ]
+    : [];
+  const usesThemeFiveEditorialFeatured =
+    usesThemeFiveLayout &&
+    themeFiveFeaturedItems.length > 0 &&
+    themeFiveFeaturedItems.length <= 2;
 
   const abrirModalAccion = (tipo) => {
     setMobileNavOpen(false);
@@ -1405,7 +1439,7 @@ export default function Home() {
               className="about-panel-details"
               id={usesThemeSevenHeroLayout ? "contacto" : undefined}
             >
-              {(!usesThemeSevenHeroLayout || horariosRestaurante.length > 0) && (
+              {!usesThemeFiveLayout && (!usesThemeSevenHeroLayout || horariosRestaurante.length > 0) && (
                 <article>
                   <h3>Horarios</h3>
                   {horariosRestaurante.length > 0 ? (
@@ -1500,7 +1534,7 @@ export default function Home() {
         </button>
 
         <div className="brand-block">
-          {logoOptimizado && (
+          {!usesThemeFiveLayout && logoOptimizado && (
             <img
               src={logoOptimizado}
               alt={restaurante.nombre_empresa}
@@ -1511,9 +1545,19 @@ export default function Home() {
             />
           )}
           <div className="span-info-brand-block">
-            <span className="brand-name">{restaurante?.nombre_empresa || "Restaurante"}</span>
-            {(!usesThemeSevenHeroLayout || restaurante?.ciudad) && (
-              <span className="brand-tag">{restaurante?.ciudad || "Bienvenido"}</span>
+            {usesThemeFiveLayout ? (
+              <>
+                <span className="brand-name">Maria Ignacia</span>
+                <span className="brand-subtitle">Dulcería de Autor</span>
+                <span className="brand-tag">Valdivia</span>
+              </>
+            ) : (
+              <>
+                <span className="brand-name">{restaurante?.nombre_empresa || "Restaurante"}</span>
+                {(!usesThemeSevenHeroLayout || restaurante?.ciudad) && (
+                  <span className="brand-tag">{restaurante?.ciudad || "Bienvenido"}</span>
+                )}
+              </>
             )}
           </div>
           
@@ -1645,7 +1689,11 @@ export default function Home() {
                 )}
               </div>
             ) : (
-              !usesThemeNineHeroLayout && <h1>{restaurante?.nombre_empresa}</h1>
+              !usesThemeNineHeroLayout && (
+                <h1 className={usesThemeFiveLayout ? "theme-5-visually-hidden-title" : undefined}>
+                  {restaurante?.nombre_empresa}
+                </h1>
+              )
             )}
             {!usesThemeNineHeroLayout && heroBadgeText && (
               <div className="hero-theme-badge">
@@ -1666,7 +1714,19 @@ export default function Home() {
               <a className="button-primary" href="#menu">
                 Ver menú <span aria-hidden="true">→</span>
               </a>
-              {!usesThemeSevenHeroLayout && reservasActivas && (
+              {usesThemeFiveLayout && solicitudesEspecialesActivas && (
+                <a
+                  className="button-secondary"
+                  href="#solicitud-especial"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    abrirModalAccion("solicitud");
+                  }}
+                >
+                  Cotizar
+                </a>
+              )}
+              {!usesThemeFiveLayout && !usesThemeSevenHeroLayout && reservasActivas && (
                 <a
                   className="button-secondary"
                   href="#reserva"
@@ -1715,8 +1775,8 @@ export default function Home() {
           <article className="promo-card promo-card-small commercial-showcase-card">
             <div className="promo-card-header">
               <span className="promo-tag">
-                <GiFireBowl />
-                Destacados y promociones
+                {!usesThemeFiveLayout && <GiFireBowl />}
+                {usesThemeFiveLayout ? "Lo más visto" : "Destacados y promociones"}
               </span>
               {destacadosConCarrusel && (
                 <div className="featured-controls" aria-label="Controles de destacados">
@@ -1725,6 +1785,64 @@ export default function Home() {
             </div>
 
             {(promociones.length > 0 || productosDestacados.length > 0) ? (
+              usesThemeFiveEditorialFeatured ? (
+                <div
+                  className={`theme5-featured-editorial theme5-featured-editorial--${themeFiveFeaturedItems.length === 1 ? "single" : "double"}`}
+                  aria-label="Contenido destacado"
+                >
+                  {themeFiveFeaturedItems.map(({ producto, tipo }) => (
+                    <article
+                      key={`theme5-${tipo}-${producto.id}`}
+                      className="theme5-featured-item"
+                    >
+                      <div className="theme5-featured-content">
+                        <span className="theme5-featured-label">
+                          {tipo === "promocion" ? "Promoción" : "Destacado"}
+                        </span>
+                        <h3>{producto.nombre}</h3>
+                        {producto.descripcion && <p>{producto.descripcion}</p>}
+                        {renderPrecioProducto(producto, "theme5-featured-price", "strong")}
+                        {tipo === "promocion" ? (
+                          <button
+                            type="button"
+                            className="commercial-action"
+                            onClick={() => handlePromotionClick(producto)}
+                          >
+                            Ver promoción
+                          </button>
+                        ) : (
+                          carritoDisponible && (
+                            <button
+                              type="button"
+                              className="commercial-action"
+                              onClick={() => (
+                                getVariantesActivas(producto).length || gruposPersonalizacion(producto).length
+                                  ? handlePromotionClick(producto)
+                                  : agregarAlCarrito(producto)
+                              )}
+                            >
+                              Añadir
+                            </button>
+                          )
+                        )}
+                      </div>
+
+                      <div className="theme5-featured-image">
+                        <img
+                          src={getProductImage(producto, {
+                            width: themeFiveFeaturedItems.length === 1 ? 760 : 620,
+                            height: themeFiveFeaturedItems.length === 1 ? 570 : 390,
+                          })}
+                          alt={producto.nombre}
+                          loading="lazy"
+                          width={themeFiveFeaturedItems.length === 1 ? "760" : "620"}
+                          height={themeFiveFeaturedItems.length === 1 ? "570" : "390"}
+                        />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
               <div
                 ref={destacadosCarouselRef}
                 className={`${destacadosClase} commercial-showcase`}
@@ -1842,8 +1960,13 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+              )
             ) : (
-              <p>No hay destacados ni promociones disponibles.</p>
+              <p>
+                {usesThemeFiveLayout
+                  ? "Próximamente encontrarás aquí nuestras recomendaciones."
+                  : "No hay destacados ni promociones disponibles."}
+              </p>
             )}
           </article>
         </section>
@@ -2021,6 +2144,7 @@ export default function Home() {
         <section className="menu-wrapper" id="menu">
           <Menu
             categorias={categorias}
+            sectionTitle={usesThemeFiveLayout ? "Catálogo" : "Menú"}
             onProductClick={handleClickProducto}
             fallbackImage={
               usesThemeSevenHeroLayout
@@ -2045,18 +2169,30 @@ export default function Home() {
             <span id="solicitudes-especiales" className="landing-action-anchor" aria-hidden="true"></span>
 
             <article
-              className="reservation-card"
-              style={{
-                "--about-bg": `url(${
-                  imagenFormularioOptimizada
-                })`,
-              }}
+              className={`reservation-card${
+                usesThemeFiveLayout && tieneImagenFormulario
+                  ? " reservation-card--form-image"
+                  : ""
+              }`}
+              style={
+                usesThemeFiveLayout
+                  ? tieneImagenFormulario
+                    ? { "--theme5-form-image": `url(${imagenFormularioOptimizada})` }
+                    : undefined
+                  : { "--about-bg": `url(${imagenFormularioOptimizada})` }
+              }
             >
               <div className="reservation-card-copy">
-                <h2>{restaurante?.nombre_empresa}</h2>
+                <h2>
+                  {usesThemeFiveLayout
+                    ? "¿Tienes un evento en mente?"
+                    : restaurante?.nombre_empresa}
+                </h2>
                 <p>
-                  {restaurante?.descripcion ||
-                    "Reserva tu momento perfecto o solicita preparaciones especiales para ti."}
+                  {usesThemeFiveLayout
+                    ? "Cuéntanos lo que necesitas y preparemos una propuesta especial para tu celebración o evento."
+                    : restaurante?.descripcion ||
+                      "Reserva tu momento perfecto o solicita preparaciones especiales para ti."}
                 </p>
               </div>
 
@@ -2064,11 +2200,11 @@ export default function Home() {
                 {solicitudesEspecialesActivas && (
                   <button
                     type="button"
-                    className="action-card"
+                    className={`action-card${usesThemeFiveLayout ? " action-card--quote" : ""}`}
                     onClick={() => abrirModalAccion("solicitud")}
                   >
                     <i className="bi bi-stars" aria-hidden="true"></i>
-                    <strong>Pedido Especial</strong>
+                    <strong>{usesThemeFiveLayout ? "Cotiza aquí" : "Pedido Especial"}</strong>
                   </button>
                 )}
 
@@ -2133,10 +2269,30 @@ export default function Home() {
                   )}
                 </div>
               )}
-              <p>© 2026 {restaurante?.nombre_empresa} · Desarrollado con Menly</p>
+              <p>
+                © 2026 {restaurante?.nombre_empresa} ·{" "}
+                <a
+                  className="footer-menly-link"
+                  href="https://menly.cl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Desarrollado con Menly
+                </a>
+              </p>
             </>
           ) : (
-            <p>© 2026 {restaurante?.nombre_empresa} · Desarrollado con Menly</p>
+            <p>
+              © 2026 {restaurante?.nombre_empresa} ·{" "}
+              <a
+                className="footer-menly-link"
+                href="https://menly.cl"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Desarrollado con Menly
+              </a>
+            </p>
           )}
         </footer>
       </main>
