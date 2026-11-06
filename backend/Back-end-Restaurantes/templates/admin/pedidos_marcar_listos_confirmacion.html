@@ -1,0 +1,19 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>Marcar todos los productos como listos</h1>
+  <p>Se procesarán {{ pedidos|length }} pedidos seleccionados. Solo cambiarán las comandas con productos cuya transición actual a “listo” sea válida.</p>
+  <p>Los pedidos vacíos, ya listos, cancelados, entregados, en reparto o en otro estado incompatible serán omitidos.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% for pedido in pedidos %}
+      <input type="hidden" name="{{ action_checkbox_name }}" value="{{ pedido.pk }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="marcar_productos_listos">
+    <input type="hidden" name="confirmar_marcar_listos" value="1">
+    <input type="hidden" name="select_across" value="0">
+    <input type="submit" value="Confirmar" class="default">
+    <a href="../" class="button cancel-link">Cancelar</a>
+  </form>
+{% endblock %}

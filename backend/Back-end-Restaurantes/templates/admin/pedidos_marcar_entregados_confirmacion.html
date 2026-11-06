@@ -1,0 +1,19 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Marcar pedidos seleccionados como entregados</h1>
+  <p><strong>{{ actualizables }}</strong> pedidos serán marcados como entregados.</p>
+  <p><strong>{{ cancelados }}</strong> pedidos cancelados serán omitidos.</p>
+  <p><strong>{{ ya_entregados }}</strong> pedidos ya entregados permanecerán sin cambios.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% for pedido in pedidos %}
+      <input type="hidden" name="{{ action_checkbox_name }}" value="{{ pedido.pk }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="marcar_pedidos_entregados">
+    <input type="hidden" name="confirmar_marcar_entregados" value="1">
+    <input type="hidden" name="select_across" value="0">
+    <input type="submit" value="Confirmar" class="default">
+    <a href="../" class="button cancel-link">Cancelar</a>
+  </form>
+{% endblock %}

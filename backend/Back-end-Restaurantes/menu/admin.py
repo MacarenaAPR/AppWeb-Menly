@@ -7,13 +7,218 @@ from .admin_csv_importers import (
 )
 
 import csv
+import json
+import logging
 from decimal import Decimal
 
 from django.contrib import admin, messages
-from django.urls import path
+from django.contrib.admin import helpers
+from django.http import HttpResponse
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.shortcuts import render, redirect
 from django.utils.html import format_html
 from menu.cache_utils import invalidate_menu_cache
+from menu.services.estados_pedidos import (
+    CANCELADO,
+    EN_PREPARACION,
+    ENTREGADO,
+    RESULTADO_CANCELADO_OMITIDO,
+    RESULTADO_ENTREGADO,
+    RESULTADO_YA_ENTREGADO,
+    TransicionEstadoInvalida,
+    cambiar_estado_pedido,
+    marcar_entregado_desde_admin,
+    normalizar_estado_actual,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class TenantAdminMixin:
+    """Impide que personal no superusuario consulte objetos de otro tenant."""
+
+    tenant_lookup = "restaurante"
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        if request.user.is_superuser:
+            return queryset
+        perfil = getattr(request.user, "perfil_restaurante", None)
+        if not perfil or not perfil.activo:
+            return queryset.none()
+        return queryset.filter(**{self.tenant_lookup: perfil.restaurante})
+
+
+class MarcarProductosListosAdminMixin(TenantAdminMixin):
+    actions = ("marcar_productos_listos",)
+
+    def _cantidad_productos(self, pedido):
+        if isinstance(pedido, PedidoWhatsApp):
+            items = pedido.productos_snapshot or []
+        elif isinstance(pedido, PedidoEspecial):
+            items = pedido.items or []
+        else:
+            return sum(max(item.cantidad, 0) for item in pedido.items.all())
+        total = 0
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            try:
+                total += max(int(item.get("cantidad") or 0), 0)
+            except (TypeError, ValueError):
+                continue
+        return total
+
+    @admin.action(description="Marcar todos los productos como listos")
+    def marcar_productos_listos(self, request, queryset):
+        if not self.has_change_permission(request):
+            self.message_user(request, "No tienes permiso para cambiar pedidos.", messages.ERROR)
+            return None
+
+        queryset = queryset.select_related("restaurante")
+        if self.model is PedidoManual:
+            queryset = queryset.prefetch_related("items")
+
+        if request.POST.get("confirmar_marcar_listos") != "1":
+            return TemplateResponse(
+                request,
+                "admin/pedidos_marcar_listos_confirmacion.html",
+                {
+                    **self.admin_site.each_context(request),
+                    "title": "Marcar todos los productos como listos",
+                    "pedidos": list(queryset),
+                    "action_checkbox_name": helpers.ACTION_CHECKBOX_NAME,
+                    "opts": self.model._meta,
+                },
+            )
+
+        procesados = productos = omitidos = errores = 0
+        for pedido in queryset:
+            cantidad = self._cantidad_productos(pedido)
+            if cantidad == 0 or normalizar_estado_actual(pedido) != EN_PREPARACION:
+                omitidos += 1
+                continue
+            try:
+                cambiar_estado_pedido(
+                    pedido,
+                    "listo",
+                    actor=request.user,
+                    origen="panel",
+                )
+                procesados += 1
+                productos += cantidad
+            except TransicionEstadoInvalida:
+                omitidos += 1
+            except Exception:
+                logger.exception(
+                    "Error al marcar productos listos desde Admin",
+                    extra={"pedido_modelo": self.model.__name__, "pedido_id": pedido.pk},
+                )
+                errores += 1
+
+        nivel = messages.WARNING if errores else messages.SUCCESS
+        self.message_user(
+            request,
+            (
+                f"Pedidos procesados: {procesados}; productos/unidades marcados: {productos}; "
+                f"pedidos omitidos: {omitidos}; errores: {errores}."
+            ),
+            nivel,
+        )
+        return None
+
+    @admin.action(description="Marcar pedidos seleccionados como entregados")
+    def marcar_pedidos_entregados(self, request, queryset):
+        if not self.has_change_permission(request):
+            self.message_user(request, "No tienes permiso para cambiar pedidos.", messages.ERROR)
+            return None
+
+        queryset = queryset.select_related("restaurante")
+        estados = [normalizar_estado_actual(pedido) for pedido in queryset]
+        cancelados = estados.count(CANCELADO)
+        ya_entregados = estados.count(ENTREGADO)
+        actualizables = len(estados) - cancelados - ya_entregados
+
+        if request.POST.get("confirmar_marcar_entregados") != "1":
+            return TemplateResponse(
+                request,
+                "admin/pedidos_marcar_entregados_confirmacion.html",
+                {
+                    **self.admin_site.each_context(request),
+                    "title": "Marcar pedidos seleccionados como entregados",
+                    "pedidos": list(queryset),
+                    "actualizables": actualizables,
+                    "cancelados": cancelados,
+                    "ya_entregados": ya_entregados,
+                    "action_checkbox_name": helpers.ACTION_CHECKBOX_NAME,
+                    "opts": self.model._meta,
+                },
+            )
+
+        entregados = cancelados = ya_entregados = errores = 0
+        for pedido in queryset:
+            try:
+                _pedido, resultado = marcar_entregado_desde_admin(
+                    pedido,
+                    actor=request.user,
+                )
+                if resultado == RESULTADO_ENTREGADO:
+                    entregados += 1
+                elif resultado == RESULTADO_CANCELADO_OMITIDO:
+                    cancelados += 1
+                elif resultado == RESULTADO_YA_ENTREGADO:
+                    ya_entregados += 1
+            except Exception:
+                logger.exception(
+                    "Error al marcar pedido entregado desde Admin",
+                    extra={"pedido_modelo": self.model.__name__, "pedido_id": pedido.pk},
+                )
+                errores += 1
+
+        mensaje = (
+            f"{entregados} pedidos marcados como entregados. "
+            f"{cancelados} pedidos cancelados omitidos. "
+            f"{ya_entregados} pedidos ya entregados sin cambios."
+        )
+        if errores:
+            mensaje += f" {errores} pedidos con errores."
+        self.message_user(
+            request,
+            mensaje,
+            messages.WARNING if errores else messages.SUCCESS,
+        )
+        return None
+
+
+class ReporteAnioFilter(admin.SimpleListFilter):
+    title = "año del período"
+    parameter_name = "periodo_anio_filtro"
+
+    def lookups(self, request, model_admin):
+        valores = (
+            model_admin.get_queryset(request)
+            .exclude(periodo_anio__isnull=True)
+            .exclude(periodo_anio="")
+            .values_list("periodo_anio", flat=True)
+            .distinct()
+            .order_by("-periodo_anio")
+        )
+        return [(valor, valor) for valor in valores]
+
+    def queryset(self, request, queryset):
+        return queryset.filter(periodo_anio=self.value()) if self.value() else queryset
+
+
+class ReporteMesFilter(admin.SimpleListFilter):
+    title = "mes del período"
+    parameter_name = "periodo_mes_filtro"
+
+    def lookups(self, request, model_admin):
+        return [(f"{mes:02d}", f"{mes:02d}") for mes in range(1, 13)]
+
+    def queryset(self, request, queryset):
+        return queryset.filter(periodo_mes__endswith=f"-{self.value()}") if self.value() else queryset
 
 
 
@@ -448,7 +653,11 @@ class NotificacionAdmin(admin.ModelAdmin):
 
 
 @admin.register(PedidoWhatsApp)
-class PedidoWhatsAppAdmin(admin.ModelAdmin):
+class PedidoWhatsAppAdmin(MarcarProductosListosAdminMixin, admin.ModelAdmin):
+    actions = (
+        "marcar_productos_listos",
+        "marcar_pedidos_entregados",
+    )
     list_display = (
         "id",
         "numero_pedido",
@@ -462,7 +671,10 @@ class PedidoWhatsAppAdmin(admin.ModelAdmin):
     )
 
 
-    list_filter = ("estado", "tipo_entrega", "restaurante", "fecha_creacion")
+    list_filter = (
+        "estado", "tipo_entrega",
+        ("restaurante", admin.RelatedOnlyFieldListFilter), "fecha_creacion",
+    )
     search_fields = (
         "nombre_cliente",
         "telefono_cliente",
@@ -514,7 +726,7 @@ class TurnoOperativoAdmin(admin.ModelAdmin):
 
 
 @admin.register(PedidoEspecial)
-class PedidoEspecialAdmin(admin.ModelAdmin):
+class PedidoEspecialAdmin(MarcarProductosListosAdminMixin, admin.ModelAdmin):
     list_display = (
         "id",
         "numero_pedido",
@@ -526,7 +738,10 @@ class PedidoEspecialAdmin(admin.ModelAdmin):
         "estado",
         "fecha_creacion",
     )
-    list_filter = ("estado", "fecha_entrega", "restaurante", "fecha_creacion")
+    list_filter = (
+        "estado", "fecha_entrega",
+        ("restaurante", admin.RelatedOnlyFieldListFilter), "fecha_creacion",
+    )
     search_fields = (
         "nombre_cliente",
         "telefono_cliente",
@@ -556,7 +771,11 @@ class PedidoManualItemInline(admin.TabularInline):
 
 
 @admin.register(PedidoManual)
-class PedidoManualAdmin(admin.ModelAdmin):
+class PedidoManualAdmin(MarcarProductosListosAdminMixin, admin.ModelAdmin):
+    actions = (
+        "marcar_productos_listos",
+        "marcar_pedidos_entregados",
+    )
     list_display = (
         "id",
         "numero_pedido",
@@ -569,7 +788,10 @@ class PedidoManualAdmin(admin.ModelAdmin):
         "creado_por",
         "fecha_creacion",
     )
-    list_filter = ("estado", "tipo_entrega", "origen", "restaurante", "fecha_creacion")
+    list_filter = (
+        "estado", "tipo_entrega", "origen",
+        ("restaurante", admin.RelatedOnlyFieldListFilter), "fecha_creacion",
+    )
     search_fields = (
         "nombre_cliente",
         "telefono_cliente",
@@ -611,7 +833,7 @@ class SesionCocinaAdmin(admin.ModelAdmin):
 
 
 @admin.register(ReporteMetrica)
-class ReporteMetricaAdmin(admin.ModelAdmin):
+class ReporteMetricaAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_display = (
         "id",
         "restaurante",
@@ -622,8 +844,12 @@ class ReporteMetricaAdmin(admin.ModelAdmin):
         "fecha_generacion",
         "generado_por",
         "activo",
+        "descargar_csv",
     )
-    list_filter = ("tipo", "activo", "restaurante", "fecha_generacion")
+    list_filter = (
+        "tipo", "activo", ("restaurante", admin.RelatedOnlyFieldListFilter), ReporteAnioFilter,
+        ReporteMesFilter, "fecha_generacion",
+    )
     search_fields = (
         "titulo",
         "periodo_mes",
@@ -639,6 +865,54 @@ class ReporteMetricaAdmin(admin.ModelAdmin):
         "resumen",
         "datos",
     )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        propios = [
+            path(
+                "<int:reporte_id>/descargar-csv/",
+                self.admin_site.admin_view(self.descargar_reporte_csv),
+                name="menu_reportemetrica_descargar_csv",
+            )
+        ]
+        return propios + urls
+
+    @admin.display(description="Descarga")
+    def descargar_csv(self, reporte):
+        url = reverse("admin:menu_reportemetrica_descargar_csv", args=[reporte.pk])
+        return format_html('<a href="{}">CSV</a>', url)
+
+    def descargar_reporte_csv(self, request, reporte_id):
+        reporte = self.get_queryset(request).filter(pk=reporte_id).first()
+        if not reporte or not self.has_view_permission(request, reporte):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = (
+            f'attachment; filename="reporte-{reporte.restaurante.slug}-'
+            f'{reporte.periodo_mes or reporte.periodo_anio}.csv"'
+        )
+        response.write("\ufeff")
+        writer = csv.writer(response)
+        writer.writerow(["seccion", "indicador", "valor"])
+        writer.writerow(["reporte", "restaurante", reporte.restaurante.nombre_empresa])
+        writer.writerow(["reporte", "periodo", reporte.periodo_mes or reporte.periodo_anio])
+        writer.writerow(["reporte", "fecha_generacion", reporte.fecha_generacion.isoformat()])
+        for clave, valor in (reporte.resumen or {}).items():
+            writer.writerow(["resumen", clave, valor])
+        for seccion, contenido in (reporte.datos or {}).items():
+            if seccion in {"resumen", "restaurante"}:
+                continue
+            if isinstance(contenido, dict):
+                for clave, valor in contenido.items():
+                    writer.writerow([seccion, clave, valor])
+            elif isinstance(contenido, list):
+                for indice, valor in enumerate(contenido, start=1):
+                    writer.writerow([seccion, indice, json.dumps(valor, ensure_ascii=False)])
+            else:
+                writer.writerow(["reporte", seccion, contenido])
+        return response
 
 
 @admin.register(HorarioAtencion)

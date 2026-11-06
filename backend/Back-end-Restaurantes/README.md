@@ -231,3 +231,33 @@ Desarrolladora Web
 Frontend · Backend · UI/UX
 
 Proyecto desarrollado como base para una **plataforma de gestión de menús digitales para restaurantes**.
+# Reportes mensuales automáticos
+
+Menly conserva un snapshot mensual por restaurante en `ReporteMetrica`. La
+generación normal incluye solamente restaurantes activos y nunca sobrescribe
+un período existente:
+
+```bash
+python manage.py generar_reportes_mensuales
+```
+
+Sin argumentos genera el mes calendario cerrado anterior usando la zona
+horaria de Django (`America/Santiago`). En Render debe configurarse como Cron
+Job el primer día de cada mes, por ejemplo a las `06:00 UTC`, con el comando
+anterior y las mismas variables de entorno/database del servicio web.
+
+Opciones operativas:
+
+```bash
+python manage.py generar_reportes_mensuales --periodo 2026-10
+python manage.py generar_reportes_mensuales --periodo 2026-10 --include-inactive
+python manage.py generar_reportes_mensuales --periodo 2026-10 --regenerate
+```
+
+`--include-inactive` incluye explícitamente restaurantes inactivos.
+`--regenerate` es la única forma de reemplazar un snapshot ya guardado. Un
+error se aísla por restaurante para que los demás reportes continúen.
+
+Las cifras monetarias se rotulan como montos de pedidos no cancelados, no como
+ingresos cobrados, porque los pedidos no poseen un estado verificable de pago.
+Los CSV se descargan desde el listado de Reportes y Métricas en Django Admin.

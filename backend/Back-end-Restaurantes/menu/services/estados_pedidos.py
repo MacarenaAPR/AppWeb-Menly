@@ -126,6 +126,11 @@ class TransicionEstadoInvalida(Exception):
         )
 
 
+RESULTADO_ENTREGADO = "entregado"
+RESULTADO_CANCELADO_OMITIDO = "cancelado_omitido"
+RESULTADO_YA_ENTREGADO = "ya_entregado"
+
+
 def normalizar_tipo_pedido(tipo):
     tipo_normalizado = "manual" if tipo == "menly" else str(tipo or "").lower()
     if tipo_normalizado not in REGISTRO_TIPOS:
@@ -285,3 +290,65 @@ def cambiar_estado_pedido(pedido, nuevo_estado, tipo=None, actor=None, origen=OR
         },
     )
     return pedido_bloqueado, False
+
+
+def marcar_entregado_desde_admin(pedido, actor=None):
+    """Excepción administrativa; no altera las transiciones normales de API/KDS."""
+    tipo = obtener_tipo_pedido(pedido)
+    if tipo not in {TIPO_WHATSAPP, TIPO_MANUAL}:
+        raise EstadoPedidoInvalido(
+            "La finalización administrativa sólo admite pedidos WhatsApp o manuales."
+        )
+    config = _configuracion(tipo)
+
+    with transaction.atomic():
+        pedido_bloqueado = (
+            config["modelo"].objects
+            .select_for_update()
+            .select_related("restaurante")
+            .filter(pk=pedido.pk, restaurante_id=pedido.restaurante_id)
+            .first()
+        )
+        if not pedido_bloqueado:
+            raise config["modelo"].DoesNotExist
+
+        estado_actual = normalizar_estado_actual(pedido_bloqueado, tipo)
+        if estado_actual == CANCELADO:
+            return pedido_bloqueado, RESULTADO_CANCELADO_OMITIDO
+        if estado_actual == ENTREGADO:
+            return pedido_bloqueado, RESULTADO_YA_ENTREGADO
+        if estado_actual is None:
+            raise EstadoPedidoInvalido("El pedido tiene un estado no reconocido.")
+
+        estado_anterior = pedido_bloqueado.estado
+        estado_entregado = config["canonico_a_actual"][ENTREGADO]
+        pedido_bloqueado.estado = estado_entregado
+        pedido_bloqueado.save(
+            update_fields=["estado", config["campo_fecha"]]
+        )
+
+        usuario = actor if getattr(actor, "is_authenticated", False) else None
+        historial_kwargs = {
+            "pedido": pedido_bloqueado,
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": estado_entregado,
+            "usuario": usuario,
+            "origen": ORIGEN_PANEL,
+        }
+        if config["historial"] is HistorialEstadoPedidoWhatsApp:
+            historial_kwargs["observacion"] = (
+                "Finalizado directamente desde la acción administrativa"
+            )
+        config["historial"].objects.create(**historial_kwargs)
+
+    logger.info(
+        "Pedido marcado como entregado desde Admin",
+        extra={
+            "tipo_pedido": tipo,
+            "pedido_id": pedido_bloqueado.id,
+            "estado_anterior": estado_anterior,
+            "estado_nuevo": estado_entregado,
+            "origen": ORIGEN_PANEL,
+        },
+    )
+    return pedido_bloqueado, RESULTADO_ENTREGADO
