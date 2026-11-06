@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Generar reportes pendientes</h1>
+  <p>Se revisarán {{ restaurantes }} restaurantes desde su primer mes válido hasta el último mes cerrado.</p>
+  <p>Los reportes existentes se conservarán. También se crearán meses cerrados sin pedidos cuando el restaurante ya existía.</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="confirmar" value="1">
+    <input type="submit" value="Confirmar generación" class="default">
+    <a href="{% url 'admin:menu_reportemetrica_changelist' %}" class="button cancel-link">Cancelar</a>
+  </form>
+{% endblock %}

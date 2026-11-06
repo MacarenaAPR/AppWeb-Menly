@@ -1,0 +1,48 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Importar pedidos de prueba CSV</h1>
+  <p>Herramienta exclusiva para superadministradores. La primera etapa siempre es una validación sin escritura.</p>
+  {% if not importacion_habilitada %}
+    <p class="errornote">La escritura está deshabilitada en este entorno. Define TEST_ORDER_IMPORT_ENABLED=true únicamente en desarrollo o staging autorizado.</p>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Validar CSV" class="default">
+  </form>
+
+  {% if validacion %}
+    <h2>Resultado de la validación</h2>
+    <p>Filas leídas: {{ validacion.filas }}. Pedidos válidos: {{ validacion.pedidos_validos }}. Pedidos rechazados: {{ validacion.pedidos_rechazados }}. Errores: {{ validacion.errores|length }}.</p>
+    {% if validacion.errores %}
+      <ul class="errorlist">
+        {% for error in validacion.errores %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {% if resumen_pedidos %}
+      <table>
+        <thead><tr><th>Identificador</th><th>Restaurante</th><th>Fecha</th><th>Estado</th><th>Ítems</th><th>Total</th></tr></thead>
+        <tbody>
+          {% for pedido in resumen_pedidos %}
+            <tr><td>{{ pedido.identificador_externo }}</td><td>{{ pedido.restaurante }}</td><td>{{ pedido.fecha }}</td><td>{{ pedido.estado }}</td><td>{{ pedido.items }}</td><td>{{ pedido.total }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  {% endif %}
+
+  {% if preparar %}
+    <h2>Confirmación explícita</h2>
+    <p>Al confirmar se crearán pedidos manuales marcados como datos simulados. No se crearán productos ni se enviarán notificaciones.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="confirmar" value="1">
+      <input type="submit" value="Confirmar importación de prueba" class="default" {% if not importacion_habilitada %}disabled{% endif %}>
+    </form>
+  {% endif %}
+
+  <p><a href="{% url 'admin:plantilla_pedidos_prueba_csv' %}">Descargar plantilla compatible</a></p>
+  <p><a href="../">Volver a pedidos manuales</a></p>
+{% endblock %}

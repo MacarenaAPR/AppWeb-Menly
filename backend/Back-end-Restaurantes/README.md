@@ -242,14 +242,25 @@ python manage.py generar_reportes_mensuales
 ```
 
 Sin argumentos genera el mes calendario cerrado anterior usando la zona
-horaria de Django (`America/Santiago`). En Render debe configurarse como Cron
-Job el primer día de cada mes, por ejemplo a las `06:00 UTC`, con el comando
-anterior y las mismas variables de entorno/database del servicio web.
+horaria de Django (`America/Santiago`). Para Render se recomienda un Cron Job
+**diario** a las `04:10 UTC` con el modo programado:
+
+```bash
+python manage.py generar_reportes_mensuales --scheduled --include-inactive
+```
+
+En Chile esa hora corresponde a las `00:10` o `01:10`, según el horario de
+verano. La ejecución diaria evita depender de un desfase UTC fijo, no
+sobrescribe snapshots y reintenta automáticamente cualquier cierre faltante.
+La configuración detallada está en `docs/render_cron_reportes_mensuales.md`.
 
 Opciones operativas:
 
 ```bash
 python manage.py generar_reportes_mensuales --periodo 2026-10
+python manage.py generar_reportes_mensuales --scheduled --include-inactive
+python manage.py generar_reportes_mensuales --backfill
+python manage.py generar_reportes_mensuales --backfill --include-inactive
 python manage.py generar_reportes_mensuales --periodo 2026-10 --include-inactive
 python manage.py generar_reportes_mensuales --periodo 2026-10 --regenerate
 ```
@@ -261,3 +272,18 @@ error se aísla por restaurante para que los demás reportes continúen.
 Las cifras monetarias se rotulan como montos de pedidos no cancelados, no como
 ingresos cobrados, porque los pedidos no poseen un estado verificable de pago.
 Los CSV se descargan desde el listado de Reportes y Métricas en Django Admin.
+
+`--backfill` detecta todos los meses calendario cerrados que aún no tienen
+reporte, desde la creación de cada restaurante o desde su primer dato válido si
+es anterior. Nunca reemplaza snapshots existentes. En Django Admin las mismas
+operaciones están disponibles en **Reportes mensuales**.
+
+Para auditar qué pedidos componen la cifra semanal de un restaurante sin
+modificar datos:
+
+```bash
+python manage.py auditar_venta_semanal --restaurante mi-slug --fecha 2026-11-05
+```
+
+El comando muestra tanto la antigua ventana móvil de siete días como la semana
+calendario corregida, con IDs, fechas, estados e importes por canal.

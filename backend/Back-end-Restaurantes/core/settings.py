@@ -49,6 +49,10 @@ def _config_bool(name, default=False):
 
 ENVIRONMENT = config("ENVIRONMENT", default=os.getenv("DJANGO_ENV", "development")).lower()
 IS_PRODUCTION = ENVIRONMENT in {"production", "prod", "release"} or _env_flag("RENDER")
+TEST_ORDER_IMPORT_ENABLED = _config_bool(
+    "TEST_ORDER_IMPORT_ENABLED",
+    default=not IS_PRODUCTION,
+)
 
 
 # Quick-start development settings - unsuitable for production

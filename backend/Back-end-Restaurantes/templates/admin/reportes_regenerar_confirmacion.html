@@ -1,0 +1,18 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Regenerar reportes mensuales</h1>
+  <p><strong>Advertencia:</strong> se reemplazará el contenido histórico de {{ mensuales }} reportes mensuales.</p>
+  {% if omitidos %}<p>{{ omitidos }} reportes no mensuales serán omitidos.</p>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {% for reporte in reportes %}
+      <input type="hidden" name="{{ action_checkbox_name }}" value="{{ reporte.pk }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="regenerar_reportes_mensuales">
+    <input type="hidden" name="confirmar_regeneracion" value="1">
+    <input type="hidden" name="select_across" value="0">
+    <input type="submit" value="Regenerar y reemplazar" class="deletelink">
+    <a href="../" class="button cancel-link">Cancelar</a>
+  </form>
+{% endblock %}

@@ -1,5 +1,5 @@
-from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,TurnoOperativo,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,RestaurantePedidoSecuencia,ActivacionCocina,SesionCocina,ReporteMetrica,PushSubscription
-from .forms import ProductoCSVImportForm
+from menu.models import Restaurante,Plan,Icono,ImagenRestaurante, Categoria, Producto, UsuarioRestaurante, BitacoraProducto,Reserva,HorarioAtencion,TurnoOperativo,MetodoPago,Mesa,SolicitudEspecial,Notificacion,PedidoWhatsApp,PedidoEspecial,PedidoManual,PedidoManualItem,PedidoPruebaImportado,RestaurantePedidoSecuencia,ActivacionCocina,SesionCocina,ReporteMetrica,EjecucionReportesMensuales,PushSubscription
+from .forms import PedidoPruebaCSVImportForm, ProductoCSVImportForm
 from .admin_csv_importers import (
     CSVImportError,
     importar_personalizacion_csv,
@@ -9,14 +9,18 @@ from .admin_csv_importers import (
 import csv
 import json
 import logging
+from datetime import date
 from decimal import Decimal
 
+from django import forms
+from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin import helpers
 from django.http import HttpResponse
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.shortcuts import render, redirect
+from django.utils import timezone
 from django.utils.html import format_html
 from menu.cache_utils import invalidate_menu_cache
 from menu.services.estados_pedidos import (
@@ -30,6 +34,17 @@ from menu.services.estados_pedidos import (
     cambiar_estado_pedido,
     marcar_entregado_desde_admin,
     normalizar_estado_actual,
+)
+from menu.services.reportes_mensuales import (
+    generar_reportes_pendientes,
+    guardar_reporte_mensual,
+)
+from menu.services.exportacion_productos import respuesta_csv_productos
+from menu.services.importacion_pedidos_prueba import (
+    ImportacionPedidosPruebaError,
+    importar_pedidos_prueba,
+    plantilla_csv_pedidos_prueba,
+    validar_csv_pedidos_prueba,
 )
 
 logger = logging.getLogger(__name__)
@@ -221,6 +236,41 @@ class ReporteMesFilter(admin.SimpleListFilter):
         return queryset.filter(periodo_mes__endswith=f"-{self.value()}") if self.value() else queryset
 
 
+class GenerarReporteMensualForm(forms.Form):
+    restaurante = forms.ModelChoiceField(queryset=Restaurante.objects.none())
+    anio = forms.IntegerField(min_value=2000, max_value=9999, label="Año")
+    mes = forms.TypedChoiceField(
+        choices=[(mes, f"{mes:02d}") for mes in range(1, 13)],
+        coerce=int,
+        label="Mes",
+    )
+
+    def __init__(self, *args, request=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        restaurantes = Restaurante.objects.order_by("nombre_empresa")
+        if request and not request.user.is_superuser:
+            perfil = getattr(request.user, "perfil_restaurante", None)
+            restaurantes = (
+                restaurantes.filter(pk=perfil.restaurante_id)
+                if perfil and perfil.activo
+                else restaurantes.none()
+            )
+        self.fields["restaurante"].queryset = restaurantes
+
+    def clean(self):
+        cleaned = super().clean()
+        anio = cleaned.get("anio")
+        mes = cleaned.get("mes")
+        if anio and mes:
+            periodo = date(anio, mes, 1)
+            hoy = timezone.localdate()
+            if periodo >= date(hoy.year, hoy.month, 1):
+                raise forms.ValidationError(
+                    "Sólo se pueden guardar reportes de meses calendario cerrados."
+                )
+        return cleaned
+
+
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
@@ -356,7 +406,8 @@ class CategoriaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Producto)
-class ProductoAdmin(admin.ModelAdmin):
+class ProductoAdmin(TenantAdminMixin, admin.ModelAdmin):
+    actions = ("exportar_productos_seleccionados_csv",)
     list_display = (
         "id",
         "nombre",
@@ -381,6 +432,11 @@ class ProductoAdmin(admin.ModelAdmin):
 
         custom_urls = [
             path(
+                "exportar-todos-csv/",
+                self.admin_site.admin_view(self.exportar_todos_csv),
+                name="exportar_todos_productos_csv",
+            ),
+            path(
                 "importar-csv/",
                 self.admin_site.admin_view(self.importar_csv),
                 name="importar_productos_csv",
@@ -398,6 +454,25 @@ class ProductoAdmin(admin.ModelAdmin):
         ]
 
         return custom_urls + urls
+
+    @admin.action(description="Exportar productos seleccionados a CSV")
+    def exportar_productos_seleccionados_csv(self, request, queryset):
+        if not self.has_view_permission(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        return respuesta_csv_productos(
+            queryset,
+            nombre_archivo="productos-seleccionados-menly.csv",
+        )
+
+    def exportar_todos_csv(self, request):
+        if not self.has_view_permission(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        return respuesta_csv_productos(
+            self.get_queryset(request),
+            nombre_archivo="todos-los-productos-menly.csv",
+        )
     
     def importar_csv(self, request):
         if request.method == "POST":
@@ -772,6 +847,7 @@ class PedidoManualItemInline(admin.TabularInline):
 
 @admin.register(PedidoManual)
 class PedidoManualAdmin(MarcarProductosListosAdminMixin, admin.ModelAdmin):
+    change_list_template = "admin/pedidomanual_changelist.html"
     actions = (
         "marcar_productos_listos",
         "marcar_pedidos_entregados",
@@ -813,6 +889,163 @@ class PedidoManualAdmin(MarcarProductosListosAdminMixin, admin.ModelAdmin):
     )
     inlines = [PedidoManualItemInline]
 
+    def get_urls(self):
+        urls = super().get_urls()
+        propios = [
+            path(
+                "importar-pruebas-csv/",
+                self.admin_site.admin_view(self.importar_pedidos_prueba_csv),
+                name="importar_pedidos_prueba_csv",
+            ),
+            path(
+                "plantilla-pruebas-csv/",
+                self.admin_site.admin_view(self.descargar_plantilla_pedidos_prueba),
+                name="plantilla_pedidos_prueba_csv",
+            ),
+        ]
+        return propios + urls
+
+    def _verificar_superusuario_importacion(self, request):
+        if not request.user.is_superuser:
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+
+    def descargar_plantilla_pedidos_prueba(self, request):
+        self._verificar_superusuario_importacion(request)
+        response = HttpResponse(
+            plantilla_csv_pedidos_prueba(),
+            content_type="text/csv; charset=utf-8",
+        )
+        response["Content-Disposition"] = (
+            'attachment; filename="plantilla-pedidos-prueba-menly.csv"'
+        )
+        return response
+
+    def importar_pedidos_prueba_csv(self, request):
+        self._verificar_superusuario_importacion(request)
+        session_key = "menly_preview_pedidos_prueba_csv"
+
+        if request.method == "POST" and request.POST.get("confirmar") == "1":
+            pendiente = request.session.get(session_key)
+            if not pendiente:
+                messages.error(request, "La vista previa expiró. Vuelve a cargar el CSV.")
+                return redirect(".")
+            try:
+                resultado = importar_pedidos_prueba(
+                    pendiente["contenido"],
+                    actor=request.user,
+                    archivo_origen=pendiente["archivo"],
+                )
+            except ImportacionPedidosPruebaError as exc:
+                for error in exc.errores[:30]:
+                    messages.error(request, error)
+            except Exception as exc:
+                messages.error(request, f"No se importó ningún pedido: {exc}")
+            else:
+                request.session.pop(session_key, None)
+                messages.success(
+                    request,
+                    (
+                        f"Pedidos de prueba creados: {resultado['pedidos_creados']}; "
+                        f"ítems creados: {resultado['items_creados']}."
+                    ),
+                )
+                return redirect("../")
+
+        form = PedidoPruebaCSVImportForm(request.POST or None, request.FILES or None)
+        validacion = None
+        resumen_pedidos = []
+        preparar = False
+        if request.method == "POST" and "confirmar" not in request.POST and form.is_valid():
+            archivo = form.cleaned_data["archivo_csv"]
+            try:
+                contenido = archivo.read().decode("utf-8-sig")
+            except UnicodeDecodeError:
+                form.add_error("archivo_csv", "El archivo debe estar codificado en UTF-8.")
+            else:
+                validacion = validar_csv_pedidos_prueba(contenido)
+                resumen_pedidos = [
+                    {
+                        "identificador_externo": pedido["identificador_externo"],
+                        "restaurante": pedido["restaurante"].nombre_empresa,
+                        "fecha": timezone.localtime(pedido["fecha_creacion"]),
+                        "estado": pedido["estado"],
+                        "items": len(pedido["items"]),
+                        "total": int(pedido["total"]),
+                    }
+                    for pedido in validacion["pedidos"]
+                ]
+                preparar = (
+                    form.cleaned_data["modo"] == PedidoPruebaCSVImportForm.MODO_PREPARAR
+                    and not validacion["errores"]
+                )
+                if preparar:
+                    request.session[session_key] = {
+                        "contenido": contenido,
+                        "archivo": archivo.name,
+                    }
+                else:
+                    request.session.pop(session_key, None)
+
+        return TemplateResponse(
+            request,
+            "admin/importar_pedidos_prueba_csv.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Importar pedidos de prueba CSV",
+                "form": form,
+                "validacion": validacion,
+                "resumen_pedidos": resumen_pedidos,
+                "preparar": preparar,
+                "importacion_habilitada": settings.TEST_ORDER_IMPORT_ENABLED,
+                "opts": self.model._meta,
+            },
+        )
+
+
+@admin.register(PedidoPruebaImportado)
+class PedidoPruebaImportadoAdmin(admin.ModelAdmin):
+    list_display = (
+        "identificador_externo",
+        "restaurante",
+        "pedido_manual",
+        "archivo_origen",
+        "fila_inicio",
+        "creado_por",
+        "fecha_importacion",
+    )
+    list_filter = ("restaurante", "fecha_importacion")
+    search_fields = (
+        "identificador_externo",
+        "restaurante__nombre_empresa",
+        "restaurante__slug",
+    )
+    readonly_fields = (
+        "restaurante",
+        "identificador_externo",
+        "pedido_manual",
+        "archivo_origen",
+        "fila_inicio",
+        "datos_origen",
+        "creado_por",
+        "fecha_importacion",
+    )
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(ActivacionCocina)
 class ActivacionCocinaAdmin(admin.ModelAdmin):
@@ -834,16 +1067,17 @@ class SesionCocinaAdmin(admin.ModelAdmin):
 
 @admin.register(ReporteMetrica)
 class ReporteMetricaAdmin(TenantAdminMixin, admin.ModelAdmin):
+    change_list_template = "admin/reportemetrica_changelist.html"
+    actions = ("regenerar_reportes_mensuales",)
     list_display = (
         "id",
         "restaurante",
-        "tipo",
-        "periodo_mes",
-        "periodo_anio",
-        "titulo",
+        "anio_reporte",
+        "mes_reporte",
+        "total_pedidos_reporte",
+        "monto_total_reporte",
         "fecha_generacion",
-        "generado_por",
-        "activo",
+        "estado_reporte",
         "descargar_csv",
     )
     list_filter = (
@@ -870,12 +1104,64 @@ class ReporteMetricaAdmin(TenantAdminMixin, admin.ModelAdmin):
         urls = super().get_urls()
         propios = [
             path(
+                "generar-mensual/",
+                self.admin_site.admin_view(self.generar_reporte_mensual),
+                name="menu_reportemetrica_generar_mensual",
+            ),
+            path(
+                "generar-pendientes/",
+                self.admin_site.admin_view(self.generar_reportes_pendientes_view),
+                name="menu_reportemetrica_generar_pendientes",
+            ),
+            path(
                 "<int:reporte_id>/descargar-csv/",
                 self.admin_site.admin_view(self.descargar_reporte_csv),
                 name="menu_reportemetrica_descargar_csv",
             )
         ]
         return propios + urls
+
+    def changelist_view(self, request, extra_context=None):
+        ultima_ejecucion = (
+            EjecucionReportesMensuales.objects.first()
+            if request.user.is_superuser
+            else None
+        )
+        return super().changelist_view(
+            request,
+            extra_context={
+                **(extra_context or {}),
+                "title": "Reportes mensuales",
+                "ultima_ejecucion": ultima_ejecucion,
+                "mostrar_ultima_ejecucion": request.user.is_superuser,
+            },
+        )
+
+    @admin.display(description="Año", ordering="periodo_anio")
+    def anio_reporte(self, reporte):
+        return reporte.periodo_anio or (reporte.periodo_mes or "")[:4]
+
+    @admin.display(description="Mes", ordering="periodo_mes")
+    def mes_reporte(self, reporte):
+        return (reporte.periodo_mes or "-").split("-")[-1]
+
+    @admin.display(description="Total de pedidos")
+    def total_pedidos_reporte(self, reporte):
+        resumen = reporte.resumen or {}
+        return resumen.get("total_pedidos", resumen.get("pedidos_creados", 0))
+
+    @admin.display(description="Monto total registrado")
+    def monto_total_reporte(self, reporte):
+        resumen = reporte.resumen or {}
+        monto = resumen.get(
+            "monto_pedidos_no_cancelados",
+            resumen.get("venta_real", 0),
+        )
+        return f"${int(monto or 0):,}".replace(",", ".")
+
+    @admin.display(description="Estado", boolean=False)
+    def estado_reporte(self, reporte):
+        return "Vigente" if reporte.activo else "Inactivo"
 
     @admin.display(description="Descarga")
     def descargar_csv(self, reporte):
@@ -913,6 +1199,180 @@ class ReporteMetricaAdmin(TenantAdminMixin, admin.ModelAdmin):
             else:
                 writer.writerow(["reporte", seccion, contenido])
         return response
+
+    def _verificar_permiso_gestion(self, request):
+        if not self.has_change_permission(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+
+    def generar_reporte_mensual(self, request):
+        self._verificar_permiso_gestion(request)
+        hoy = timezone.localdate()
+        mes = 12 if hoy.month == 1 else hoy.month - 1
+        anio = hoy.year - 1 if hoy.month == 1 else hoy.year
+        form = GenerarReporteMensualForm(
+            request.POST or None,
+            request=request,
+            initial={"anio": anio, "mes": mes},
+        )
+        if request.method == "POST" and form.is_valid():
+            restaurante = form.cleaned_data["restaurante"]
+            reporte, creado = guardar_reporte_mensual(
+                restaurante,
+                form.cleaned_data["anio"],
+                form.cleaned_data["mes"],
+            )
+            self.message_user(
+                request,
+                (
+                    f"Reporte {reporte.periodo_mes} generado correctamente."
+                    if creado
+                    else f"El reporte {reporte.periodo_mes} ya existía y no fue sobrescrito."
+                ),
+                messages.SUCCESS if creado else messages.WARNING,
+            )
+            return redirect("admin:menu_reportemetrica_changelist")
+        return TemplateResponse(
+            request,
+            "admin/reporte_mensual_generar.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Generar reporte mensual",
+                "form": form,
+                "opts": self.model._meta,
+            },
+        )
+
+    def generar_reportes_pendientes_view(self, request):
+        self._verificar_permiso_gestion(request)
+        restaurantes = Restaurante.objects.order_by("id")
+        if not request.user.is_superuser:
+            perfil = getattr(request.user, "perfil_restaurante", None)
+            restaurantes = (
+                restaurantes.filter(pk=perfil.restaurante_id)
+                if perfil and perfil.activo
+                else restaurantes.none()
+            )
+        if request.method == "POST" and request.POST.get("confirmar") == "1":
+            resultado = generar_reportes_pendientes(restaurantes=restaurantes)
+            nivel = messages.WARNING if resultado["errores"] else messages.SUCCESS
+            self.message_user(
+                request,
+                (
+                    f"Reportes generados: {resultado['generados']}; "
+                    f"ya existentes: {resultado['existentes']}; "
+                    f"errores: {len(resultado['errores'])}."
+                ),
+                nivel,
+            )
+            for error in resultado["errores"]:
+                logger.error("Error generando reporte histórico", extra=error)
+            return redirect("admin:menu_reportemetrica_changelist")
+        return TemplateResponse(
+            request,
+            "admin/reportes_pendientes_confirmacion.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Generar reportes pendientes",
+                "restaurantes": restaurantes.count(),
+                "opts": self.model._meta,
+            },
+        )
+
+    @admin.action(description="Regenerar reporte mensual seleccionado")
+    def regenerar_reportes_mensuales(self, request, queryset):
+        self._verificar_permiso_gestion(request)
+        mensuales = queryset.filter(tipo=ReporteMetrica.TIPO_MENSUAL)
+        omitidos = queryset.count() - mensuales.count()
+        if request.POST.get("confirmar_regeneracion") != "1":
+            return TemplateResponse(
+                request,
+                "admin/reportes_regenerar_confirmacion.html",
+                {
+                    **self.admin_site.each_context(request),
+                    "title": "Regenerar reportes mensuales",
+                    "reportes": list(queryset),
+                    "mensuales": mensuales.count(),
+                    "omitidos": omitidos,
+                    "action_checkbox_name": helpers.ACTION_CHECKBOX_NAME,
+                    "opts": self.model._meta,
+                },
+            )
+
+        regenerados = errores = 0
+        for reporte in mensuales.select_related("restaurante"):
+            try:
+                anio, mes = map(int, reporte.periodo_mes.split("-"))
+                hoy = timezone.localdate()
+                if date(anio, mes, 1) >= date(hoy.year, hoy.month, 1):
+                    omitidos += 1
+                    continue
+                guardar_reporte_mensual(
+                    reporte.restaurante,
+                    anio,
+                    mes,
+                    regenerar=True,
+                )
+                regenerados += 1
+            except Exception:
+                errores += 1
+                logger.exception(
+                    "Error regenerando reporte mensual desde Admin",
+                    extra={"reporte_id": reporte.pk},
+                )
+        self.message_user(
+            request,
+            (
+                f"Reportes regenerados: {regenerados}; "
+                f"omitidos: {omitidos}; errores: {errores}."
+            ),
+            messages.WARNING if errores else messages.SUCCESS,
+        )
+
+
+@admin.register(EjecucionReportesMensuales)
+class EjecucionReportesMensualesAdmin(admin.ModelAdmin):
+    list_display = (
+        "fecha_inicio",
+        "fecha_fin",
+        "modo",
+        "periodo",
+        "estado",
+        "restaurantes_procesados",
+        "reportes_generados",
+        "reportes_existentes",
+        "cantidad_errores",
+    )
+    list_filter = ("modo", "estado", "incluye_inactivos", "fecha_inicio")
+    readonly_fields = (
+        "modo",
+        "periodo",
+        "incluye_inactivos",
+        "estado",
+        "fecha_inicio",
+        "fecha_fin",
+        "restaurantes_procesados",
+        "reportes_generados",
+        "reportes_existentes",
+        "cantidad_errores",
+        "detalle",
+    )
+    ordering = ("-fecha_inicio",)
+
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(HorarioAtencion)

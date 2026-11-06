@@ -23,6 +23,7 @@ from rest_framework import status
 from .models import UsuarioRestaurante,Icono, Categoria, Restaurante,Producto, ProductoVariante, GrupoOpcionesProducto, OpcionProducto, BitacoraProducto, Reserva, SolicitudEspecial, Notificacion, PedidoWhatsApp, PedidoIdempotencia, PedidoEspecial, PedidoManual, ReporteMetrica, PushSubscription
 from .models import HorarioAtencion, MetodoPago, Mesa, RespaldoRestaurante
 from django.db.models import Count, F, Max, Q, Prefetch
+from django.utils import timezone
 from django.utils.text import slugify
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -31,7 +32,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework.generics import CreateAPIView, UpdateAPIView
 from django.db import IntegrityError, transaction
 from django.utils.timezone import localtime, now
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from calendar import monthrange
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
@@ -148,6 +149,7 @@ def respuesta_metricas_vacia(error=None, status_code=status.HTTP_200_OK):
     payload = {
         "ventas": {
             "venta_real_hoy": 0,
+            "monto_entregado_dia_calendario": 0,
             "venta_real_semana": 0,
             "venta_real_mes": 0,
             "venta_whatsapp_mes": 0,
@@ -2540,6 +2542,24 @@ class ReporteMetricaGuardarView(APIView):
         else:
             filtros["periodo_anio"] = str(periodo_anio)
             periodo_mes = None
+
+        existente = ReporteMetrica.objects.filter(**filtros).first()
+        if tipo == ReporteMetrica.TIPO_MENSUAL and existente:
+            inicio_mes_actual = timezone.localdate().replace(day=1)
+            periodo = date(anio_calculo, mes_calculo, 1)
+            if periodo < inicio_mes_actual:
+                return Response(
+                    {
+                        "message": (
+                            "El reporte mensual cerrado ya existe y se conserva como "
+                            "snapshot histórico. La regeneración sólo está disponible "
+                            "para superadministradores desde Django Admin."
+                        ),
+                        "reporte": ReporteMetricaSerializer(existente).data,
+                        "created": False,
+                    },
+                    status=status.HTTP_200_OK,
+                )
 
         reporte, creado = ReporteMetrica.objects.update_or_create(
             **filtros,

@@ -1070,6 +1070,51 @@ class PedidoManualItem(models.Model):
         return f"{self.cantidad} x {self.nombre_producto}"
 
 
+class PedidoPruebaImportado(models.Model):
+    restaurante = models.ForeignKey(
+        Restaurante,
+        on_delete=models.CASCADE,
+        related_name="pedidos_prueba_importados",
+    )
+    identificador_externo = models.CharField(max_length=120)
+    pedido_manual = models.OneToOneField(
+        PedidoManual,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="marca_importacion_prueba",
+    )
+    archivo_origen = models.CharField(max_length=255, blank=True)
+    fila_inicio = models.PositiveIntegerField()
+    datos_origen = models.JSONField(default=dict, blank=True)
+    creado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pedidos_prueba_importados",
+    )
+    fecha_importacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-fecha_importacion"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["restaurante", "identificador_externo"],
+                name="unique_pedido_prueba_ext_por_rest",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["restaurante", "-fecha_importacion"],
+                name="pedprueba_rest_fecha_idx",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.restaurante.slug}: {self.identificador_externo}"
+
+
 class ActivacionCocina(models.Model):
     restaurante = models.ForeignKey(
         Restaurante,
@@ -1274,6 +1319,57 @@ class ReporteMetrica(models.Model):
     def __str__(self):
         periodo = self.periodo_mes if self.tipo == self.TIPO_MENSUAL else self.periodo_anio
         return f"{self.get_tipo_display()} {periodo} - {self.restaurante.nombre_empresa}"
+
+
+class EjecucionReportesMensuales(models.Model):
+    MODO_PROGRAMADO = "programado"
+    MODO_PERIODO = "periodo"
+    MODO_BACKFILL = "backfill"
+    MODOS = [
+        (MODO_PROGRAMADO, "Cierre programado"),
+        (MODO_PERIODO, "Período específico"),
+        (MODO_BACKFILL, "Recuperación histórica"),
+    ]
+
+    ESTADO_EJECUTANDO = "ejecutando"
+    ESTADO_EXITOSO = "exitoso"
+    ESTADO_PARCIAL = "parcial"
+    ESTADO_FALLIDO = "fallido"
+    ESTADOS = [
+        (ESTADO_EJECUTANDO, "Ejecutando"),
+        (ESTADO_EXITOSO, "Exitoso"),
+        (ESTADO_PARCIAL, "Con errores parciales"),
+        (ESTADO_FALLIDO, "Fallido"),
+    ]
+
+    modo = models.CharField(max_length=20, choices=MODOS)
+    periodo = models.CharField(max_length=7, blank=True)
+    incluye_inactivos = models.BooleanField(default=False)
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS,
+        default=ESTADO_EJECUTANDO,
+    )
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
+    fecha_fin = models.DateTimeField(null=True, blank=True)
+    restaurantes_procesados = models.PositiveIntegerField(default=0)
+    reportes_generados = models.PositiveIntegerField(default=0)
+    reportes_existentes = models.PositiveIntegerField(default=0)
+    cantidad_errores = models.PositiveIntegerField(default=0)
+    detalle = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-fecha_inicio"]
+        indexes = [
+            models.Index(fields=["-fecha_inicio"], name="ejrepmes_fecha_idx"),
+            models.Index(fields=["estado", "-fecha_inicio"], name="ejrepmes_estado_fecha_idx"),
+        ]
+        verbose_name = "ejecución de reportes mensuales"
+        verbose_name_plural = "ejecuciones de reportes mensuales"
+
+    def __str__(self):
+        periodo = f" {self.periodo}" if self.periodo else ""
+        return f"{self.get_modo_display()}{periodo} - {self.get_estado_display()}"
 
 
 class HorarioAtencion(models.Model):

@@ -1,3 +1,6 @@
+from datetime import date
+from unittest.mock import patch
+
 from django.utils import timezone
 from rest_framework import status
 
@@ -137,6 +140,36 @@ class H05MetricasFinancierasTests(BaseTestCase):
             set(reporte.datos["desglose_por_canal"]),
             {"whatsapp", "especiales", "menly"},
         )
+
+    def test_api_no_sobrescribe_snapshot_mensual_cerrado(self):
+        reporte = ReporteMetrica.objects.create(
+            restaurante=self.restaurante,
+            tipo=ReporteMetrica.TIPO_MENSUAL,
+            periodo_mes="2026-10",
+            periodo_anio="2026",
+            titulo="Snapshot octubre",
+            resumen={"monto_pedidos_no_cancelados": 12345},
+            datos={"version": 1, "periodo": "2026-10"},
+        )
+        self.client.force_authenticate(user=self.dueno)
+
+        with patch("menu.views.timezone.localdate", return_value=date(2026, 11, 6)):
+            response = self.client.post(
+                "/api/metricas/reportes/guardar/",
+                {
+                    "tipo": ReporteMetrica.TIPO_MENSUAL,
+                    "periodo_mes": "2026-10",
+                    "titulo": "Intento de reemplazo",
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["created"])
+        self.assertIn("snapshot histórico", response.data["message"])
+        reporte.refresh_from_db()
+        self.assertEqual(reporte.titulo, "Snapshot octubre")
+        self.assertEqual(reporte.resumen["monto_pedidos_no_cancelados"], 12345)
 
     def test_reporte_conserva_contrato_historico_y_agrega_manual_sin_duplicar(self):
         self.crear_pedidos_del_periodo()

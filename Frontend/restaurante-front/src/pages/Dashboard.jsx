@@ -441,7 +441,7 @@ export default function Dashboard() {
   }. Recuerda regularizar tu pago para mantener activo el servicio. Si ya realizaste el pago, ignora este mensaje.`;
   const contadorNotificaciones = data?.resumen?.notificaciones_pendientes ?? 0;
   const ventaTotalMes = metricasPedidos?.ventas?.venta_real_mes ?? 0;
-  const ventaTotalDiaria = metricasPedidos?.venta_total_diaria_operativa ?? 0;
+  const ventaTotalDiaria = metricasPedidos?.ventas?.monto_entregado_dia_calendario ?? 0;
   const tiendaAbierta = restaurante?.abierto_ahora === true;
 
   const cambiarEstadoApertura = async (forzarFueraDeHorario = false) => {
@@ -680,14 +680,14 @@ export default function Dashboard() {
                                   <Card
                                       icons = {"bi bi-cash-stack"}
                                       metrica={metricasPedidosLoading ? "Cargando..." : formatearMoneda(ventaTotalDiaria)}
-                                      titulo="Venta total diaria"
+                                      titulo="Monto entregado hoy"
                                       btnto={`/dashboard/${restaurante.slug}/pedidos`}
                                   />
                                 )}
                                 <Card
                                     icons = {"bi bi-cash-stack"}
                                     metrica={formatearMoneda(ventaTotalMes)}
-                                    titulo="Venta total del mes"
+                                    titulo="Monto entregado del mes"
                                     btnto={`/dashboard/${restaurante.slug}/pedidos`}
                                 />
                             </div>

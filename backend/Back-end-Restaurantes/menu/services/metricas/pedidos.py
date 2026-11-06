@@ -30,7 +30,7 @@ def inicio_mes(fecha=None):
 
 def inicio_semana(fecha=None):
     fecha = fecha or fecha_hoy()
-    return fecha - timedelta(days=6)
+    return fecha - timedelta(days=fecha.weekday())
 
 
 def _filtrar_rango_creacion(queryset, desde=None, hasta=None):
@@ -183,15 +183,19 @@ def venta_real_total(restaurante, desde=None, hasta=None):
 def metricas_canal_whatsapp(restaurante, desde_mes=None, hoy=None, turno=None):
     hoy = hoy or fecha_hoy()
     desde_mes = desde_mes or inicio_mes(hoy)
-    desde_semana = hoy - timedelta(days=6)
+    desde_semana = inicio_semana(hoy)
 
     creados_hoy = (
         _filtrar_turno(PedidoWhatsApp.objects.filter(restaurante=restaurante), turno)
         if turno else pedidos_whatsapp_creados(restaurante, hoy, hoy)
     )
-    validos_hoy = creados_hoy.exclude(estado__in=WHATSAPP_CANCELADOS)
+    creados_dia_calendario = pedidos_whatsapp_creados(restaurante, hoy, hoy)
+    validos_turno = creados_hoy.exclude(estado__in=WHATSAPP_CANCELADOS)
     creados_mes = pedidos_whatsapp_creados(restaurante, desde_mes, hoy)
     finalizados_hoy = creados_hoy.filter(estado__in=WHATSAPP_FINALIZADOS)
+    finalizados_dia_calendario = creados_dia_calendario.filter(
+        estado__in=WHATSAPP_FINALIZADOS
+    )
     finalizados_mes = pedidos_whatsapp_finalizados(restaurante, desde_mes, hoy)
     finalizados_semana = pedidos_whatsapp_finalizados(restaurante, desde_semana, hoy)
     cancelados_mes = pedidos_whatsapp_cancelados(restaurante, desde_mes, hoy)
@@ -199,7 +203,8 @@ def metricas_canal_whatsapp(restaurante, desde_mes=None, hoy=None, turno=None):
 
     return {
         "venta_real_hoy": sumar_total(finalizados_hoy),
-        "venta_diaria_whatsapp": sumar_total(validos_hoy),
+        "monto_entregado_dia_calendario": sumar_total(finalizados_dia_calendario),
+        "venta_diaria_whatsapp": sumar_total(validos_turno),
         "venta_real_semana": sumar_total(finalizados_semana),
         "venta_real_mes": sumar_total(finalizados_mes),
         "pedidos_creados_hoy": creados_hoy.count(),
@@ -214,14 +219,18 @@ def metricas_canal_whatsapp(restaurante, desde_mes=None, hoy=None, turno=None):
 def metricas_canal_especiales(restaurante, desde_mes=None, hoy=None, turno=None):
     hoy = hoy or fecha_hoy()
     desde_mes = desde_mes or inicio_mes(hoy)
-    desde_semana = hoy - timedelta(days=6)
+    desde_semana = inicio_semana(hoy)
 
     creados_hoy = (
         _filtrar_turno(PedidoEspecial.objects.filter(restaurante=restaurante), turno)
         if turno else pedidos_especiales_creados(restaurante, hoy, hoy)
     )
+    creados_dia_calendario = pedidos_especiales_creados(restaurante, hoy, hoy)
     creados_mes = pedidos_especiales_creados(restaurante, desde_mes, hoy)
     finalizados_hoy = creados_hoy.filter(estado__in=ESPECIALES_FINALIZADOS)
+    finalizados_dia_calendario = creados_dia_calendario.filter(
+        estado__in=ESPECIALES_FINALIZADOS
+    )
     finalizados_mes = pedidos_especiales_finalizados(restaurante, desde_mes, hoy)
     finalizados_semana = pedidos_especiales_finalizados(restaurante, desde_semana, hoy)
     cancelados_mes = pedidos_especiales_cancelados(restaurante, desde_mes, hoy)
@@ -229,6 +238,7 @@ def metricas_canal_especiales(restaurante, desde_mes=None, hoy=None, turno=None)
 
     return {
         "venta_real_hoy": sumar_total(finalizados_hoy),
+        "monto_entregado_dia_calendario": sumar_total(finalizados_dia_calendario),
         "venta_real_semana": sumar_total(finalizados_semana),
         "venta_real_mes": sumar_total(finalizados_mes),
         "pedidos_creados_hoy": creados_hoy.count(),
@@ -243,6 +253,7 @@ def metricas_canal_especiales(restaurante, desde_mes=None, hoy=None, turno=None)
 def metricas_canal_especiales_vacio():
     return {
         "venta_real_hoy": 0,
+        "monto_entregado_dia_calendario": 0,
         "venta_real_semana": 0,
         "venta_real_mes": 0,
         "pedidos_creados_hoy": 0,
@@ -257,12 +268,13 @@ def metricas_canal_especiales_vacio():
 def metricas_canal_manuales(restaurante, desde_mes=None, hoy=None, turno=None):
     hoy = hoy or fecha_hoy()
     desde_mes = desde_mes or inicio_mes(hoy)
-    desde_semana = hoy - timedelta(days=6)
+    desde_semana = inicio_semana(hoy)
 
     creados_hoy = (
         _filtrar_turno(PedidoManual.objects.filter(restaurante=restaurante), turno)
         if turno else pedidos_manuales_creados(restaurante, hoy, hoy)
     )
+    creados_dia_calendario = pedidos_manuales_creados(restaurante, hoy, hoy)
     vendidos_hoy = creados_hoy.filter(
         origen=PedidoManual.ORIGEN_MENLY
     ).exclude(
@@ -270,6 +282,9 @@ def metricas_canal_manuales(restaurante, desde_mes=None, hoy=None, turno=None):
     )
     creados_mes = pedidos_manuales_creados(restaurante, desde_mes, hoy)
     finalizados_hoy = creados_hoy.filter(estado__in=MANUALES_FINALIZADOS)
+    finalizados_dia_calendario = creados_dia_calendario.filter(
+        estado__in=MANUALES_FINALIZADOS
+    )
     finalizados_mes = pedidos_manuales_finalizados(restaurante, desde_mes, hoy)
     finalizados_semana = pedidos_manuales_finalizados(restaurante, desde_semana, hoy)
     cancelados_mes = pedidos_manuales_cancelados(restaurante, desde_mes, hoy)
@@ -277,6 +292,7 @@ def metricas_canal_manuales(restaurante, desde_mes=None, hoy=None, turno=None):
 
     return {
         "venta_real_hoy": sumar_total(finalizados_hoy),
+        "monto_entregado_dia_calendario": sumar_total(finalizados_dia_calendario),
         "venta_diaria_menly": sumar_total(vendidos_hoy),
         "venta_real_semana": sumar_total(finalizados_semana),
         "venta_real_mes": sumar_total(finalizados_mes),
@@ -331,6 +347,11 @@ def metricas_pedidos_combinadas(restaurante, hoy=None):
     return {
         "ventas": {
             "venta_real_hoy": whatsapp["venta_real_hoy"] + especiales["venta_real_hoy"] + manuales["venta_real_hoy"],
+            "monto_entregado_dia_calendario": (
+                whatsapp["monto_entregado_dia_calendario"]
+                + especiales["monto_entregado_dia_calendario"]
+                + manuales["monto_entregado_dia_calendario"]
+            ),
             "venta_real_semana": (
                 whatsapp.get("venta_real_semana", 0)
                 + especiales.get("venta_real_semana", 0)

@@ -829,9 +829,9 @@ function MetricasPro({ metricas, productos, onOpenReporteMensual, onOpenReporteA
         <MetricCard icon="bi bi-x-circle" label="Pedidos cancelados" value={metricas?.pedidos?.pedidos_cancelados_mes || 0} />
       </section>
       <section className="metricas-grid">
-        <MetricCard icon="bi bi-cash-stack" label="Venta diaria" value={formatearMoneda(metricas?.ventas?.venta_real_hoy || 0)} />
-        <MetricCard icon="bi bi-graph-up-arrow" label="Venta semanal" value={formatearMoneda(metricas?.ventas?.venta_real_semana || 0)} />
-        <MetricCard icon="bi bi-calendar3" label="Venta mensual" value={formatearMoneda(metricas?.ventas?.venta_real_mes || 0)} />
+        <MetricCard icon="bi bi-cash-stack" label="Monto entregado diario" value={formatearMoneda(metricas?.ventas?.monto_entregado_dia_calendario || 0)} hint="Día calendario; pago no verificado" />
+        <MetricCard icon="bi bi-graph-up-arrow" label="Monto entregado semanal" value={formatearMoneda(metricas?.ventas?.venta_real_semana || 0)} hint="Semana calendario; pago no verificado" />
+        <MetricCard icon="bi bi-calendar3" label="Monto entregado mensual" value={formatearMoneda(metricas?.ventas?.venta_real_mes || 0)} hint="Pedidos entregados; pago no verificado" />
       </section>
       <section className="metricas-two-columns">
         <ProductosMasVendidos productos={productos} />

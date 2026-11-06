@@ -33,6 +33,7 @@ class MenlyAdminSite(AdminSite):
                 "PedidoWhatsApp",
                 "PedidoManual",
                 "PedidoEspecial",
+                "PedidoPruebaImportado",
                 "RestaurantePedidoSecuencia",
             },
         ),
@@ -62,6 +63,7 @@ class MenlyAdminSite(AdminSite):
             "Reportes y Métricas",
             {
                 "ReporteMetrica",
+                "EjecucionReportesMensuales",
             },
         ),
     )

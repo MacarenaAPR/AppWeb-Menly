@@ -1,8 +1,8 @@
 from collections import Counter
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 from django.db import transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, Min, Sum
 from django.utils import timezone
 
 from menu.models import (
@@ -11,6 +11,8 @@ from menu.models import (
     PedidoManualItem,
     PedidoWhatsApp,
     ReporteMetrica,
+    Reserva,
+    Restaurante,
 )
 
 
@@ -137,10 +139,23 @@ def construir_snapshot_mensual(restaurante, anio, mes):
 
     total_pedidos = whatsapp.count() + manuales.count() + cantidad_especiales
     cancelados = estados["cancelado"]
+    entregados = estados["entregado"]
+    pendientes = total_pedidos - cancelados - entregados
+    reservas = Reserva.objects.filter(
+        restaurante=restaurante,
+        fecha__gte=inicio.date(),
+        fecha__lt=siguiente.date(),
+    )
+    reservas_por_estado = {
+        fila["estado"]: fila["total"]
+        for fila in reservas.values("estado").annotate(total=Count("id"))
+    }
     generado = timezone.localtime(timezone.now()).isoformat()
     resumen = {
         "total_pedidos": total_pedidos,
+        "pedidos_entregados": entregados,
         "pedidos_cancelados": cancelados,
+        "pedidos_pendientes": pendientes,
         "monto_pedidos_no_cancelados": monto,
         "ticket_promedio_pedidos_no_cancelados": (
             round(monto / pedidos_comerciales) if pedidos_comerciales else 0
@@ -168,6 +183,10 @@ def construir_snapshot_mensual(restaurante, anio, mes):
             "whatsapp": whatsapp.count(),
             "menly": manuales.count(),
             "especial": cantidad_especiales,
+        },
+        "reservas": {
+            "total": reservas.count(),
+            "por_estado": dict(sorted(reservas_por_estado.items())),
         },
         "productos_mas_solicitados": [
             {"producto": nombre, "cantidad": cantidad}
@@ -208,3 +227,70 @@ def guardar_reporte_mensual(restaurante, anio, mes, regenerar=False):
             return existente, True
 
         return ReporteMetrica.objects.get_or_create(defaults=defaults, **filtros)
+
+
+def _mes_inicio(valor):
+    return date(valor.year, valor.month, 1)
+
+
+def _mes_anterior(valor):
+    return date(valor.year - 1, 12, 1) if valor.month == 1 else date(valor.year, valor.month - 1, 1)
+
+
+def _mes_siguiente(valor):
+    return date(valor.year + 1, 1, 1) if valor.month == 12 else date(valor.year, valor.month + 1, 1)
+
+
+def primer_mes_reportable(restaurante):
+    creacion = timezone.localtime(restaurante.fecha_creacion).date()
+    candidatos = [creacion]
+    for modelo in (PedidoWhatsApp, PedidoManual, PedidoEspecial):
+        primera = (
+            modelo.objects.filter(restaurante=restaurante)
+            .aggregate(fecha=Min("fecha_creacion"))["fecha"]
+        )
+        if primera:
+            candidatos.append(timezone.localtime(primera).date())
+    primera_reserva = (
+        Reserva.objects.filter(restaurante=restaurante)
+        .aggregate(fecha=Min("fecha"))["fecha"]
+    )
+    if primera_reserva:
+        candidatos.append(primera_reserva)
+    return _mes_inicio(min(candidatos))
+
+
+def generar_reportes_pendientes(restaurantes=None, hasta=None):
+    """Genera meses cerrados faltantes y aísla los errores por restaurante/mes."""
+    restaurantes = restaurantes if restaurantes is not None else Restaurante.objects.all()
+    limite = _mes_anterior(_mes_inicio(hasta or timezone.localdate()))
+    resultado = {"generados": 0, "existentes": 0, "errores": []}
+
+    for restaurante in restaurantes.order_by("id").iterator():
+        try:
+            periodo = primer_mes_reportable(restaurante)
+        except Exception as exc:
+            resultado["errores"].append({
+                "restaurante_id": restaurante.id,
+                "periodo": "inicio",
+                "error": str(exc),
+            })
+            continue
+        while periodo <= limite:
+            try:
+                _reporte, creado = guardar_reporte_mensual(
+                    restaurante,
+                    periodo.year,
+                    periodo.month,
+                    regenerar=False,
+                )
+                clave = "generados" if creado else "existentes"
+                resultado[clave] += 1
+            except Exception as exc:
+                resultado["errores"].append({
+                    "restaurante_id": restaurante.id,
+                    "periodo": periodo.strftime("%Y-%m"),
+                    "error": str(exc),
+                })
+            periodo = _mes_siguiente(periodo)
+    return resultado

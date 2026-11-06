@@ -1,0 +1,12 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Generar reporte mensual</h1>
+  <p>El período debe estar cerrado. Si ya existe, su contenido histórico no será modificado.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Generar" class="default">
+    <a href="{% url 'admin:menu_reportemetrica_changelist' %}" class="button cancel-link">Cancelar</a>
+  </form>
+{% endblock %}
